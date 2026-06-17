@@ -11,7 +11,7 @@ import app.jammes.boletim.data.local.entity.PeriodoEntity
 interface PeriodoDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insert(periodo: PeriodoEntity): String
+    suspend fun insert(periodo: PeriodoEntity)
 
     @Update
     suspend fun update(periodo: PeriodoEntity)

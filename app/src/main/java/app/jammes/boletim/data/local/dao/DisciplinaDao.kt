@@ -11,7 +11,7 @@ import app.jammes.boletim.data.local.entity.DisciplinaEntity
 interface DisciplinaDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insert(disciplina: DisciplinaEntity): String
+    suspend fun insert(disciplina: DisciplinaEntity)
 
     @Update
     suspend fun update(disciplina: DisciplinaEntity)

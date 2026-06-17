@@ -11,7 +11,7 @@ import app.jammes.boletim.data.local.entity.BoletimEntity
 interface BoletimDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insert(boletim: BoletimEntity): String
+    suspend fun insert(boletim: BoletimEntity)
 
     @Update
     suspend fun update(boletim: BoletimEntity)

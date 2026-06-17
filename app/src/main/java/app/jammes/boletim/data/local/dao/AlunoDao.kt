@@ -11,7 +11,7 @@ import app.jammes.boletim.data.local.entity.AlunoEntity
 interface AlunoDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insert(aluno: AlunoEntity): String
+    suspend fun insert(aluno: AlunoEntity)
 
     @Update
     suspend fun update(aluno: AlunoEntity)

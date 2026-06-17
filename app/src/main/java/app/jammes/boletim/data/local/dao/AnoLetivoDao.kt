@@ -11,7 +11,7 @@ import app.jammes.boletim.data.local.entity.AnoLetivoEntity
 interface AnoLetivoDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insert(anoLetivo: AnoLetivoEntity): String
+    suspend fun insert(anoLetivo: AnoLetivoEntity)
 
     @Update
     suspend fun update(anoLetivo: AnoLetivoEntity)
