@@ -4,14 +4,19 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
+import androidx.room.Query
 import androidx.room.Update
 import app.jammes.boletim.data.local.entity.AlunoEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface AlunoDao {
 
+    @Query("SELECT id, nome FROM aluno")
+    fun fetchAll(): Flow<List<AlunoEntity>>
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insert(aluno: AlunoEntity)
+    suspend fun insert(aluno: AlunoEntity): Long
 
     @Update
     suspend fun update(aluno: AlunoEntity)
