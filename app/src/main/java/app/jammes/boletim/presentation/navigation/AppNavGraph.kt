@@ -23,6 +23,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import app.jammes.boletim.presentation.ui.AlunoScreen
+import app.jammes.boletim.presentation.ui.anoletivo.AnoLetivoScreen
+import app.jammes.boletim.presentation.ui.boletim.BoletimScreen
 
 private data class BottomItem(
     val route: String,
@@ -75,14 +78,14 @@ fun AppNavGraph() {
             startDestination = Routes.BOLETIM,
             modifier = Modifier.padding(paddingValues)
         ) {
-            composable(Routes.BOLETIM) {
-                Text("Boletim")
-            }
             composable(Routes.ANO_LETIVO) {
-                Text("Ano Letivo")
+                AnoLetivoScreen()
+            }
+            composable(Routes.BOLETIM) {
+                BoletimScreen()
             }
             composable(Routes.ALUNO) {
-                Text("Aluno")
+                AlunoScreen()
             }
         }
     }

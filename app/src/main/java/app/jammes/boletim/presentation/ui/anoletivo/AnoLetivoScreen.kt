@@ -1,4 +1,4 @@
-package app.jammes.boletim.presentation.ui.boletim
+package app.jammes.boletim.presentation.ui.anoletivo
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
@@ -20,14 +20,14 @@ import androidx.compose.ui.text.style.TextAlign
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BoletimScreen(modifier: Modifier = Modifier) {
+fun AnoLetivoScreen(modifier: Modifier = Modifier) {
     Scaffold(
         modifier = modifier,
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        text = "Boletim",
+                        text = "Ano Letivo",
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center,
                         style = MaterialTheme.typography.titleLarge
@@ -37,7 +37,7 @@ fun BoletimScreen(modifier: Modifier = Modifier) {
                     IconButton(onClick = { /*TODO*/ }) {
                         Icon(
                             imageVector = Icons.Filled.Add,
-                            contentDescription = "Nova Disciplina",
+                            contentDescription = "Novo Ano Letivo",
                             tint = MaterialTheme.colorScheme.primary
                         )
                     }
@@ -45,14 +45,14 @@ fun BoletimScreen(modifier: Modifier = Modifier) {
                 windowInsets = WindowInsets(0,0,0,0)
             )
         },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
             Text(
-                text = "Boletim",
-                modifier = Modifier.fillMaxSize(),
+                text = "Ano Letivo",
+                modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.titleLarge
+                style = MaterialTheme.typography.titleLarge,
             )
         }
     }
