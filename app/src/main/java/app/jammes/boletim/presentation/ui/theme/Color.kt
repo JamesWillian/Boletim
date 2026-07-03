@@ -1,4 +1,4 @@
-package app.jammes.boletim.ui.theme
+package app.jammes.boletim.presentation.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
