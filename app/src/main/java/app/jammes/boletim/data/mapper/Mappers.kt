@@ -10,12 +10,16 @@ import java.util.UUID
 
 fun AlunoEntity.toDomain(): AlunoDomain = AlunoDomain(
     id = id,
-    nome = nome
+    nome = nome,
+    anoLetivoId = anoLetivoId,
+    periodoId = periodoId
 )
 
 fun AlunoDomain.toEntity(): AlunoEntity = AlunoEntity(
     id = id.ifEmpty { UUID.randomUUID().toString() },
-    nome = nome.trim()
+    nome = nome.trim(),
+    anoLetivoId = anoLetivoId,
+    periodoId = periodoId
 )
 
 fun AnoLetivoEntity.toDomain(periodo: List<PeriodoDomain>): AnoLetivoDomain = AnoLetivoDomain(
@@ -25,8 +29,8 @@ fun AnoLetivoEntity.toDomain(periodo: List<PeriodoDomain>): AnoLetivoDomain = An
 )
 
 fun AnoLetivoDomain.toEntity(): AnoLetivoEntity = AnoLetivoEntity(
-    id = id,
-    descricao = descricao
+    id = id.ifEmpty { UUID.randomUUID().toString() },
+    descricao = descricao.trim()
 )
 
 fun PeriodoEntity.toDomain(): PeriodoDomain = PeriodoDomain(

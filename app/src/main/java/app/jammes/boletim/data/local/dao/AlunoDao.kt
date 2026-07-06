@@ -12,7 +12,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface AlunoDao {
 
-    @Query("SELECT id, nome FROM aluno")
+    @Query("SELECT * FROM aluno")
     fun fetchAll(): Flow<List<AlunoEntity>>
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)

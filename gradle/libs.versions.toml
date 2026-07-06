@@ -11,6 +11,7 @@ composeBom = "2026.05.01"
 room = "2.8.4"
 ksp = "2.3.9"
 hilt = "2.59.2"
+hiltNavigationCompose = "1.2.0"
 navigationCompose = "2.9.8"
 
 [libraries]
@@ -37,6 +38,7 @@ androidx-room-compiler = { group = "androidx.room", name = "room-compiler", vers
 # Dagger Hilt #
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
+hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 
 
 # Testes #
