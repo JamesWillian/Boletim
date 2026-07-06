@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface AlunoRepository {
 
-    fun fetchAll(): Flow<List<AlunoDomain>>
+    fun observeAll(): Flow<List<AlunoDomain>>
 
     suspend fun upsert(aluno: AlunoDomain): String
 

@@ -15,7 +15,7 @@ class AlunoRepositoryImpl @Inject constructor(
     private val alunoDao: AlunoDao
 ): AlunoRepository {
 
-    override fun fetchAll(): Flow<List<AlunoDomain>> {
+    override fun observeAll(): Flow<List<AlunoDomain>> {
         return alunoDao.fetchAll().map { lista ->
             lista.map { aluno ->
                 aluno.toDomain()
