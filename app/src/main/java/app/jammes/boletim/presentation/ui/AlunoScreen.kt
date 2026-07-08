@@ -29,7 +29,7 @@ fun AlunoScreen(modifier: Modifier = Modifier) {
                     Text(
                         text = "Aluno",
                         modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center,
+                        textAlign = TextAlign.Left,
                         style = MaterialTheme.typography.titleLarge
                     )
                 },

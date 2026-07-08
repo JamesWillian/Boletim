@@ -29,7 +29,7 @@ fun BoletimScreen(modifier: Modifier = Modifier) {
                     Text(
                         text = "Boletim",
                         modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center,
+                        textAlign = TextAlign.Left,
                         style = MaterialTheme.typography.titleLarge
                     )
                 },
