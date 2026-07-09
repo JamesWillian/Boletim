@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class AnoLetivoUiState(
@@ -23,7 +24,7 @@ data class AnoLetivoUiState(
 
 @HiltViewModel
 class AnoLetivoViewModel @Inject constructor(
-    repository: AnoLetivoRepository
+    private val repository: AnoLetivoRepository
 ): ViewModel() {
 
     private val selectedId = MutableStateFlow<String?>(null)
@@ -45,5 +46,11 @@ class AnoLetivoViewModel @Inject constructor(
 
     fun onAnoLetivoSelected(id: String) {
         selectedId.value = id
+    }
+
+    fun save(anoletivo: AnoLetivoDomain) {
+        viewModelScope.launch {
+            repository.upsert(anoletivo)
+        }
     }
 }

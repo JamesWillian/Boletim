@@ -53,4 +53,7 @@ class AnoLetivoRepositoryImpl @Inject constructor(
 
         return anoLetivoEntity.id
     }
+
+    override suspend fun delete(anoLetivo: AnoLetivoDomain) =
+        anoLetivoDao.delete(anoLetivo.toEntity())
 }

@@ -1,4 +1,4 @@
-package app.jammes.boletim.presentation.ui
+package app.jammes.boletim.presentation.ui.aluno
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets

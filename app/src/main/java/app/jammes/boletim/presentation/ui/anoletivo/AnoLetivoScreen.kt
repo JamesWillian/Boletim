@@ -1,5 +1,6 @@
 package app.jammes.boletim.presentation.ui.anoletivo
 
+import android.app.AlertDialog
 import android.graphics.drawable.shapes.Shape
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -25,16 +26,22 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,6 +50,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.jammes.boletim.domain.model.AnoLetivoDomain
+import app.jammes.boletim.domain.model.PeriodoDomain
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -51,6 +60,8 @@ fun AnoLetivoScreen(
     viewModel: AnoLetivoViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    var showAnoLetivoForm by remember { mutableStateOf(false) }
 
     Scaffold(
         modifier = modifier,
@@ -65,7 +76,7 @@ fun AnoLetivoScreen(
                     )
                 },
                 actions = {
-                    IconButton(onClick = { /*TODO*/ }) {
+                    IconButton(onClick = { showAnoLetivoForm = true }) {
                         Icon(
                             imageVector = Icons.Filled.Add,
                             contentDescription = "Novo Ano Letivo",
@@ -171,6 +182,16 @@ fun AnoLetivoScreen(
             }
         }
     }
+
+    if (showAnoLetivoForm) {
+        AnoLetivoFormDialog(
+            onDismiss = { showAnoLetivoForm = false },
+            onConfirm = { anoLetivo ->
+                viewModel.save(anoLetivo)
+                showAnoLetivoForm = false
+            }
+        )
+    }
 }
 
 @Composable
@@ -205,4 +226,50 @@ fun AnoLetivoAtualCard(anoLetivo: String?, periodo: String?) {
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AnoLetivoFormDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (AnoLetivoDomain) -> Unit
+) {
+
+    var descricao by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onConfirm(
+                        AnoLetivoDomain(
+                            descricao = descricao,
+                            periodo = emptyList()
+                        )
+                    )
+                }
+            ) { Text("Salvar") }
+        },
+        dismissButton = {
+            TextButton(onDismiss) { Text("Cancelar") }
+        },
+        title = {
+            Text(
+                text = "Novo Ano Letivo",
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+        text = {
+            OutlinedTextField(
+                value = descricao,
+                onValueChange = {descricao = it},
+                label = { Text("Ano Letivo") },
+                singleLine = true,
+                shape = AbsoluteRoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.surface
+    )
 }

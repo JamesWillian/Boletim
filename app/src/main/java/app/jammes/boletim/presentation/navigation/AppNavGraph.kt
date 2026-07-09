@@ -23,7 +23,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import app.jammes.boletim.presentation.ui.AlunoScreen
+import app.jammes.boletim.presentation.ui.aluno.AlunoScreen
 import app.jammes.boletim.presentation.ui.anoletivo.AnoLetivoScreen
 import app.jammes.boletim.presentation.ui.boletim.BoletimScreen
 

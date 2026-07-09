@@ -7,4 +7,5 @@ interface AnoLetivoRepository {
     fun observeAll(): Flow<List<AnoLetivoDomain>>
     fun observeById(id: String): Flow<AnoLetivoDomain?>
     suspend fun upsert(anoLetivo: AnoLetivoDomain): String
+    suspend fun delete(anoLetivo: AnoLetivoDomain)
 }
