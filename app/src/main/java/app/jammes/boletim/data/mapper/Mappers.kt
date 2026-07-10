@@ -38,3 +38,9 @@ fun PeriodoEntity.toDomain(): PeriodoDomain = PeriodoDomain(
     periodo = periodo,
     anoLetivoId = anoLetivoId
 )
+
+fun PeriodoDomain.toEntity(): PeriodoEntity = PeriodoEntity(
+    id = id.ifEmpty { UUID.randomUUID().toString() },
+    periodo = periodo,
+    anoLetivoId = anoLetivoId
+)

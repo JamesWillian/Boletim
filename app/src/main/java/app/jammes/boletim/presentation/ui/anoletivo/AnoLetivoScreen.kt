@@ -2,7 +2,9 @@ package app.jammes.boletim.presentation.ui.anoletivo
 
 import android.app.AlertDialog
 import android.graphics.drawable.shapes.Shape
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +23,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.AbsoluteRoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
@@ -46,12 +49,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.jammes.boletim.domain.model.AnoLetivoDomain
 import app.jammes.boletim.domain.model.PeriodoDomain
+import kotlin.text.toInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,6 +67,9 @@ fun AnoLetivoScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     var showAnoLetivoForm by remember { mutableStateOf(false) }
+    var showPeriodoForm by remember { mutableStateOf(false) }
+    var periodoPendenteExclusao by remember { mutableStateOf<PeriodoDomain?>(null) }
+    var periodoEdicao by remember { mutableStateOf<PeriodoDomain?>(null) }
 
     Scaffold(
         modifier = modifier,
@@ -89,11 +97,18 @@ fun AnoLetivoScreen(
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0)
     ) { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues).padding(horizontal = 14.dp).fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+                .padding(horizontal = 14.dp)
+                .fillMaxSize()
+        ) {
             AnoLetivoAtualCard(null, null)
 
             LazyRow(
-                modifier = Modifier.padding(vertical = 32.dp).height(50.dp),
+                modifier = Modifier
+                    .padding(vertical = 32.dp)
+                    .height(50.dp),
                 horizontalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 items(state.items, key = { it.id }) { item ->
@@ -102,7 +117,10 @@ fun AnoLetivoScreen(
                             .clip(shape = AbsoluteRoundedCornerShape(30))
                             .fillMaxSize()
                             .background(color = Color.LightGray)
-                            .clickable(onClick = { viewModel.onAnoLetivoSelected(item.id) })
+                            .clickable(onClick = { viewModel.onAnoLetivoSelected(item.id) }),
+                        border = if (state.anoLetivoSelecionado?.id == item.id)
+                            BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                        else null
                     ) {
                         Text(
                             text = item.descricao,
@@ -117,17 +135,21 @@ fun AnoLetivoScreen(
             }
 
             Row(
-                modifier = Modifier.fillMaxWidth().height(40.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(40.dp),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
 
                 Text(
                     text = "PERIODOS",
-                    modifier = Modifier.fillMaxHeight().wrapContentSize(Alignment.Center),
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .wrapContentSize(Alignment.Center),
                     style = MaterialTheme.typography.titleMedium
                 )
 
-                IconButton(onClick = { /*TODO*/ }) {
+                IconButton(onClick = { periodoEdicao = null; showPeriodoForm = !state.anoLetivoSelecionado?.id.isNullOrEmpty() }) {
                     Icon(
                         imageVector = Icons.Filled.Add,
                         contentDescription = "Novo Periodo",
@@ -138,7 +160,9 @@ fun AnoLetivoScreen(
 
             state.anoLetivoSelecionado?.let { selecionado ->
                 LazyColumn(
-                    modifier = Modifier.padding(vertical = 8.dp).fillMaxSize(),
+                    modifier = Modifier
+                        .padding(vertical = 8.dp)
+                        .fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     items(selecionado.periodo, key = { it.id }) { item ->
@@ -149,7 +173,9 @@ fun AnoLetivoScreen(
                                 .background(color = Color.LightGray)
                         ) {
                             Row(
-                                modifier = Modifier.fillMaxWidth().height(50.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(50.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(
@@ -160,14 +186,14 @@ fun AnoLetivoScreen(
                                         .wrapContentSize(Alignment.Center)
                                 )
                                 Row(modifier = Modifier.padding(horizontal = 8.dp)) {
-                                    IconButton(onClick = { /*TODO*/ }) {
+                                    IconButton(onClick = { periodoPendenteExclusao = item }) {
                                         Icon(
                                             imageVector = Icons.Outlined.Delete,
                                             contentDescription = "Deletar Periodo",
                                             tint = MaterialTheme.colorScheme.error
                                         )
                                     }
-                                    IconButton(onClick = { /*TODO*/ }) {
+                                    IconButton(onClick = { periodoEdicao = item; showPeriodoForm = true }) {
                                         Icon(
                                             imageVector = Icons.Filled.Edit,
                                             contentDescription = "Editar Periodo",
@@ -189,6 +215,31 @@ fun AnoLetivoScreen(
             onConfirm = { anoLetivo ->
                 viewModel.save(anoLetivo)
                 showAnoLetivoForm = false
+            }
+        )
+    }
+
+    if (showPeriodoForm) {
+        state.anoLetivoSelecionado?.let { anoLetivo ->
+            PeriodoFormDialog(
+                periodoEdit = periodoEdicao,
+                anoLetivoId = anoLetivo.id,
+                onDismiss = { showPeriodoForm = false },
+                onConfirm = { periodo ->
+                    viewModel.savePeriodo(periodo)
+                    showPeriodoForm = false
+                }
+            )
+        }
+    }
+
+    periodoPendenteExclusao?.let { item ->
+        DeletePeriodoDialogForm(
+            item,
+            onDismiss = { periodoPendenteExclusao = null },
+            onConfirm = {
+                viewModel.deletePeriodo(item)
+                periodoPendenteExclusao = null
             }
         )
     }
@@ -268,6 +319,87 @@ fun AnoLetivoFormDialog(
                 singleLine = true,
                 shape = AbsoluteRoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.surface
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PeriodoFormDialog(
+    periodoEdit: PeriodoDomain? = null,
+    anoLetivoId: String,
+    onDismiss: () -> Unit,
+    onConfirm: (PeriodoDomain) -> Unit
+) {
+
+    var periodo by remember { mutableStateOf(periodoEdit?.periodo?.toString().orEmpty()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    onConfirm(
+                        PeriodoDomain(
+                            id = periodoEdit?.id ?: "",
+                            periodo = periodo.toInt(),
+                            anoLetivoId = anoLetivoId
+                        )
+                    )
+                }
+            ) { Text("Salvar") }
+        },
+        dismissButton = {
+            TextButton(onDismiss) { Text("Cancelar") }
+        },
+        title = {
+            Text(
+                text = "Novo Periodo",
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+        text = {
+            OutlinedTextField(
+                value = periodo,
+                onValueChange = {periodo = it},
+                label = { Text("Periodo") },
+                suffix = { Text("Semestre") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                shape = AbsoluteRoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.surface
+    )
+}
+
+@Composable
+fun DeletePeriodoDialogForm(
+    periodo: PeriodoDomain,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onConfirm) { Text("Deletar") }
+        },
+        dismissButton = {
+            TextButton(onDismiss) { Text("Cancelar") }
+        },
+        title = {
+            Text(
+                text = "Deletar Periodo",
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+        text = {
+            Text(
+                text = "Confirma a exclusão do periodo ${periodo.periodo}?",
+                style = MaterialTheme.typography.bodySmall
             )
         },
         containerColor = MaterialTheme.colorScheme.surface

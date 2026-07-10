@@ -5,6 +5,7 @@ import app.jammes.boletim.data.local.dao.PeriodoDao
 import app.jammes.boletim.data.mapper.toDomain
 import app.jammes.boletim.data.mapper.toEntity
 import app.jammes.boletim.domain.model.AnoLetivoDomain
+import app.jammes.boletim.domain.model.PeriodoDomain
 import app.jammes.boletim.domain.repository.AnoLetivoRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -56,4 +57,19 @@ class AnoLetivoRepositoryImpl @Inject constructor(
 
     override suspend fun delete(anoLetivo: AnoLetivoDomain) =
         anoLetivoDao.delete(anoLetivo.toEntity())
+
+    override suspend fun upsertPeriodo(periodo: PeriodoDomain): String {
+        val periodoEntity = periodo.toEntity()
+
+        if (periodo.id.isEmpty())
+            periodoDao.insert(periodoEntity)
+        else
+            periodoDao.update(periodoEntity)
+
+        return periodoEntity.id
+    }
+
+    override suspend fun deletePeriodo(periodo: PeriodoDomain) {
+        periodoDao.delete(periodo.toEntity())
+    }
 }

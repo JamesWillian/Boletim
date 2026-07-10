@@ -53,4 +53,22 @@ class AnoLetivoViewModel @Inject constructor(
             repository.upsert(anoletivo)
         }
     }
+
+    fun delete(anoletivo: AnoLetivoDomain) {
+        viewModelScope.launch {
+            repository.delete(anoletivo)
+        }
+    }
+
+    fun savePeriodo(periodo: PeriodoDomain) {
+        viewModelScope.launch {
+            repository.upsertPeriodo(periodo)
+        }
+    }
+
+    fun deletePeriodo(periodo: PeriodoDomain) {
+        viewModelScope.launch {
+            repository.deletePeriodo(periodo)
+        }
+    }
 }
