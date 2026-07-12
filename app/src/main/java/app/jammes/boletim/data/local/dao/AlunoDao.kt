@@ -15,6 +15,9 @@ interface AlunoDao {
     @Query("SELECT * FROM aluno")
     fun fetchAll(): Flow<List<AlunoEntity>>
 
+    @Query("SELECT * FROM aluno LIMIT 1")
+    fun fetchFirst(): Flow<AlunoEntity?>
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(aluno: AlunoEntity): Long
 
