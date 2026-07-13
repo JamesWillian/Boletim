@@ -1,10 +1,7 @@
 package app.jammes.boletim.presentation.ui.anoletivo
 
-import android.app.AlertDialog
-import android.graphics.drawable.shapes.Shape
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,7 +14,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -26,15 +23,19 @@ import androidx.compose.foundation.shape.AbsoluteRoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.CheckCircleOutline
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -68,8 +69,11 @@ fun AnoLetivoScreen(
 
     var showAnoLetivoForm by remember { mutableStateOf(false) }
     var showPeriodoForm by remember { mutableStateOf(false) }
-    var periodoPendenteExclusao by remember { mutableStateOf<PeriodoDomain?>(null) }
-    var periodoEdicao by remember { mutableStateOf<PeriodoDomain?>(null) }
+    var anoLetivoDeleting by remember { mutableStateOf<AnoLetivoDomain?>(null) }
+    var periodoDeleting by remember { mutableStateOf<PeriodoDomain?>(null) }
+    var anoLetivoEditing by remember { mutableStateOf<AnoLetivoDomain?>(null) }
+    var periodoEditing by remember { mutableStateOf<PeriodoDomain?>(null) }
+
 
     Scaffold(
         modifier = modifier,
@@ -103,33 +107,67 @@ fun AnoLetivoScreen(
                 .padding(horizontal = 14.dp)
                 .fillMaxSize()
         ) {
-            AnoLetivoAtualCard(null, null)
+            AnoLetivoAtualCard(state.anoLetivoPadrao?.descricao, state.periodoPadrao)
 
-            LazyRow(
-                modifier = Modifier
-                    .padding(vertical = 32.dp)
-                    .height(50.dp),
-                horizontalArrangement = Arrangement.spacedBy(20.dp)
+            Column(
+                modifier = Modifier.padding(top = 32.dp, bottom = 24.dp)
             ) {
-                items(state.items, key = { it.id }) { item ->
-                    Card(
-                        modifier = Modifier
-                            .clip(shape = AbsoluteRoundedCornerShape(30))
-                            .fillMaxSize()
-                            .background(color = Color.LightGray)
-                            .clickable(onClick = { viewModel.onAnoLetivoSelected(item.id) }),
-                        border = if (state.anoLetivoSelecionado?.id == item.id)
-                            BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
-                        else null
-                    ) {
-                        Text(
-                            text = item.descricao,
+                LazyRow(
+                    modifier = Modifier.height(50.dp),
+                    horizontalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    items(state.items, key = { it.id }) { item ->
+                        Card(
                             modifier = Modifier
-                                .padding(horizontal = 14.dp)
+                                .clip(shape = AbsoluteRoundedCornerShape(30))
                                 .fillMaxSize()
-                                .wrapContentSize(Alignment.Center),
-                            textAlign = TextAlign.Center
-                        )
+                                .background(color = Color.LightGray)
+                                .clickable(onClick = { viewModel.onAnoLetivoSelected(item.id) }),
+                            border = if (state.anoLetivoSelecionado?.id == item.id)
+                                BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                            else null
+                        ) {
+                            Text(
+                                text = item.descricao,
+                                modifier = Modifier
+                                    .padding(horizontal = 14.dp)
+                                    .fillMaxSize()
+                                    .wrapContentSize(Alignment.Center),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
+
+                Row(modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                    TextButton(
+                        onClick = { anoLetivoEditing = state.anoLetivoSelecionado; showAnoLetivoForm = true }
+                    ) {
+                        Text("Editar")
+                    }
+
+                    Spacer(modifier = Modifier.width(5.dp))
+
+                    TextButton(
+                        onClick = { anoLetivoDeleting = state.anoLetivoSelecionado },
+                    ) {
+                        Text("Excluir", color = Color.Red)
+                    }
+
+                    if (state.anoLetivoPadrao?.id != state.anoLetivoSelecionado?.id) {
+                        Spacer(modifier = Modifier.width(5.dp))
+
+                        OutlinedButton(
+                            onClick = {
+                                state.anoLetivoSelecionado?.let {
+                                    viewModel.setAnoLetivoPadrao(
+                                        it.id
+                                    )
+                                }
+                            }
+                        ) {
+                            Text("Definir como Padrão")
+                        }
                     }
                 }
             }
@@ -149,7 +187,7 @@ fun AnoLetivoScreen(
                     style = MaterialTheme.typography.titleMedium
                 )
 
-                IconButton(onClick = { periodoEdicao = null; showPeriodoForm = !state.anoLetivoSelecionado?.id.isNullOrEmpty() }) {
+                IconButton(onClick = { periodoEditing = null; showPeriodoForm = !state.anoLetivoSelecionado?.id.isNullOrEmpty() }) {
                     Icon(
                         imageVector = Icons.Filled.Add,
                         contentDescription = "Novo Periodo",
@@ -166,6 +204,7 @@ fun AnoLetivoScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     items(selecionado.periodo, key = { it.id }) { item ->
+                        var showPeriodoMenu by remember { mutableStateOf(false) }
                         Card(
                             modifier = Modifier
                                 .clip(shape = AbsoluteRoundedCornerShape(30))
@@ -185,20 +224,56 @@ fun AnoLetivoScreen(
                                         .fillMaxHeight()
                                         .wrapContentSize(Alignment.Center)
                                 )
-                                Row(modifier = Modifier.padding(horizontal = 8.dp)) {
-                                    IconButton(onClick = { periodoPendenteExclusao = item }) {
+                                Box(modifier = Modifier.padding(horizontal = 8.dp)) {
+                                    IconButton(onClick = { showPeriodoMenu = true }) {
                                         Icon(
-                                            imageVector = Icons.Outlined.Delete,
-                                            contentDescription = "Deletar Periodo",
-                                            tint = MaterialTheme.colorScheme.error
-                                        )
-                                    }
-                                    IconButton(onClick = { periodoEdicao = item; showPeriodoForm = true }) {
-                                        Icon(
-                                            imageVector = Icons.Filled.Edit,
-                                            contentDescription = "Editar Periodo",
+                                            imageVector = Icons.Default.MoreVert,
+                                            contentDescription = "Mais Opções do Periodo",
                                             tint = MaterialTheme.colorScheme.primary
                                         )
+                                    }
+                                    DropdownMenu(
+                                        expanded = showPeriodoMenu,
+                                        onDismissRequest = { showPeriodoMenu = false }
+                                    ) {
+                                        DropdownMenuItem(
+                                            text = { Text("Editar Periodo") },
+                                            leadingIcon = { Icon(imageVector = Icons.Filled.Edit, contentDescription = "Editar Periodo") },
+                                            onClick = {
+                                                showPeriodoMenu = false
+                                                periodoEditing = item
+                                                showPeriodoForm = true
+                                            }
+                                        )
+                                        DropdownMenuItem(
+                                            text = { Text("Deletar Período") },
+                                            leadingIcon = {
+                                                Icon(
+                                                    imageVector = Icons.Outlined.Delete,
+                                                    contentDescription = "Deletar Período",
+                                                    tint = MaterialTheme.colorScheme.error
+                                                )
+                                            },
+                                            onClick = {
+                                                showPeriodoMenu = false
+                                                periodoDeleting = item
+                                            }
+                                        )
+                                        if (state.anoLetivoPadrao?.id == state.anoLetivoSelecionado?.id) {
+                                            DropdownMenuItem(
+                                                text = { Text("Definir como Padrão") },
+                                                leadingIcon = {
+                                                    Icon(
+                                                        imageVector = Icons.Outlined.CheckCircleOutline,
+                                                        contentDescription = "Definir como Padrão"
+                                                    )
+                                                },
+                                                onClick = {
+                                                    showPeriodoMenu = false
+                                                    viewModel.setPeriodoPadrao(item.id)
+                                                }
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -211,6 +286,7 @@ fun AnoLetivoScreen(
 
     if (showAnoLetivoForm) {
         AnoLetivoFormDialog(
+            anoLetivoInitial = anoLetivoEditing,
             onDismiss = { showAnoLetivoForm = false },
             onConfirm = { anoLetivo ->
                 viewModel.save(anoLetivo)
@@ -222,7 +298,7 @@ fun AnoLetivoScreen(
     if (showPeriodoForm) {
         state.anoLetivoSelecionado?.let { anoLetivo ->
             PeriodoFormDialog(
-                periodoEdit = periodoEdicao,
+                periodoEdit = periodoEditing,
                 anoLetivoId = anoLetivo.id,
                 onDismiss = { showPeriodoForm = false },
                 onConfirm = { periodo ->
@@ -233,13 +309,26 @@ fun AnoLetivoScreen(
         }
     }
 
-    periodoPendenteExclusao?.let { item ->
-        DeletePeriodoDialogForm(
-            item,
-            onDismiss = { periodoPendenteExclusao = null },
+    anoLetivoDeleting?.let { item ->
+        DeleteDialogForm(
+            title = "Deletar Ano Letivo?",
+            text = "Confirma a exclusão do ano letivo ${item.descricao}?",
+            onDismiss = { anoLetivoDeleting = null },
+            onConfirm = {
+                viewModel.delete(item)
+                anoLetivoDeleting = null
+            }
+        )
+    }
+
+    periodoDeleting?.let { item ->
+        DeleteDialogForm(
+            title = "Deletar Periodo?",
+            text = "Confirma a exclusão do periodo ${item.periodo}?",
+            onDismiss = { periodoDeleting = null },
             onConfirm = {
                 viewModel.deletePeriodo(item)
-                periodoPendenteExclusao = null
+                periodoDeleting = null
             }
         )
     }
@@ -282,11 +371,12 @@ fun AnoLetivoAtualCard(anoLetivo: String?, periodo: String?) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnoLetivoFormDialog(
+    anoLetivoInitial: AnoLetivoDomain? = null,
     onDismiss: () -> Unit,
     onConfirm: (AnoLetivoDomain) -> Unit
 ) {
 
-    var descricao by remember { mutableStateOf("") }
+    var descricao by remember { mutableStateOf(anoLetivoInitial?.descricao.orEmpty()) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -295,6 +385,7 @@ fun AnoLetivoFormDialog(
                 onClick = {
                     onConfirm(
                         AnoLetivoDomain(
+                            id = anoLetivoInitial?.id ?: "",
                             descricao = descricao,
                             periodo = emptyList()
                         )
@@ -377,8 +468,9 @@ fun PeriodoFormDialog(
 }
 
 @Composable
-fun DeletePeriodoDialogForm(
-    periodo: PeriodoDomain,
+fun DeleteDialogForm(
+    title: String,
+    text: String,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
@@ -392,13 +484,13 @@ fun DeletePeriodoDialogForm(
         },
         title = {
             Text(
-                text = "Deletar Periodo",
+                text = title,
                 style = MaterialTheme.typography.titleLarge
             )
         },
         text = {
             Text(
-                text = "Confirma a exclusão do periodo ${periodo.periodo}?",
+                text = text,
                 style = MaterialTheme.typography.bodySmall
             )
         },

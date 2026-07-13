@@ -33,4 +33,8 @@ class AlunoRepositoryImpl @Inject constructor(
     }
 
     override suspend fun delete(aluno: AlunoDomain) = alunoDao.delete(aluno.toEntity())
+
+    override suspend fun setAnoLetivoPadrao(anoLetivoId: String) = alunoDao.setAnoLetivoPadrao(anoLetivoId)
+
+    override suspend fun setPeriodoPadrao(periodoId: String) = alunoDao.setPeriodoPadrao(periodoId)
 }

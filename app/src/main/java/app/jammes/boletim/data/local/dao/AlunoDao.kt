@@ -26,4 +26,10 @@ interface AlunoDao {
 
     @Delete
     suspend fun delete(aluno: AlunoEntity)
+
+    @Query("UPDATE aluno SET ano_letivo_id = :anoLetivoId WHERE 1")
+    suspend fun setAnoLetivoPadrao(anoLetivoId: String)
+
+    @Query("UPDATE aluno SET periodo_id = :periodoId WHERE 1")
+    suspend fun setPeriodoPadrao(periodoId: String)
 }

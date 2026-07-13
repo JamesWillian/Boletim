@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.jammes.boletim.domain.model.AnoLetivoDomain
 import app.jammes.boletim.domain.model.PeriodoDomain
+import app.jammes.boletim.domain.repository.AlunoRepository
 import app.jammes.boletim.domain.repository.AnoLetivoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
@@ -19,21 +20,34 @@ import javax.inject.Inject
 data class AnoLetivoUiState(
     val items: List<AnoLetivoDomain> = emptyList(),
     val anoLetivoSelecionado: AnoLetivoDomain? = null,
+    val anoLetivoPadrao: AnoLetivoDomain? = null,
+    val periodoPadrao: String? = null,
     val isLoading: Boolean = true
 )
 
 @HiltViewModel
 class AnoLetivoViewModel @Inject constructor(
-    private val repository: AnoLetivoRepository
+    private val repository: AnoLetivoRepository,
+    private val alunoRepository: AlunoRepository
 ): ViewModel() {
 
     private val selectedId = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<AnoLetivoUiState> =
-        combine(repository.observeAll(), selectedId) { anos, id ->
+        combine(
+            repository.observeAll(),
+            selectedId,
+            alunoRepository.observeAluno()
+        ) { anos, id, aluno ->
+            val anoId = id ?: aluno?.anoLetivoId
+            val anoPadrao = anos.find { it.id == aluno?.anoLetivoId }
+            val periodoPadrao = anoPadrao?.periodo?.find { it.id == aluno?.periodoId }
+
             AnoLetivoUiState(
                 items = anos,
-                anoLetivoSelecionado = anos.find { it.id == id },
+                anoLetivoSelecionado = anos.find { it.id == anoId },
+                anoLetivoPadrao = anoPadrao,
+                periodoPadrao = periodoPadrao?.let { "${it.periodo} Semestre" },
                 isLoading = false
             )
         }
@@ -69,6 +83,18 @@ class AnoLetivoViewModel @Inject constructor(
     fun deletePeriodo(periodo: PeriodoDomain) {
         viewModelScope.launch {
             repository.deletePeriodo(periodo)
+        }
+    }
+
+    fun setAnoLetivoPadrao(anoLetivoId: String) {
+        viewModelScope.launch {
+            alunoRepository.setAnoLetivoPadrao(anoLetivoId)
+        }
+    }
+
+    fun setPeriodoPadrao(periodoId: String) {
+        viewModelScope.launch {
+            alunoRepository.setPeriodoPadrao(periodoId)
         }
     }
 }
