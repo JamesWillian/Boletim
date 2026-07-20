@@ -32,4 +32,7 @@ interface AlunoDao {
 
     @Query("UPDATE aluno SET periodo_id = :periodoId WHERE 1")
     suspend fun setPeriodoPadrao(periodoId: String)
+
+    @Query("UPDATE aluno SET periodo_type = :type WHERE 1")
+    suspend fun setPeriodoType(type: String)
 }

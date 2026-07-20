@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.jammes.boletim.domain.model.AlunoDomain
 import app.jammes.boletim.domain.model.AnoLetivoDomain
+import app.jammes.boletim.domain.model.PeriodoType
 import app.jammes.boletim.domain.repository.AlunoRepository
 import app.jammes.boletim.domain.repository.AnoLetivoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -40,6 +41,12 @@ class AlunoViewModel @Inject constructor(
     fun save(aluno: AlunoDomain) {
         viewModelScope.launch {
             repository.upsert(aluno)
+        }
+    }
+
+    fun savePeriodoType(periodoType: PeriodoType) {
+        viewModelScope.launch {
+            repository.setPeriodoType(periodoType)
         }
     }
 }

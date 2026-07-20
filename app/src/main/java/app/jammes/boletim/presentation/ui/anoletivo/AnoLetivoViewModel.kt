@@ -47,7 +47,7 @@ class AnoLetivoViewModel @Inject constructor(
                 items = anos,
                 anoLetivoSelecionado = anos.find { it.id == anoId },
                 anoLetivoPadrao = anoPadrao,
-                periodoPadrao = periodoPadrao?.let { "${it.periodo} Semestre" },
+                periodoPadrao = periodoPadrao?.let { "${it.periodo} ${aluno?.periodoType?.displayName}" },
                 isLoading = false
             )
         }

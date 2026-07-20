@@ -1,6 +1,7 @@
 package app.jammes.boletim.presentation.ui.boletim
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -15,12 +17,23 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BoletimScreen(modifier: Modifier = Modifier) {
+fun BoletimScreen(
+    modifier: Modifier = Modifier,
+    viewModel: BoletimViewModel = hiltViewModel()
+) {
+
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -47,12 +60,38 @@ fun BoletimScreen(modifier: Modifier = Modifier) {
         },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
     ) { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
-            Text(
-                text = "Boletim",
-                modifier = Modifier.fillMaxSize(),
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.titleLarge
+        Column(modifier = Modifier
+            .padding(paddingValues)
+            .padding(horizontal = 14.dp)
+            .fillMaxSize()
+        ) {
+            Row() {
+                Text(
+                    text = "Aluno: ",
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Text(
+                    text = state.aluno?.nome ?: "",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            HorizontalDivider(
+                modifier = Modifier.padding(bottom = 8.dp),
+                color = Color.Blue
+            )
+            Row() {
+                Text(
+                    text = "Ano: ",
+                    style = MaterialTheme.typography.titleSmall
+                )
+                Text(
+                    text = "${state.periodoSelecionado?.periodo.toString()} ${state.aluno?.periodoType?.displayName}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            HorizontalDivider(
+                modifier = Modifier.padding(bottom = 8.dp),
+                color = Color.Blue
             )
         }
     }

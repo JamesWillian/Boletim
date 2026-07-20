@@ -26,5 +26,6 @@ data class AlunoEntity(
     @ColumnInfo(name = "id") val id : String,
     @ColumnInfo(name = "nome") val nome : String,
     @ColumnInfo(name = "ano_letivo_id") val anoLetivoId: String? = null,
-    @ColumnInfo(name = "periodo_id") val periodoId: String? = null
+    @ColumnInfo(name = "periodo_id") val periodoId: String? = null,
+    @ColumnInfo(name = "periodo_type") val periodoType: String = "unidade"
 )

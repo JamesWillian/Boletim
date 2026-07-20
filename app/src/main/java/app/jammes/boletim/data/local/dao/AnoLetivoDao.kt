@@ -16,7 +16,7 @@ interface AnoLetivoDao {
     fun fetchAll(): Flow<List<AnoLetivoEntity>>
 
     @Query("SELECT id, descricao FROM ano_letivo WHERE id = :id")
-    fun fetchById(id: String): Flow<AnoLetivoEntity?>
+    suspend fun fetchById(id: String): AnoLetivoEntity?
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(anoLetivo: AnoLetivoEntity)

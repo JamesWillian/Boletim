@@ -4,7 +4,9 @@ import app.jammes.boletim.data.local.dao.AlunoDao
 import app.jammes.boletim.data.mapper.toDomain
 import app.jammes.boletim.data.mapper.toEntity
 import app.jammes.boletim.domain.model.AlunoDomain
+import app.jammes.boletim.domain.model.PeriodoType
 import app.jammes.boletim.domain.repository.AlunoRepository
+import app.jammes.boletim.domain.repository.AnoLetivoRepository
 import jakarta.inject.Inject
 import jakarta.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -12,12 +14,16 @@ import kotlinx.coroutines.flow.map
 
 @Singleton
 class AlunoRepositoryImpl @Inject constructor(
-    private val alunoDao: AlunoDao
+    private val alunoDao: AlunoDao,
+    private val anoLetivoRepository: AnoLetivoRepository
 ): AlunoRepository {
 
     override fun observeAluno(): Flow<AlunoDomain?> {
         return alunoDao.fetchFirst().map {
-            it?.toDomain()
+            val anoLetivo = anoLetivoRepository.findById(it?.anoLetivoId ?: "")
+            val periodo = anoLetivoRepository.findPeriodoById(it?.periodoId ?: "")
+
+            it?.toDomain(anoLetivo?.descricao, periodo?.periodo.toString())
         }
     }
 
@@ -37,4 +43,6 @@ class AlunoRepositoryImpl @Inject constructor(
     override suspend fun setAnoLetivoPadrao(anoLetivoId: String) = alunoDao.setAnoLetivoPadrao(anoLetivoId)
 
     override suspend fun setPeriodoPadrao(periodoId: String) = alunoDao.setPeriodoPadrao(periodoId)
+
+    override suspend fun setPeriodoType(periodoType: PeriodoType) = alunoDao.setPeriodoType(periodoType.displayName.lowercase())
 }

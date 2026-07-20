@@ -218,7 +218,7 @@ fun AnoLetivoScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(
-                                    text = "${item.periodo} Semestre",
+                                    text = "${item.periodo} ${state.anoLetivoSelecionado?.periodoType?.displayName}",
                                     modifier = Modifier
                                         .padding(horizontal = 14.dp, vertical = 8.dp)
                                         .fillMaxHeight()
