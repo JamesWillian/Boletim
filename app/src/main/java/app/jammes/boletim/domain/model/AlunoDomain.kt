@@ -1,11 +1,11 @@
 package app.jammes.boletim.domain.model
 
+import kotlin.time.Instant
+
 data class AlunoDomain(
-    val id : String = "",
+    val id : Long = 0L,
     val nome : String,
-    val anoLetivoId: String? = null,
-    val anoLetivo: String? = null,
-    val periodoId: String? = null,
-    val periodo: String? = null,
-    val periodoType: PeriodoType = PeriodoType.UNIDADE
+    val avatar: String? = null,
+    val ativo: Int = 1,
+    val criadoEm: Instant
 )

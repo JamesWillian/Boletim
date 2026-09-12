@@ -1,7 +1,11 @@
 package app.jammes.boletim.domain.model
 
+import java.time.LocalDate
+
 data class PeriodoDomain(
-    val id : String = "",
+    val id : Long = 0L,
+    val anoLetivoId : Long,
     val periodo : Int,
-    val anoLetivoId : String
+    val dataInicio: LocalDate,
+    val dataFim: LocalDate
 )
