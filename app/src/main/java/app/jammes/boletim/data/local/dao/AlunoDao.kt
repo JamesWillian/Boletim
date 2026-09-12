@@ -12,12 +12,6 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface AlunoDao {
 
-    @Query("SELECT * FROM aluno")
-    fun fetchAll(): Flow<List<AlunoEntity>>
-
-    @Query("SELECT * FROM aluno LIMIT 1")
-    fun fetchFirst(): Flow<AlunoEntity?>
-
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(aluno: AlunoEntity): Long
 
@@ -27,12 +21,9 @@ interface AlunoDao {
     @Delete
     suspend fun delete(aluno: AlunoEntity)
 
-    @Query("UPDATE aluno SET ano_letivo_id = :anoLetivoId WHERE 1")
-    suspend fun setAnoLetivoPadrao(anoLetivoId: String)
+    @Query("SELECT * FROM aluno")
+    fun observar(): Flow<List<AlunoEntity>>
 
-    @Query("UPDATE aluno SET periodo_id = :periodoId WHERE 1")
-    suspend fun setPeriodoPadrao(periodoId: String)
-
-    @Query("UPDATE aluno SET periodo_type = :type WHERE 1")
-    suspend fun setPeriodoType(type: String)
+    @Query("SELECT * FROM aluno LIMIT 1")
+    fun fetchFirst(): Flow<AlunoEntity?>
 }

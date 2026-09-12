@@ -4,9 +4,7 @@ import app.jammes.boletim.data.local.dao.AlunoDao
 import app.jammes.boletim.data.mapper.toDomain
 import app.jammes.boletim.data.mapper.toEntity
 import app.jammes.boletim.domain.model.AlunoDomain
-import app.jammes.boletim.domain.model.PeriodoType
 import app.jammes.boletim.domain.repository.AlunoRepository
-import app.jammes.boletim.domain.repository.AnoLetivoRepository
 import jakarta.inject.Inject
 import jakarta.inject.Singleton
 import kotlinx.coroutines.flow.Flow
@@ -14,35 +12,23 @@ import kotlinx.coroutines.flow.map
 
 @Singleton
 class AlunoRepositoryImpl @Inject constructor(
-    private val alunoDao: AlunoDao,
-    private val anoLetivoRepository: AnoLetivoRepository
+    private val alunoDao: AlunoDao
 ): AlunoRepository {
 
-    override fun observeAluno(): Flow<AlunoDomain?> {
-        return alunoDao.fetchFirst().map {
-            val anoLetivo = anoLetivoRepository.findById(it?.anoLetivoId ?: "")
-            val periodo = anoLetivoRepository.findPeriodoById(it?.periodoId ?: "")
+    override fun observeAluno(): Flow<List<AlunoDomain>> {
+        return alunoDao.observar().map { list -> list.map{ it.toDomain() } }
+    }
 
-            it?.toDomain(anoLetivo?.descricao, periodo?.periodo.toString())
+    override suspend fun upsert(aluno: AlunoDomain): Long {
+        val alunoEntity = aluno.toEntity()
+
+        return if (aluno.id == 0L) {
+            alunoDao.insert(alunoEntity)
+        } else {
+            alunoDao.update(alunoEntity)
+            alunoEntity.id
         }
     }
 
-    override suspend fun upsert(aluno: AlunoDomain): String {
-        val alunoEntity = aluno.toEntity()
-
-        if (aluno.id.isEmpty())
-            alunoDao.insert(alunoEntity)
-        else
-            alunoDao.update(alunoEntity)
-
-        return alunoEntity.id
-    }
-
     override suspend fun delete(aluno: AlunoDomain) = alunoDao.delete(aluno.toEntity())
-
-    override suspend fun setAnoLetivoPadrao(anoLetivoId: String) = alunoDao.setAnoLetivoPadrao(anoLetivoId)
-
-    override suspend fun setPeriodoPadrao(periodoId: String) = alunoDao.setPeriodoPadrao(periodoId)
-
-    override suspend fun setPeriodoType(periodoType: PeriodoType) = alunoDao.setPeriodoType(periodoType.displayName.lowercase())
 }

@@ -3,10 +3,8 @@ package app.jammes.boletim.presentation.ui.aluno
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.jammes.boletim.domain.model.AlunoDomain
-import app.jammes.boletim.domain.model.AnoLetivoDomain
-import app.jammes.boletim.domain.model.PeriodoType
+import app.jammes.boletim.domain.model.TipoPeriodo
 import app.jammes.boletim.domain.repository.AlunoRepository
-import app.jammes.boletim.domain.repository.AnoLetivoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -16,13 +14,13 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class AlunoUiState(
-    val aluno: AlunoDomain? = null,
+    val aluno: List<AlunoDomain?> = emptyList(),
     val isLoading: Boolean = true
 )
 
 @HiltViewModel
 class AlunoViewModel @Inject constructor(
-    private val repository: AlunoRepository
+    repository: AlunoRepository
 ): ViewModel() {
 
     val uiState: StateFlow<AlunoUiState> = repository
@@ -37,16 +35,4 @@ class AlunoViewModel @Inject constructor(
             SharingStarted.WhileSubscribed(5_000),
             AlunoUiState()
         )
-
-    fun save(aluno: AlunoDomain) {
-        viewModelScope.launch {
-            repository.upsert(aluno)
-        }
-    }
-
-    fun savePeriodoType(periodoType: PeriodoType) {
-        viewModelScope.launch {
-            repository.setPeriodoType(periodoType)
-        }
-    }
 }
