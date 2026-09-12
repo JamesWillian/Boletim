@@ -13,21 +13,15 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface PeriodoDao {
 
-    @Query("SELECT id, periodo, ano_letivo_id FROM periodo ORDER BY periodo ASC")
-    fun fetchAll(): Flow<List<PeriodoEntity>>
-
-    @Query("SELECT id, periodo, ano_letivo_id FROM periodo WHERE ano_letivo_id = :anoLetivoId ORDER BY periodo ASC")
-    fun fetchByAnoLetivo(anoLetivoId: String): Flow<List<PeriodoEntity>>
-
-    @Query("SELECT id, periodo, ano_letivo_id FROM periodo WHERE id = :id")
-    suspend fun fetchById(id: String): PeriodoEntity?
-
     @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insert(periodo: PeriodoEntity)
+    suspend fun insert(periodo: PeriodoEntity): Long
 
     @Update
     suspend fun update(periodo: PeriodoEntity)
 
     @Delete
     suspend fun delete(periodo: PeriodoEntity)
+
+    @Query("SELECT * FROM periodo WHERE ano_letivo_id = :anoLetivoId ORDER BY periodo ASC")
+    fun observarPorAnoLetivo(anoLetivoId: Long): Flow<List<PeriodoEntity>>
 }
