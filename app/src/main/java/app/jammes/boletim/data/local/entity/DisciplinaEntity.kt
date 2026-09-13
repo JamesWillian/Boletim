@@ -1,10 +1,12 @@
 package app.jammes.boletim.data.local.entity
 
 import androidx.room.ColumnInfo
+import androidx.room.Embedded
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import androidx.room.Relation
 
 @Entity(
     tableName = "disciplina",
@@ -37,4 +39,14 @@ data class DisciplinaEntity(
     @ColumnInfo(name = "periodo_fim") val periodoFim: Long?,
     @ColumnInfo(name = "ativa") val ativa: Int = 1,
     @ColumnInfo(name = "ordem") val ordem: Int = 0
+)
+
+data class DisciplinaComDados(
+    @Embedded val disciplina: DisciplinaEntity,
+
+    @Relation(parentColumn = "id", entityColumn = "disciplina_id")
+    val avaliacoes: List<AvaliacaoEntity>,
+
+    @Relation(parentColumn = "id", entityColumn = "disciplina_id")
+    val faltas: List<FaltaEntity>
 )

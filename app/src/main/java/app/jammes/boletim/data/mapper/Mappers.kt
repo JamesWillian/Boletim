@@ -3,6 +3,7 @@ package app.jammes.boletim.data.mapper
 import app.jammes.boletim.data.local.entity.AlunoEntity
 import app.jammes.boletim.data.local.entity.AnoLetivoEntity
 import app.jammes.boletim.data.local.entity.AvaliacaoEntity
+import app.jammes.boletim.data.local.entity.DisciplinaComDados
 import app.jammes.boletim.data.local.entity.DisciplinaEntity
 import app.jammes.boletim.data.local.entity.FaltaEntity
 import app.jammes.boletim.data.local.entity.MateriaEntity
@@ -11,6 +12,7 @@ import app.jammes.boletim.data.local.entity.RegraAvaliacaoEntity
 import app.jammes.boletim.domain.model.AlunoDomain
 import app.jammes.boletim.domain.model.AnoLetivoDomain
 import app.jammes.boletim.domain.model.AvaliacaoDomain
+import app.jammes.boletim.domain.model.BoletimItem
 import app.jammes.boletim.domain.model.TipoAvaliacao
 import app.jammes.boletim.domain.model.DisciplinaDomain
 import app.jammes.boletim.domain.model.FaltaDomain
@@ -180,4 +182,13 @@ fun RegraAvaliacaoDomain.toEntity(): RegraAvaliacaoEntity = RegraAvaliacaoEntity
     tipoMedia = TipoMedia.toString(tipoMedia),
     arredondamento = TipoArredondamento.toString(arredondamento),
     descartarMenorNota = if (descartarMenorNota) 1 else 0
+)
+
+fun DisciplinaComDados.toDomain(periodoId: Long): BoletimItem = BoletimItem(
+    disciplinaId = disciplina.id,
+    nome = disciplina.nome,
+    cor = disciplina.cor,
+    avaliacoes = avaliacoes.filter { it.periodoId == periodoId }.map { it.toDomain() },
+    faltas = faltas.map { it.toDomain() },
+    totalAulas = disciplina.totalAulas
 )

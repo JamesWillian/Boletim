@@ -2,6 +2,7 @@ package app.jammes.boletim.presentation.ui.boletim
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -17,6 +18,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.AbsoluteRoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -28,6 +31,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
@@ -45,6 +49,13 @@ fun BoletimScreen(
     modifier: Modifier = Modifier,
     viewModel: BoletimViewModel = hiltViewModel()
 ) {
+
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        viewModel.setAnoLetivoId(1L)
+        viewModel.setPeriodoId(1L)
+    }
 
     Scaffold(
         modifier = modifier,
@@ -74,10 +85,56 @@ fun BoletimScreen(
     ) { paddingValues ->
         Column(modifier = Modifier
             .padding(paddingValues)
-            .padding(horizontal = 24.dp)
             .fillMaxSize()
         ) {
-
+            if (state.items.isEmpty() && !state.isLoading) {
+                Text(
+                    text = "Nenhuma disciplina cadastrada",
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items( state.items, key = { it.disciplinaId }) { boletim ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = AbsoluteRoundedCornerShape(16.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(16.dp)
+                            ) {
+                                Text(
+                                    text = boletim.nome,
+                                    style = MaterialTheme.typography.titleLarge
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                boletim.avaliacoes.forEach {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(text = it.nome)
+                                        Text(text = it.nota.toString())
+                                    }
+                                }
+                                boletim.faltas.count().let {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Text(text = "Faltas")
+                                        Text(text = it.toString())
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
