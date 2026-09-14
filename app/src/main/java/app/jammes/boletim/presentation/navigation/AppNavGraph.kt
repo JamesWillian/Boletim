@@ -2,9 +2,11 @@ package app.jammes.boletim.presentation.navigation
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Api
 import androidx.compose.material.icons.filled.AutoStories
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.outlined.Api
 import androidx.compose.material.icons.outlined.AutoStories
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Person
@@ -26,6 +28,7 @@ import androidx.navigation.compose.rememberNavController
 import app.jammes.boletim.presentation.ui.aluno.AlunoScreen
 import app.jammes.boletim.presentation.ui.anoletivo.AnoLetivoScreen
 import app.jammes.boletim.presentation.ui.boletim.BoletimScreen
+import app.jammes.boletim.presentation.ui.materia.MateriaScreen
 
 private data class BottomItem(
     val route: String,
@@ -35,6 +38,7 @@ private data class BottomItem(
 )
 
 private val bottomItens = listOf(
+    BottomItem(Routes.MATERIA, "Matérias", Icons.Filled.Api, Icons.Outlined.Api),
     BottomItem(Routes.ANO_LETIVO, "Ano Letivo", Icons.Filled.CalendarMonth, Icons.Outlined.CalendarMonth),
     BottomItem(Routes.BOLETIM, "Boletim", Icons.Filled.AutoStories, Icons.Outlined.AutoStories),
     BottomItem(Routes.ALUNO, "Aluno", Icons.Filled.Person, Icons.Outlined.Person)
@@ -78,6 +82,9 @@ fun AppNavGraph() {
             startDestination = Routes.BOLETIM,
             modifier = Modifier.padding(paddingValues)
         ) {
+            composable(Routes.MATERIA) {
+                MateriaScreen()
+            }
             composable(Routes.ANO_LETIVO) {
                 AnoLetivoScreen()
             }

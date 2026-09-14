@@ -19,14 +19,14 @@ data class BoletimUiState(
 
 @HiltViewModel
 class BoletimViewModel @Inject constructor(
-    disciplinaRepository: DisciplinaRepository
+    disciplinaRepo: DisciplinaRepository
 ): ViewModel() {
 
     private val anoLetivoId = MutableStateFlow(0L)
     private val periodoId = MutableStateFlow(0L)
 
     val uiState: StateFlow<BoletimUiState> =
-        disciplinaRepository
+        disciplinaRepo
             .observarBoletim(1L, 1L)
             .map { list -> BoletimUiState(items = list, isLoading = false) }
             .stateIn(

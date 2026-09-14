@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.AbsoluteRoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -42,6 +43,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.jammes.boletim.presentation.ui.theme.CoresDisciplina
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,20 +101,21 @@ fun BoletimScreen(
                     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items( state.items, key = { it.disciplinaId }) { boletim ->
+                    items( state.items, key = { it.disciplinaId }) { item ->
                         Card(
                             modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(CoresDisciplina.de(item.cor)),
                             shape = AbsoluteRoundedCornerShape(16.dp)
                         ) {
                             Column(
                                 modifier = Modifier.padding(16.dp)
                             ) {
                                 Text(
-                                    text = boletim.nome,
+                                    text = item.nome,
                                     style = MaterialTheme.typography.titleLarge
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
-                                boletim.avaliacoes.forEach {
+                                item.avaliacoes.forEach {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween
@@ -121,7 +124,7 @@ fun BoletimScreen(
                                         Text(text = it.nota.toString())
                                     }
                                 }
-                                boletim.faltas.count().let {
+                                item.faltas.count().let {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween
