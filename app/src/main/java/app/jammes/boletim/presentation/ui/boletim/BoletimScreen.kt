@@ -54,35 +54,8 @@ fun BoletimScreen(
 
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
-    LaunchedEffect(Unit) {
-        viewModel.setAnoLetivoId(1L)
-        viewModel.setPeriodoId(1L)
-    }
-
     Scaffold(
         modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Boletim",
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Left,
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                },
-                actions = {
-                    IconButton(onClick = { /*TODO*/ }) {
-                        Icon(
-                            imageVector = Icons.Filled.Add,
-                            contentDescription = "Nova Disciplina",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                },
-                windowInsets = WindowInsets(0,0,0,0)
-            )
-        },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
     ) { paddingValues ->
         Column(modifier = Modifier
@@ -140,4 +113,9 @@ fun BoletimScreen(
             }
         }
     }
+}
+
+@Composable
+fun AlunoCard(modifier: Modifier = Modifier) {
+
 }
