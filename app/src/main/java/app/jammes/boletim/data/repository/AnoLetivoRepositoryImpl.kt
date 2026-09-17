@@ -1,4 +1,4 @@
-package app.jammes.boletim.data.local.repository
+package app.jammes.boletim.data.repository
 
 import app.jammes.boletim.data.local.dao.AnoLetivoDao
 import app.jammes.boletim.data.local.dao.PeriodoDao

@@ -39,7 +39,7 @@ import androidx.navigation.compose.rememberNavController
 import app.jammes.boletim.domain.model.AlunoDomain
 import app.jammes.boletim.domain.model.AnoLetivoDomain
 import app.jammes.boletim.domain.model.PeriodoDomain
-import app.jammes.boletim.presentation.contexto.Contexto
+import app.jammes.boletim.domain.model.Contexto
 import app.jammes.boletim.presentation.contexto.ContextoUiState
 import app.jammes.boletim.presentation.contexto.ContextoViewModel
 import app.jammes.boletim.presentation.ui.aluno.AlunoScreen

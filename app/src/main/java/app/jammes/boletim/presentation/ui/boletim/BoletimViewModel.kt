@@ -3,11 +3,10 @@ package app.jammes.boletim.presentation.ui.boletim
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.jammes.boletim.domain.model.BoletimItem
+import app.jammes.boletim.domain.repository.ContextoRepository
 import app.jammes.boletim.domain.repository.DisciplinaRepository
-import app.jammes.boletim.presentation.contexto.ContextoManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -24,13 +23,13 @@ data class BoletimUiState(
 
 @HiltViewModel
 class BoletimViewModel @Inject constructor(
-    contextoManager: ContextoManager,
+    contextoRepo: ContextoRepository,
     disciplinaRepo: DisciplinaRepository
 ): ViewModel() {
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<BoletimUiState> =
-        contextoManager.contexto
+        contextoRepo.contexto
             .filterNotNull()
             .map { it.anoLetivoId to it.periodoId }
             .distinctUntilChanged()

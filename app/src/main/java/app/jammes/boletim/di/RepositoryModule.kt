@@ -1,15 +1,17 @@
 package app.jammes.boletim.di
 
-import app.jammes.boletim.data.local.repository.AlunoRepositoryImpl
-import app.jammes.boletim.data.local.repository.AnoLetivoRepositoryImpl
-import app.jammes.boletim.data.local.repository.AvaliacaoRepositoryImpl
-import app.jammes.boletim.data.local.repository.DisciplinaRepositoryImpl
-import app.jammes.boletim.data.local.repository.FaltaRepositoryImpl
-import app.jammes.boletim.data.local.repository.MateriaRepositoryImpl
-import app.jammes.boletim.data.local.repository.RegraAvaliacaoRepositoryImpl
+import app.jammes.boletim.data.repository.AlunoRepositoryImpl
+import app.jammes.boletim.data.repository.AnoLetivoRepositoryImpl
+import app.jammes.boletim.data.repository.AvaliacaoRepositoryImpl
+import app.jammes.boletim.data.repository.ContextoRepositoryImpl
+import app.jammes.boletim.data.repository.DisciplinaRepositoryImpl
+import app.jammes.boletim.data.repository.FaltaRepositoryImpl
+import app.jammes.boletim.data.repository.MateriaRepositoryImpl
+import app.jammes.boletim.data.repository.RegraAvaliacaoRepositoryImpl
 import app.jammes.boletim.domain.repository.AlunoRepository
 import app.jammes.boletim.domain.repository.AnoLetivoRepository
 import app.jammes.boletim.domain.repository.AvaliacaoRepository
+import app.jammes.boletim.domain.repository.ContextoRepository
 import app.jammes.boletim.domain.repository.DisciplinaRepository
 import app.jammes.boletim.domain.repository.FaltaRepository
 import app.jammes.boletim.domain.repository.MateriaRepository
@@ -51,4 +53,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindRegraAvaliacaoRepository(impl: RegraAvaliacaoRepositoryImpl): RegraAvaliacaoRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindContextoRepository(impl: ContextoRepositoryImpl): ContextoRepository
 }

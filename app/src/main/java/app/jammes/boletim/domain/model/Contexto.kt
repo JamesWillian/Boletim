@@ -1,4 +1,4 @@
-package app.jammes.boletim.presentation.contexto
+package app.jammes.boletim.domain.model
 
 data class Contexto(
     val alunoId: Long,
