@@ -23,6 +23,9 @@ interface DisciplinaDao {
     @Delete
     suspend fun delete(disciplina: DisciplinaEntity)
 
+    @Query("SELECT * FROM disciplina WHERE id = :id")
+    fun observarPorId(id: Long): Flow<DisciplinaEntity?>
+
     @Query("SELECT * FROM disciplina WHERE ano_letivo_id = :anoLetivoId ORDER BY ordem")
     fun observarPorAnoLetivo(anoLetivoId: Long): Flow<List<DisciplinaEntity>>
 

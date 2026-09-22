@@ -1,6 +1,6 @@
 package app.jammes.boletim.domain.model
 
-data class BoletimItem(
+data class DisciplinaDados(
     val disciplinaId: Long,
     val nome: String,
     val cor: Int,

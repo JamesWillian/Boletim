@@ -10,7 +10,7 @@ import androidx.room.PrimaryKey
     tableName = "regra_avaliacao",
     foreignKeys = [
         ForeignKey(
-            entity = PeriodoEntity::class,
+            entity = AnoLetivoEntity::class,
             parentColumns = ["id"],
             childColumns = ["ano_letivo_id"],
             onDelete = ForeignKey.CASCADE

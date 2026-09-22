@@ -7,8 +7,8 @@ import app.jammes.boletim.domain.model.AvaliacaoDomain
 import app.jammes.boletim.domain.repository.AvaliacaoRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import javax.inject.Inject
-import javax.inject.Singleton
+import jakarta.inject.Inject
+import jakarta.inject.Singleton
 
 @Singleton
 class AvaliacaoRepositoryImpl @Inject constructor(

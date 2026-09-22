@@ -1,49 +1,43 @@
 package app.jammes.boletim.presentation.ui.boletim
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.AbsoluteRoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.jammes.boletim.domain.model.DisciplinaResumo
+import app.jammes.boletim.domain.model.StatusDisciplina
 import app.jammes.boletim.presentation.ui.theme.CoresDisciplina
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,57 +52,49 @@ fun BoletimScreen(
         modifier = modifier,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
     ) { paddingValues ->
-        Column(modifier = Modifier
-            .padding(paddingValues)
-            .fillMaxSize()
-        ) {
-            if (state.items.isEmpty() && !state.isLoading) {
+
+        when (state) {
+            BoletimUiState.Carregando -> Box(
+                Modifier.fillMaxSize().padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) { CircularProgressIndicator() }
+
+            BoletimUiState.SemDisciplinas -> Column(
+                modifier = modifier.fillMaxSize().padding(32.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text("Nenhuma matéria neste ano", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "Nenhuma disciplina cadastrada",
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center
+                    text = "Adicione as matérias para o boletim começar a aparecer.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 96.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items( state.items, key = { it.disciplinaId }) { item ->
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(CoresDisciplina.de(item.cor)),
-                            shape = AbsoluteRoundedCornerShape(16.dp)
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(16.dp)
-                            ) {
-                                Text(
-                                    text = item.nome,
-                                    style = MaterialTheme.typography.titleLarge
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                item.avaliacoes.forEach {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text(text = it.nome)
-                                        Text(text = it.nota.toString())
-                                    }
-                                }
-                                item.faltas.count().let {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text(text = "Faltas")
-                                        Text(text = it.toString())
-                                    }
-                                }
-                            }
-                        }
-                    }
+                Spacer(Modifier.height(12.dp))
+                TextButton(onClick = {}) { Text("Adicionar matérias") }
+            }
+
+            is BoletimUiState.Sucesso -> LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                contentPadding = PaddingValues(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = 8.dp,
+                    bottom = 96.dp,
+                ),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.padding(paddingValues)
+            ) {
+                item(span = { GridItemSpan(maxLineSpan) }) {
+                    ResumoGeral(
+                        mediaGeral = (state as BoletimUiState.Sucesso).boletim.mediaGeral,
+                        totalFaltas = (state as BoletimUiState.Sucesso).boletim.totalFaltas,
+                    )
+                }
+                items((state as BoletimUiState.Sucesso).boletim.disciplinas, key = { it.id}) {
+                    DisciplinaCard(resumo = it)
                 }
             }
         }
@@ -116,6 +102,98 @@ fun BoletimScreen(
 }
 
 @Composable
-fun AlunoCard(modifier: Modifier = Modifier) {
-
+private fun ResumoGeral(
+    mediaGeral: Double?,
+    totalFaltas: Int,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth().padding(bottom = 4.dp),
+        verticalAlignment = Alignment.Bottom,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = "Média do período",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Text(
+                text = formatarMedia(mediaGeral),
+                style = MaterialTheme.typography.displaySmall,
+                fontWeight = FontWeight.SemiBold,
+            )
+        }
+        Text(
+            text = when (totalFaltas) {
+                0 -> "Sem faltas"
+                1 -> "1 falta"
+                else -> "$totalFaltas faltas"
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 6.dp),
+        )
+    }
 }
+
+@Composable
+private fun DisciplinaCard(
+    resumo: DisciplinaResumo,
+//    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val corStatus = corDoStatus(resumo.status)
+    val corFaltas = if (resumo.emRiscoPorFalta) {
+        MaterialTheme.colorScheme.error
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    Card(
+//        onClick = onClick,
+        modifier = modifier.height(120.dp)
+    ) {
+        Row(Modifier.fillMaxSize()) {
+            // Faixa de identidade da disciplina
+            Box(
+                Modifier
+                    .width(4.dp)
+                    .fillMaxSize()
+                    .background(CoresDisciplina.de(resumo.cor))
+            )
+            Column(Modifier.fillMaxSize().padding(14.dp)) {
+                Text(
+                    text = resumo.nome,
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 2,
+                    minLines = 2, // mantém os cards alinhados na grade
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(Modifier.weight(1f))
+                Text(
+                    text = formatarMedia(resumo.media),
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = corStatus,
+                )
+                Text(
+                    text = "${resumo.faltas} faltas",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = corFaltas,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun corDoStatus(status: StatusDisciplina): Color = when (status) {
+    StatusDisciplina.APROVADO -> Color(0xFF2E7D32)
+    StatusDisciplina.ATENCAO -> Color(0xFFB26A00)
+    StatusDisciplina.ABAIXO -> MaterialTheme.colorScheme.error
+    StatusDisciplina.REPROVADO -> MaterialTheme.colorScheme.error
+    StatusDisciplina.SEM_NOTA -> MaterialTheme.colorScheme.onSurfaceVariant
+}
+
+private fun formatarMedia(media: Double?): String =
+    media?.let { String.format(Locale("pt", "BR"), "%.1f", it) } ?: "—"

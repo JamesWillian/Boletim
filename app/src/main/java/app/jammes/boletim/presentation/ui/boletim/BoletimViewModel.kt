@@ -2,45 +2,42 @@ package app.jammes.boletim.presentation.ui.boletim
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import app.jammes.boletim.domain.model.BoletimItem
+import app.jammes.boletim.domain.model.Boletim
 import app.jammes.boletim.domain.repository.ContextoRepository
-import app.jammes.boletim.domain.repository.DisciplinaRepository
+import app.jammes.boletim.domain.usecase.ObterBoletim
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import javax.inject.Inject
+import jakarta.inject.Inject
 
-data class BoletimUiState(
-    val items: List<BoletimItem> = emptyList(),
-    val isLoading: Boolean = true
-)
+sealed interface BoletimUiState {
+    data object Carregando : BoletimUiState
+    data object SemDisciplinas : BoletimUiState
+    data class Sucesso(val boletim: Boletim) : BoletimUiState
+}
 
 @HiltViewModel
 class BoletimViewModel @Inject constructor(
     contextoRepo: ContextoRepository,
-    disciplinaRepo: DisciplinaRepository
+    obterBoletim: ObterBoletim
 ): ViewModel() {
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val uiState: StateFlow<BoletimUiState> =
-        contextoRepo.contexto
-            .filterNotNull()
-            .map { it.anoLetivoId to it.periodoId }
-            .distinctUntilChanged()
-            .flatMapLatest { (anoId, periodoId) ->
-                disciplinaRepo
-                    .observarBoletim(anoId, periodoId)
-                    .map { list -> BoletimUiState(items = list, isLoading = false) }
+        obterBoletim(contextoRepo.contexto.filterNotNull())
+            .map { boletim ->
+                if (boletim.disciplinas.isEmpty())
+                    BoletimUiState.SemDisciplinas
+                else
+                    BoletimUiState.Sucesso(boletim)
             }
             .stateIn(
                 scope = viewModelScope,
                 started = SharingStarted.WhileSubscribed(5_000),
-                initialValue = BoletimUiState()
+                initialValue = BoletimUiState.Carregando
             )
 }

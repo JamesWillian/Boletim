@@ -21,10 +21,10 @@ class ContextoRepositoryImpl @Inject constructor(
     }
 
     override suspend fun selecionarAnoLetivo(anoLetivoId: Long, periodoId: Long) {
-        prefs.atualizar { it.copy(alunoId = anoLetivoId, anoLetivoId = periodoId) }
+        prefs.atualizar { it.copy(anoLetivoId = anoLetivoId, periodoId = periodoId) }
     }
 
     override suspend fun selecionarPeriodo(periodoId: Long) {
-        prefs.atualizar { it.copy(alunoId = periodoId) }
+        prefs.atualizar { it.copy(periodoId = periodoId) }
     }
 }

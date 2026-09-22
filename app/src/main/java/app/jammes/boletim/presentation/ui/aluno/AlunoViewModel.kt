@@ -3,15 +3,13 @@ package app.jammes.boletim.presentation.ui.aluno
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.jammes.boletim.domain.model.AlunoDomain
-import app.jammes.boletim.domain.model.TipoPeriodo
 import app.jammes.boletim.domain.repository.AlunoRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
-import javax.inject.Inject
+import jakarta.inject.Inject
 
 data class AlunoUiState(
     val aluno: List<AlunoDomain?> = emptyList(),

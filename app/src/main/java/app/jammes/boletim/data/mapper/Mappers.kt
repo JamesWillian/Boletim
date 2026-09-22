@@ -12,7 +12,7 @@ import app.jammes.boletim.data.local.entity.RegraAvaliacaoEntity
 import app.jammes.boletim.domain.model.AlunoDomain
 import app.jammes.boletim.domain.model.AnoLetivoDomain
 import app.jammes.boletim.domain.model.AvaliacaoDomain
-import app.jammes.boletim.domain.model.BoletimItem
+import app.jammes.boletim.domain.model.DisciplinaDados
 import app.jammes.boletim.domain.model.TipoAvaliacao
 import app.jammes.boletim.domain.model.DisciplinaDomain
 import app.jammes.boletim.domain.model.FaltaDomain
@@ -184,11 +184,11 @@ fun RegraAvaliacaoDomain.toEntity(): RegraAvaliacaoEntity = RegraAvaliacaoEntity
     descartarMenorNota = if (descartarMenorNota) 1 else 0
 )
 
-fun DisciplinaComDados.toDomain(periodoId: Long): BoletimItem = BoletimItem(
+fun DisciplinaComDados.toDomain(): DisciplinaDados = DisciplinaDados(
     disciplinaId = disciplina.id,
     nome = disciplina.nome,
     cor = disciplina.cor,
-    avaliacoes = avaliacoes.filter { it.periodoId == periodoId }.map { it.toDomain() },
+    avaliacoes = avaliacoes.map { it.toDomain() },
     faltas = faltas.map { it.toDomain() },
     totalAulas = disciplina.totalAulas
 )
