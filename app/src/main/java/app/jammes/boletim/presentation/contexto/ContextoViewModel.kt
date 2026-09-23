@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import app.jammes.boletim.domain.repository.AlunoRepository
 import app.jammes.boletim.domain.repository.AnoLetivoRepository
 import app.jammes.boletim.domain.repository.ContextoRepository
+import app.jammes.boletim.domain.repository.DisciplinaRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
@@ -22,7 +23,8 @@ import kotlin.collections.emptyList
 class ContextoViewModel @Inject constructor(
     private val contextRepo: ContextoRepository,
     anoLetivoRepo: AnoLetivoRepository,
-    alunoRepo: AlunoRepository
+    alunoRepo: AlunoRepository,
+    disciplinaRepo: DisciplinaRepository,
 ): ViewModel() {
 
     val state: StateFlow<ContextoUiState> = contextRepo.contexto
@@ -44,6 +46,18 @@ class ContextoViewModel @Inject constructor(
         )
 
     val alunos = alunoRepo.observeAluno()
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            emptyList()
+        )
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val disciplinas = contextRepo.contexto
+        .filterNotNull()
+        .map { it.anoLetivoId }
+        .distinctUntilChanged()
+        .flatMapLatest { ano -> disciplinaRepo.observeByAnoLetivo(ano) }
         .stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5_000),

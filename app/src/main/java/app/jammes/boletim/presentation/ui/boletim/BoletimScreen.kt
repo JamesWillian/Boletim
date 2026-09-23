@@ -76,16 +76,15 @@ fun BoletimScreen(
             }
 
             is BoletimUiState.Sucesso -> LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
                 contentPadding = PaddingValues(
                     start = 16.dp,
                     end = 16.dp,
                     top = 8.dp,
                     bottom = 96.dp,
                 ),
+                columns = GridCells.Fixed(2),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.padding(paddingValues)
             ) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     ResumoGeral(
@@ -93,7 +92,7 @@ fun BoletimScreen(
                         totalFaltas = (state as BoletimUiState.Sucesso).boletim.totalFaltas,
                     )
                 }
-                items((state as BoletimUiState.Sucesso).boletim.disciplinas, key = { it.id}) {
+                items((state as BoletimUiState.Sucesso).boletim.disciplinas, key = { it.id }) {
                     DisciplinaCard(resumo = it)
                 }
             }
