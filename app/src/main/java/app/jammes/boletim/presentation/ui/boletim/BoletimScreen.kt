@@ -195,4 +195,10 @@ private fun corDoStatus(status: StatusDisciplina): Color = when (status) {
 }
 
 private fun formatarMedia(media: Double?): String =
-    media?.let { String.format(Locale("pt", "BR"), "%.1f", it) } ?: "—"
+    media?.let {
+        String.format(
+            Locale("pt", "BR"),
+            "%.1f",
+            it
+        ).removeSuffix("0")
+    } ?: "—"

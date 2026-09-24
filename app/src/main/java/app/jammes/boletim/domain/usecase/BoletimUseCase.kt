@@ -7,6 +7,7 @@ import app.jammes.boletim.domain.model.DisciplinaDados
 import app.jammes.boletim.domain.model.DisciplinaResumo
 import app.jammes.boletim.domain.model.RegraAvaliacaoDomain
 import app.jammes.boletim.domain.model.StatusDisciplina
+import app.jammes.boletim.domain.model.TipoArredondamento
 import app.jammes.boletim.domain.model.TipoAvaliacao
 import app.jammes.boletim.domain.model.TipoMedia
 import app.jammes.boletim.domain.repository.DisciplinaRepository
@@ -19,6 +20,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import java.math.BigDecimal
+import java.math.RoundingMode
 import kotlin.collections.filter
 
 // ---------------------------------------------------------------------------
@@ -31,15 +34,37 @@ object CalcularMediaDisciplina {
         val validas = avaliacoes.filter { it.tipo == TipoAvaliacao.NORMAL }
         if (validas.isEmpty()) return null
 
-        return when (regra.tipoMedia) {
+        val mediaRaw = when (regra.tipoMedia) {
             TipoMedia.SIMPLES -> validas.map { it.nota }.average()
             TipoMedia.PONDERADA -> {
                 val pesoTotal = validas.sumOf { it.peso }
-                if (pesoTotal == 0.0) null else validas.sumOf { it.nota * it.peso } / pesoTotal
+                if (pesoTotal == 0.0) return null
+                validas.sumOf { it.nota * it.peso } / pesoTotal
             }
             TipoMedia.SOMA -> validas.sumOf { it.nota }
         }
+
+        return arredondarMedia(mediaRaw, regra.arredondamento)
     }
+}
+
+val DOIS = BigDecimal(2)
+
+fun arredondarMedia(media: Double, tipo: TipoArredondamento): Double {
+
+    val limpa = media.toBigDecimal().setScale(6, RoundingMode.HALF_UP)
+
+    val arredondada = when (tipo) {
+        TipoArredondamento.NENHUM -> limpa.setScale(2, RoundingMode.HALF_UP)
+        TipoArredondamento.MEIO_PONTO -> limpa.multiply(DOIS)
+            .setScale(0, RoundingMode.HALF_UP)
+            .divide(DOIS)
+        TipoArredondamento.INTEIRO -> limpa.setScale(0, RoundingMode.HALF_UP)
+        TipoArredondamento.CIMA -> limpa.setScale(1, RoundingMode.CEILING)
+        TipoArredondamento.BAIXO ->  limpa.setScale(1, RoundingMode.FLOOR)
+    }
+
+    return arredondada.toDouble()
 }
 
 object CalcularFrequencia {
