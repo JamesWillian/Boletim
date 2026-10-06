@@ -3,6 +3,7 @@ package app.jammes.boletim.di
 import android.content.Context
 import androidx.room.Room
 import app.jammes.boletim.data.local.AppDatabase
+import app.jammes.boletim.data.local.MateriasPadraoCallback
 import app.jammes.boletim.data.local.dao.AlunoDao
 import app.jammes.boletim.data.local.dao.AnoLetivoDao
 import app.jammes.boletim.data.local.dao.AvaliacaoDao
@@ -29,7 +30,9 @@ object DatabaseModule {
             context,
             AppDatabase::class.java,
             AppDatabase.NAME
-        ).build()
+        )
+            .addCallback(MateriasPadraoCallback())
+            .build()
 
     @Provides
     fun provideAlunoDao(db: AppDatabase): AlunoDao = db.alunoDao()

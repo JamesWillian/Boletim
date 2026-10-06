@@ -36,7 +36,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.jammes.boletim.domain.model.DisciplinaResumo
 import app.jammes.boletim.domain.model.StatusDisciplina
+import app.jammes.boletim.domain.model.TipoArredondamento
+import app.jammes.boletim.domain.usecase.arredondarMedia
 import app.jammes.boletim.presentation.ui.theme.CoresDisciplina
+import java.text.NumberFormat
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -194,11 +197,14 @@ private fun corDoStatus(status: StatusDisciplina): Color = when (status) {
     StatusDisciplina.SEM_NOTA -> MaterialTheme.colorScheme.onSurfaceVariant
 }
 
-private fun formatarMedia(media: Double?): String =
+// 1 ou 2 casas (7,0 · 7,5 · 6,96), as mesmas que a regra NENHUM guarda: assim o número na tela
+// nunca contradiz a cor do status. A média geral chega sem arredondar e passa pela mesma limpeza.
+internal fun formatarMedia(media: Double?): String =
     media?.let {
-        String.format(
-            Locale("pt", "BR"),
-            "%.1f",
-            it
-        ).removeSuffix("0")
+        NumberFormat.getNumberInstance(Locale.forLanguageTag("pt-BR"))
+            .apply {
+                minimumFractionDigits = 1
+                maximumFractionDigits = 2
+            }
+            .format(arredondarMedia(it, TipoArredondamento.NENHUM))
     } ?: "—"

@@ -46,7 +46,7 @@ class DisciplinaViewModel @Inject constructor(
             DisciplinaUiState()
         )
 
-    fun setDiscicplina(id: Long) {
+    fun setDisciplina(id: Long) {
         disciplinaSelecionada.value = id
     }
 }
