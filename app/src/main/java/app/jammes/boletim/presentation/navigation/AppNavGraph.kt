@@ -21,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -31,25 +32,25 @@ import app.jammes.boletim.presentation.ui.boletim.BoletimScreen
 import app.jammes.boletim.presentation.ui.materia.MateriaScreen
 
 private data class BottomItem(
-    val route: String,
+    val route: Any,
     val label: String,
     val iconActive: ImageVector,
     val iconInactive: ImageVector
 )
 
 private val bottomItens = listOf(
-    BottomItem(Routes.MATERIA, "Matérias", Icons.Filled.Api, Icons.Outlined.Api),
-    BottomItem(Routes.ANO_LETIVO, "Ano Letivo", Icons.Filled.CalendarMonth, Icons.Outlined.CalendarMonth),
-    BottomItem(Routes.BOLETIM, "Boletim", Icons.Filled.AutoStories, Icons.Outlined.AutoStories),
-    BottomItem(Routes.ALUNO, "Aluno", Icons.Filled.Person, Icons.Outlined.Person)
+    BottomItem(Routes.Materia, "Matérias", Icons.Filled.Api, Icons.Outlined.Api),
+    BottomItem(Routes.AnoLetivo, "Ano Letivo", Icons.Filled.CalendarMonth, Icons.Outlined.CalendarMonth),
+    BottomItem(Routes.Boletim.Geral, "Boletim", Icons.Filled.AutoStories, Icons.Outlined.AutoStories),
+    BottomItem(Routes.Aluno, "Aluno", Icons.Filled.Person, Icons.Outlined.Person)
 )
 
 @Composable
 fun AppNavGraph() {
     val navController = rememberNavController()
     val backStack by navController.currentBackStackEntryAsState()
-    val currentRoute = backStack?.destination?.route
-    val showBottomBar = bottomItens.any { it.route == currentRoute } || currentRoute == null
+    val currentDestination = backStack?.destination
+    val showBottomBar = bottomItens.any { currentDestination?.hasRoute(it.route::class) == true } || currentDestination == null
 
     Scaffold(
         bottomBar = {
@@ -59,7 +60,7 @@ fun AppNavGraph() {
                     tonalElevation = 0.dp
                 ) {
                     bottomItens.forEach { item ->
-                        val selected = item.route == currentRoute
+                        val selected = currentDestination?.hasRoute(item.route::class) == true
                         NavigationBarItem(
                             selected = selected,
                             onClick = { navController.navigate( item.route) },
@@ -79,19 +80,19 @@ fun AppNavGraph() {
     ) { paddingValues ->
         NavHost(
             navController = navController,
-            startDestination = Routes.BOLETIM,
+            startDestination = Routes.Boletim.Geral,
             modifier = Modifier.padding(paddingValues)
         ) {
-            composable(Routes.MATERIA) {
+            composable<Routes.Materia> {
                 MateriaScreen()
             }
-            composable(Routes.ANO_LETIVO) {
+            composable<Routes.AnoLetivo> {
                 AnoLetivoScreen()
             }
-            composable(Routes.BOLETIM) {
-                BoletimScreen()
+            composable<Routes.Boletim.Geral> {
+                BoletimScreen(onAbrirDisciplina = {}) // este grafo não tem a tela de disciplina
             }
-            composable(Routes.ALUNO) {
+            composable<Routes.Aluno> {
                 AlunoScreen()
             }
         }

@@ -1,20 +1,19 @@
 package app.jammes.boletim.presentation.ui.disciplina
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.navigation.toRoute
 import app.jammes.boletim.domain.model.AvaliacaoDomain
 import app.jammes.boletim.domain.model.DisciplinaDomain
 import app.jammes.boletim.domain.repository.AvaliacaoRepository
 import app.jammes.boletim.domain.repository.DisciplinaRepository
+import app.jammes.boletim.presentation.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jakarta.inject.Inject
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
 data class DisciplinaUiState(
@@ -25,28 +24,23 @@ data class DisciplinaUiState(
 
 @HiltViewModel
 class DisciplinaViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     private val disciplinaRepo: DisciplinaRepository,
     private val avaliacaoRepo: AvaliacaoRepository
 ): ViewModel() {
 
-    private val disciplinaSelecionada = MutableStateFlow(0L)
+    // Argumento da rota que abriu a tela. Cada disciplina aberta ganha seu próprio ViewModel,
+    // então o id não muda durante a vida dele.
+    private val disciplinaId = savedStateHandle.toRoute<Routes.Boletim.Disciplina>().disciplinaId
 
-    @OptIn(ExperimentalCoroutinesApi::class)
-    val state: StateFlow<DisciplinaUiState> = disciplinaSelecionada
-        .flatMapLatest { id ->
-            combine(
-                disciplinaRepo.observeById(id),
-                avaliacaoRepo.observeByDisciplina(id)
-            ) { disciplina, avaliacoes ->
-                DisciplinaUiState(disciplina = disciplina, avaliacoes = avaliacoes, isLoading = false)
-            }
-        }.stateIn(
-            viewModelScope,
-            SharingStarted.WhileSubscribed(5_000),
-            DisciplinaUiState()
-        )
-
-    fun setDisciplina(id: Long) {
-        disciplinaSelecionada.value = id
-    }
+    val state: StateFlow<DisciplinaUiState> = combine(
+        disciplinaRepo.observeById(disciplinaId),
+        avaliacaoRepo.observeByDisciplina(disciplinaId)
+    ) { disciplina, avaliacoes ->
+        DisciplinaUiState(disciplina = disciplina, avaliacoes = avaliacoes, isLoading = false)
+    }.stateIn(
+        viewModelScope,
+        SharingStarted.WhileSubscribed(5_000),
+        DisciplinaUiState()
+    )
 }

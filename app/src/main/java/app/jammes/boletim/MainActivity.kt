@@ -9,7 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import app.jammes.boletim.presentation.navigation.AppNavGraph
-import app.jammes.boletim.presentation.navigation.AppScaffold
+import app.jammes.boletim.presentation.navigation.AppRoot
 import app.jammes.boletim.presentation.ui.theme.BoletimTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -21,7 +21,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             BoletimTheme {
 //                AppNavGraph()
-                AppScaffold()
+                AppRoot()
 //                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
 //                    BoletimScreen(
 //                        modifier = Modifier.padding(innerPadding)

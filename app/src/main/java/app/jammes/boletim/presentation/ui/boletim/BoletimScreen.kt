@@ -45,6 +45,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BoletimScreen(
+    onAbrirDisciplina: (disciplinaId: Long) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: BoletimViewModel = hiltViewModel()
 ) {
@@ -96,7 +97,7 @@ fun BoletimScreen(
                     )
                 }
                 items((state as BoletimUiState.Sucesso).boletim.disciplinas, key = { it.id }) {
-                    DisciplinaCard(resumo = it)
+                    DisciplinaCard(resumo = it, onClick = { onAbrirDisciplina(it.id) })
                 }
             }
         }
@@ -141,7 +142,7 @@ private fun ResumoGeral(
 @Composable
 private fun DisciplinaCard(
     resumo: DisciplinaResumo,
-//    onClick: () -> Unit,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val corStatus = corDoStatus(resumo.status)
@@ -152,7 +153,7 @@ private fun DisciplinaCard(
     }
 
     Card(
-//        onClick = onClick,
+        onClick = onClick,
         modifier = modifier.height(120.dp)
     ) {
         Row(Modifier.fillMaxSize()) {
