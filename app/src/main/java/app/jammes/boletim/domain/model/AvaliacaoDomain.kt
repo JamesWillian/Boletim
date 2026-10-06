@@ -8,7 +8,7 @@ data class AvaliacaoDomain(
     val disciplinaId: Long,
     val periodoId: Long?,
     val nome: String,
-    val nota: Double,
+    val nota: Double?, // null: avaliação que ainda não aconteceu
     val notaMaxima: Double,
     val peso: Double,
     val tipo: TipoAvaliacao = TipoAvaliacao.NORMAL,

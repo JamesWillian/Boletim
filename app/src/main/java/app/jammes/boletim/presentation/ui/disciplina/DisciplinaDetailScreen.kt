@@ -1,6 +1,7 @@
 package app.jammes.boletim.presentation.ui.disciplina
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -28,6 +29,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -50,12 +55,15 @@ import java.util.Locale
 
 @Composable
 fun DisciplinaDetailScreen(
-    onNovaAvaliacao: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: DisciplinaViewModel = hiltViewModel()
 ) {
 
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    // Avaliação aberta no formulário: null = fechado, NOVA = criando uma.
+    // Guarda só o id, que sobrevive a girar a tela; a avaliação em si vem do state.
+    var abertaId by rememberSaveable { mutableStateOf<Long?>(null) }
 
     Scaffold(
         modifier = modifier,
@@ -63,7 +71,7 @@ fun DisciplinaDetailScreen(
         floatingActionButton = {
             // Sem a disciplina carregada não há onde lançar a avaliação
             if (state is DisciplinaUiState.Sucesso) {
-                FloatingActionButton(onClick = onNovaAvaliacao) {
+                FloatingActionButton(onClick = { abertaId = NOVA }) {
                     Icon(Icons.Filled.Add, contentDescription = "Nova avaliação")
                 }
             }
@@ -83,52 +91,74 @@ fun DisciplinaDetailScreen(
                 Text("Disciplina não encontrada", style = MaterialTheme.typography.titleMedium)
             }
 
-            is DisciplinaUiState.Sucesso -> LazyColumn(
-                modifier = Modifier.fillMaxSize().padding(paddingValues),
-                contentPadding = PaddingValues(
-                    start = 16.dp,
-                    end = 16.dp,
-                    top = 8.dp,
-                    bottom = 96.dp, // a última avaliação não fica atrás do FAB
-                ),
-            ) {
-                item { ResumoDisciplina(detalhe = s.detalhe) }
+            is DisciplinaUiState.Sucesso -> {
+                // O peso só muda a conta na média ponderada; nas outras, mostrar confundiria
+                val mostrarPeso = s.detalhe.regra.tipoMedia == TipoMedia.PONDERADA
 
-                item {
-                    Text(
-                        text = "Avaliações",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.padding(top = 24.dp, bottom = 4.dp),
-                    )
-                }
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize().padding(paddingValues),
+                    contentPadding = PaddingValues(
+                        start = 16.dp,
+                        end = 16.dp,
+                        top = 8.dp,
+                        bottom = 96.dp, // a última avaliação não fica atrás do FAB
+                    ),
+                ) {
+                    item { ResumoDisciplina(detalhe = s.detalhe) }
 
-                if (s.detalhe.avaliacoes.isEmpty()) {
                     item {
                         Text(
-                            text = "Nenhuma avaliação neste período",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                            text = "Avaliações",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(top = 24.dp, bottom = 4.dp),
                         )
                     }
-                } else {
-                    itemsIndexed(
-                        s.detalhe.avaliacoes,
-                        key = { _, avaliacao -> avaliacao.id }
-                    ) { i, avaliacao ->
-                        if (i > 0) HorizontalDivider()
-                        AvaliacaoItem(
-                            avaliacao = avaliacao,
-                            // O peso só muda a conta na média ponderada; nas outras, mostrar confundiria
-                            mostrarPeso = s.detalhe.regra.tipoMedia == TipoMedia.PONDERADA,
-                        )
+
+                    if (s.detalhe.avaliacoes.isEmpty()) {
+                        item {
+                            Text(
+                                text = "Nenhuma avaliação neste período",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                            )
+                        }
+                    } else {
+                        itemsIndexed(
+                            s.detalhe.avaliacoes,
+                            key = { _, avaliacao -> avaliacao.id }
+                        ) { i, avaliacao ->
+                            if (i > 0) HorizontalDivider()
+                            AvaliacaoItem(
+                                avaliacao = avaliacao,
+                                mostrarPeso = mostrarPeso,
+                                onClick = { abertaId = avaliacao.id },
+                            )
+                        }
                     }
+                }
+
+                val aberta = when (abertaId) {
+                    null -> null
+                    NOVA -> remember { viewModel.novaAvaliacao(s.detalhe.periodoId) }
+                    else -> s.detalhe.avaliacoes.find { it.id == abertaId }
+                }
+                if (aberta != null) {
+                    AvaliacaoBottomSheet(
+                        avaliacao = aberta,
+                        mostrarPeso = mostrarPeso,
+                        onDismiss = { abertaId = null },
+                        onSalvar = viewModel::salvar,
+                        onExcluir = { viewModel.excluir(aberta) },
+                    )
                 }
             }
         }
     }
 }
+
+private const val NOVA = 0L // o mesmo id de "ainda não gravada" que os repositórios usam
 
 @Composable
 private fun ResumoDisciplina(
@@ -194,6 +224,7 @@ private fun ResumoDisciplina(
 private fun AvaliacaoItem(
     avaliacao: AvaliacaoDomain,
     mostrarPeso: Boolean,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val descricao = listOfNotNull(
@@ -205,6 +236,7 @@ private fun AvaliacaoItem(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .clickable(onClickLabel = "Editar avaliação", onClick = onClick)
             .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -226,7 +258,8 @@ private fun AvaliacaoItem(
         Spacer(Modifier.width(16.dp))
         Column(horizontalAlignment = Alignment.End) {
             Text(
-                text = formatarMedia(avaliacao.nota), // mesmo formato da média: 7,0 · 8,5 · 8,75
+                // Mesmo formato da média (7,0 · 8,5 · 8,75); sem nota ainda, mostra "—"
+                text = formatarMedia(avaliacao.nota),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -241,8 +274,8 @@ private fun AvaliacaoItem(
 
 private val FORMATO_DATA = DateTimeFormatter.ofPattern("dd/MM")
 
-// Peso e nota máxima: até 2 casas, sem zero sobrando (1 · 1,5 · 10)
-private fun formatarNumero(valor: Double): String =
+// Peso, nota máxima e os campos do formulário: até 2 casas, sem zero sobrando (1 · 1,5 · 10)
+internal fun formatarNumero(valor: Double): String =
     NumberFormat.getNumberInstance(Locale.forLanguageTag("pt-BR"))
         .apply {
             maximumFractionDigits = 2

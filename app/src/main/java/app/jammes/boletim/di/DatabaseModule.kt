@@ -2,7 +2,9 @@ package app.jammes.boletim.di
 
 import android.content.Context
 import androidx.room.Room
+import app.jammes.boletim.BuildConfig
 import app.jammes.boletim.data.local.AppDatabase
+import app.jammes.boletim.data.local.DadosDeTesteCallback
 import app.jammes.boletim.data.local.MateriasPadraoCallback
 import app.jammes.boletim.data.local.dao.AlunoDao
 import app.jammes.boletim.data.local.dao.AnoLetivoDao
@@ -32,6 +34,10 @@ object DatabaseModule {
             AppDatabase.NAME
         )
             .addCallback(MateriasPadraoCallback())
+            .apply {
+                // Depois das matérias padrão, porque as disciplinas de teste são criadas a partir delas
+                if (BuildConfig.DEBUG) addCallback(DadosDeTesteCallback())
+            }
             .build()
 
     @Provides

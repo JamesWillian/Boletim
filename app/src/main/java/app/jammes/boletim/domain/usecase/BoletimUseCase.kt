@@ -29,9 +29,14 @@ import kotlin.collections.filter
 // ---------------------------------------------------------------------------
 
 object CalcularMediaDisciplina {
+    private class NotaLancada(val nota: Double, val peso: Double)
+
     operator fun invoke(avaliacoes: List<AvaliacaoDomain>, regra: RegraAvaliacaoDomain): Double? {
         // TODO: recuperação e arredondamento entram aqui
-        val validas = avaliacoes.filter { it.tipo == TipoAvaliacao.NORMAL }
+        val validas = avaliacoes
+            .filter { it.tipo == TipoAvaliacao.NORMAL }
+            // Sem nota = ainda não aconteceu, então fica fora da média
+            .mapNotNull { avaliacao -> avaliacao.nota?.let { NotaLancada(it, avaliacao.peso) } }
         if (validas.isEmpty()) return null
 
         val mediaRaw = when (regra.tipoMedia) {

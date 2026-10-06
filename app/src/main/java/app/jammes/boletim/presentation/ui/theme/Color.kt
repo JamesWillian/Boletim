@@ -22,7 +22,7 @@ val Pink40 = Color(0xFF7D5260)
 
 object CoresDisciplina {
     val paleta = listOf(
-        Color(0xFFE53935), // vermelho
+        Color(0xFFE34A48), // vermelho
         Color(0xFF1E88E5), // azul
         Color(0xFF43A047), // verde
         Color(0xFFFB8C00), // amarelo

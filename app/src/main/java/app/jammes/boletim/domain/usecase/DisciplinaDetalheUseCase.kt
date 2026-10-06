@@ -56,6 +56,7 @@ class ObterDisciplinaDetalhe @Inject constructor(
 
         return DisciplinaDetalhe(
             disciplina = disciplina,
+            periodoId = periodoId,
             regra = regra,
             avaliacoes = doPeriodo,
             media = media,

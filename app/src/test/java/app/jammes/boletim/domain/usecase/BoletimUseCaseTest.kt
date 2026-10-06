@@ -36,6 +36,24 @@ class BoletimUseCaseTest {
         assertNull(CalcularMediaDisciplina(emptyList(), regra()))
     }
 
+    @Test fun `avaliacao sem nota fica fora da media`() {
+        val avaliacoes = listOf(
+            avaliacao(nota = 6.0),
+            avaliacao(nota = 8.0),
+            avaliacao(nota = null), // prova marcada, ainda não aconteceu
+        )
+
+        val media = CalcularMediaDisciplina(avaliacoes, regra(TipoMedia.SIMPLES))
+
+        assertEquals(7.0, media!!, 0.001) // e não 4,67, como seria contando a vazia como zero
+    }
+
+    @Test fun `so avaliacoes sem nota deixam a media nula`() {
+        val avaliacoes = listOf(avaliacao(nota = null), avaliacao(nota = null))
+
+        assertNull(CalcularMediaDisciplina(avaliacoes, regra(TipoMedia.PONDERADA)))
+    }
+
     @Test fun `media abaixo da minima fica ABAIXO`() {
         assertEquals(StatusDisciplina.ABAIXO, statusDaMedia(6.9, regra(mediaMinima = 7.0)))
     }
@@ -59,7 +77,7 @@ class BoletimUseCaseTest {
 
 // Preenche os campos que o cálculo não usa, pra cada teste mostrar só o que importa.
 private fun avaliacao(
-    nota: Double,
+    nota: Double?,
     peso: Double = 1.0,
     tipo: TipoAvaliacao = TipoAvaliacao.NORMAL,
 ) = AvaliacaoDomain(

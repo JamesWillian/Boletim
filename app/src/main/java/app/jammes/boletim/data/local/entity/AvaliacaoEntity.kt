@@ -35,7 +35,7 @@ data class AvaliacaoEntity(
     @ColumnInfo(name = "disciplina_id") val disciplinaId: Long,
     @ColumnInfo(name = "periodo_id") val periodoId: Long?,
     @ColumnInfo(name = "nome") val nome: String,
-    @ColumnInfo(name = "nota") val nota: Double,
+    @ColumnInfo(name = "nota") val nota: Double?, // null: avaliação que ainda não aconteceu
     @ColumnInfo(name = "nota_maxima") val notaMaxima: Double,
     @ColumnInfo(name = "peso") val peso: Double,
     @ColumnInfo(name = "tipo") val tipo: String = "NORMAL",
