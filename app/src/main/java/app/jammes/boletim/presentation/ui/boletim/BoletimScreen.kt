@@ -190,7 +190,7 @@ private fun DisciplinaCard(
 }
 
 @Composable
-private fun corDoStatus(status: StatusDisciplina): Color = when (status) {
+internal fun corDoStatus(status: StatusDisciplina): Color = when (status) {
     StatusDisciplina.APROVADO -> Color(0xFF2E7D32)
     StatusDisciplina.ATENCAO -> Color(0xFFB26A00)
     StatusDisciplina.ABAIXO -> MaterialTheme.colorScheme.error

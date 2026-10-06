@@ -39,7 +39,10 @@ fun AppNavHost(
                 BoletimScreen(onAbrirDisciplina = { id -> navController.abrirDisciplina(id) })
             }
             composable<Routes.Boletim.Disciplina> {
-                DisciplinaDetailScreen() // o id chega no ViewModel pelo SavedStateHandle
+                // o id chega no ViewModel pelo SavedStateHandle
+                DisciplinaDetailScreen(
+                    onNovaAvaliacao = {}, // TODO: abrir o formulário de nova avaliação (ainda não existe)
+                )
             }
         }
 

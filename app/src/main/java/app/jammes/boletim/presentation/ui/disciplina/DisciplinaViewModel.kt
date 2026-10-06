@@ -4,43 +4,46 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
-import app.jammes.boletim.domain.model.AvaliacaoDomain
-import app.jammes.boletim.domain.model.DisciplinaDomain
-import app.jammes.boletim.domain.repository.AvaliacaoRepository
-import app.jammes.boletim.domain.repository.DisciplinaRepository
+import app.jammes.boletim.domain.model.DisciplinaDetalhe
+import app.jammes.boletim.domain.repository.ContextoRepository
+import app.jammes.boletim.domain.usecase.ObterDisciplinaDetalhe
 import app.jammes.boletim.presentation.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jakarta.inject.Inject
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
-data class DisciplinaUiState(
-    val disciplina: DisciplinaDomain? = null,
-    val avaliacoes: List<AvaliacaoDomain> = emptyList(),
-    val isLoading: Boolean = true
-)
+sealed interface DisciplinaUiState {
+    data object Carregando : DisciplinaUiState
+    data object NaoEncontrada : DisciplinaUiState
+    data class Sucesso(val detalhe: DisciplinaDetalhe) : DisciplinaUiState
+}
 
 @HiltViewModel
 class DisciplinaViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val disciplinaRepo: DisciplinaRepository,
-    private val avaliacaoRepo: AvaliacaoRepository
+    contextoRepo: ContextoRepository,
+    obterDisciplinaDetalhe: ObterDisciplinaDetalhe,
 ): ViewModel() {
 
     // Argumento da rota que abriu a tela. Cada disciplina aberta ganha seu próprio ViewModel,
     // então o id não muda durante a vida dele.
     private val disciplinaId = savedStateHandle.toRoute<Routes.Boletim.Disciplina>().disciplinaId
 
-    val state: StateFlow<DisciplinaUiState> = combine(
-        disciplinaRepo.observeById(disciplinaId),
-        avaliacaoRepo.observeByDisciplina(disciplinaId)
-    ) { disciplina, avaliacoes ->
-        DisciplinaUiState(disciplina = disciplina, avaliacoes = avaliacoes, isLoading = false)
-    }.stateIn(
-        viewModelScope,
-        SharingStarted.WhileSubscribed(5_000),
-        DisciplinaUiState()
-    )
+    val state: StateFlow<DisciplinaUiState> =
+        obterDisciplinaDetalhe(disciplinaId, contextoRepo.contexto.filterNotNull())
+            .map { detalhe ->
+                if (detalhe == null)
+                    DisciplinaUiState.NaoEncontrada
+                else
+                    DisciplinaUiState.Sucesso(detalhe)
+            }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5_000),
+                initialValue = DisciplinaUiState.Carregando
+            )
 }

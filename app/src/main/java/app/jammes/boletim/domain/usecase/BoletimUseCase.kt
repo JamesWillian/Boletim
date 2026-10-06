@@ -89,7 +89,7 @@ private val REGRA_PADRAO = RegraAvaliacaoDomain(
 )
 
 /** Exceção da disciplina se existir, senão a regra padrão do ano (disciplinaId nulo). */
-private fun List<RegraAvaliacaoDomain>.paraDisciplina(disciplinaId: Long): RegraAvaliacaoDomain =
+internal fun List<RegraAvaliacaoDomain>.paraDisciplina(disciplinaId: Long): RegraAvaliacaoDomain =
     firstOrNull { it.disciplinaId == disciplinaId }
         ?: firstOrNull { it.disciplinaId == null } // CriarAnoLetivo garante que a padrão existe
         ?: REGRA_PADRAO
