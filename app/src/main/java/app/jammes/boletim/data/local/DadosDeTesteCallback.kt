@@ -48,11 +48,11 @@ class DadosDeTesteCallback : RoomDatabase.Callback() {
         }
         DISCIPLINAS.forEach {
             // Roda depois do MateriasPadraoCallback (é a ordem do addCallback), então a matéria já
-            // existe. A disciplina copia nome e cor dela, como faria o cadastro.
+            // existe. A disciplina copia nome, cor e ícone dela, como faria o cadastro.
             db.execSQL(
                 """
-                INSERT INTO disciplina (id, materia_id, ano_letivo_id, nome, cor, total_aulas, professor, ativa, ordem)
-                SELECT ?, id, ?, nome, cor, ?, ?, 1, ? FROM materia WHERE abreviacao = ?
+                INSERT INTO disciplina (id, materia_id, ano_letivo_id, nome, cor, icone, total_aulas, professor, ativa, ordem)
+                SELECT ?, id, ?, nome, cor, icone, ?, ?, 1, ? FROM materia WHERE abreviacao = ?
                 """.trimIndent(),
                 arrayOf<Any?>(it.id, CONTEXTO.anoLetivoId, it.totalAulas, it.professor, it.id, it.materia)
             )

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -20,6 +21,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -39,6 +41,7 @@ import app.jammes.boletim.domain.model.StatusDisciplina
 import app.jammes.boletim.domain.model.TipoArredondamento
 import app.jammes.boletim.domain.usecase.arredondarMedia
 import app.jammes.boletim.presentation.ui.theme.CoresDisciplina
+import app.jammes.boletim.presentation.ui.theme.IconesDisciplina
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -145,6 +148,7 @@ private fun DisciplinaCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val corDisciplina = CoresDisciplina.de(resumo.cor)
     val corStatus = corDoStatus(resumo.status)
     val corFaltas = if (resumo.emRiscoPorFalta) {
         MaterialTheme.colorScheme.error
@@ -162,16 +166,25 @@ private fun DisciplinaCard(
                 Modifier
                     .width(4.dp)
                     .fillMaxSize()
-                    .background(CoresDisciplina.de(resumo.cor))
+                    .background(corDisciplina)
             )
             Column(Modifier.fillMaxSize().padding(14.dp)) {
-                Text(
-                    text = resumo.nome,
-                    style = MaterialTheme.typography.titleSmall,
-                    maxLines = 2,
-                    minLines = 2, // mantém os cards alinhados na grade
-                    overflow = TextOverflow.Ellipsis,
-                )
+                Row {
+                    Text(
+                        text = resumo.nome,
+                        style = MaterialTheme.typography.titleSmall,
+                        maxLines = 2,
+                        minLines = 2, // mantém os cards alinhados na grade
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Icon(
+                        imageVector = IconesDisciplina.de(resumo.icone),
+                        contentDescription = null, // o nome ao lado já identifica a disciplina
+                        tint = corDisciplina,
+                        modifier = Modifier.padding(start = 8.dp).size(20.dp),
+                    )
+                }
                 Spacer(Modifier.weight(1f))
                 Text(
                     text = formatarMedia(resumo.media),

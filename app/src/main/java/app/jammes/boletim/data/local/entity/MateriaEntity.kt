@@ -10,5 +10,6 @@ data class MateriaEntity(
     @ColumnInfo(name = "id") val id: Long = 0L,
     @ColumnInfo(name = "nome") val nome: String,
     @ColumnInfo(name = "abreviacao") val abreviacao: String?,
-    @ColumnInfo(name = "cor") val cor: Int = 0
+    @ColumnInfo(name = "cor") val cor: Int = 0,
+    @ColumnInfo(name = "icone") val icone: String
 )

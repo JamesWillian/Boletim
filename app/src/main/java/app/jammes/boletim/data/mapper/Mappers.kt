@@ -17,6 +17,7 @@ import app.jammes.boletim.domain.model.DisciplinaDados
 import app.jammes.boletim.domain.model.TipoAvaliacao
 import app.jammes.boletim.domain.model.DisciplinaDomain
 import app.jammes.boletim.domain.model.FaltaDomain
+import app.jammes.boletim.domain.model.IconeMateria
 import app.jammes.boletim.domain.model.Lancamentos
 import app.jammes.boletim.domain.model.MateriaDomain
 import app.jammes.boletim.domain.model.PeriodoDomain
@@ -82,20 +83,23 @@ fun MateriaEntity.toDomain(): MateriaDomain = MateriaDomain(
     id = id,
     nome = nome,
     abreviacao = abreviacao,
-    cor = cor
+    cor = cor,
+    icone = IconeMateria.fromString(icone)
 )
 
 fun MateriaDomain.toEntity(): MateriaEntity = MateriaEntity(
     id = id,
     nome = nome.trim(),
     abreviacao = abreviacao?.trim(),
-    cor = cor
+    cor = cor,
+    icone = IconeMateria.toString(icone)
 )
 
 fun DisciplinaEntity.toDomain(): DisciplinaDomain = DisciplinaDomain(
     id = id,
     nome = nome,
     cor = cor,
+    icone = IconeMateria.fromString(icone),
     totalAulas = totalAulas,
     professor = professor,
     periodoInicio = periodoInicio,
@@ -110,6 +114,7 @@ fun DisciplinaDomain.toEntity(): DisciplinaEntity = DisciplinaEntity(
     id = id,
     nome = nome.trim(),
     cor = cor,
+    icone = IconeMateria.toString(icone),
     totalAulas = totalAulas,
     professor = professor?.trim(),
     periodoInicio = periodoInicio,
@@ -190,6 +195,7 @@ fun DisciplinaComDados.toDomain(): DisciplinaDados = DisciplinaDados(
     disciplinaId = disciplina.id,
     nome = disciplina.nome,
     cor = disciplina.cor,
+    icone = IconeMateria.fromString(disciplina.icone),
     avaliacoes = avaliacoes.map { it.toDomain() },
     faltas = faltas.map { it.toDomain() },
     totalAulas = disciplina.totalAulas

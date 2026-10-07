@@ -150,6 +150,7 @@ class ObterBoletim @Inject constructor(
                 id = d.disciplinaId,
                 nome = d.nome,
                 cor = d.cor,
+                icone = d.icone,
                 media = media,
                 status = statusDaMedia(media, regra),
                 faltas = d.faltas.sumOf { it.qtdAulas }, // ano inteiro, contra o limite anual

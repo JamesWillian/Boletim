@@ -3,23 +3,31 @@ package app.jammes.boletim.presentation.ui.components
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.unit.dp
 import app.jammes.boletim.domain.model.DisciplinaDomain
 import app.jammes.boletim.presentation.ui.theme.CoresDisciplina
+import app.jammes.boletim.presentation.ui.theme.IconesDisciplina
 
 /**
  * Abas da lateral direita: o Boletim Geral e uma aba por disciplina do ano letivo.
@@ -45,6 +53,7 @@ fun AbasDisciplinas(
         item {
             AbaDisciplina(
                 cor = Color.LightGray,
+                icone = Icons.Filled.GridView,
                 nome = "Boletim Geral",
                 isSelected = disciplinaAbertaId == null,
                 onClick = onAbrirBoletimGeral
@@ -53,6 +62,7 @@ fun AbasDisciplinas(
         items(disciplinas, key = { it.id }) { disciplina ->
             AbaDisciplina(
                 cor = CoresDisciplina.de(disciplina.cor),
+                icone = IconesDisciplina.de(disciplina.icone),
                 nome = disciplina.nome,
                 isSelected = disciplina.id == disciplinaAbertaId,
                 onClick = { onAbrirDisciplina(disciplina.id) }
@@ -65,6 +75,7 @@ fun AbasDisciplinas(
 fun AbaDisciplina(
     modifier: Modifier = Modifier,
     cor: Color,
+    icone: ImageVector,
     nome: String,
     isSelected: Boolean,
     onClick: () -> Unit
@@ -79,11 +90,19 @@ fun AbaDisciplina(
         color = cor,
         border = if (isSelected) BorderStroke(1.dp, Color.Yellow) else null
     ) {
-        Text(
-            nome,
-            modifier = Modifier.vertical().rotate(90f)
-                .padding(vertical = 8.dp, horizontal = 12.dp),
-        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            // O ícone fica em pé, só o nome gira
+            Icon(
+                imageVector = icone,
+                contentDescription = null, // o nome logo abaixo já diz qual é a aba
+                modifier = Modifier.padding(top = 10.dp).size(20.dp),
+            )
+            Text(
+                nome,
+                modifier = Modifier.vertical().rotate(90f)
+                    .padding(vertical = 8.dp, horizontal = 12.dp),
+            )
+        }
     }
 }
 

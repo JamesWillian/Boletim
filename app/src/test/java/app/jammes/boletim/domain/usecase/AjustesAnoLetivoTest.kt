@@ -3,6 +3,7 @@ package app.jammes.boletim.domain.usecase
 import app.jammes.boletim.domain.model.AjustesAnoLetivo
 import app.jammes.boletim.domain.model.AnoLetivoDomain
 import app.jammes.boletim.domain.model.DisciplinaDomain
+import app.jammes.boletim.domain.model.IconeMateria
 import app.jammes.boletim.domain.model.MateriaDomain
 import app.jammes.boletim.domain.model.RegraAvaliacaoDomain
 import org.junit.Assert.assertEquals
@@ -11,7 +12,7 @@ import org.junit.Test
 
 class AjustesAnoLetivoTest {
 
-    @Test fun `materia que entra no ano vira disciplina com o nome e a cor dela`() {
+    @Test fun `materia que entra no ano vira disciplina com o nome, a cor e o icone dela`() {
         // prepara
         val original = ajustes(disciplinas = emptyList())
 
@@ -22,6 +23,7 @@ class AjustesAnoLetivoTest {
         val ingles = novas.single()
         assertEquals("Inglês", ingles.nome)
         assertEquals(INGLES.cor, ingles.cor)
+        assertEquals(IconeMateria.IDIOMA, ingles.icone)
         assertEquals(INGLES.id, ingles.materiaId)
         assertEquals(ANO_LETIVO_ID, ingles.anoLetivoId)
         assertEquals(0L, ingles.id) // ainda não gravada
@@ -51,7 +53,7 @@ private const val ANO_LETIVO_ID = 7L
 
 private val PORTUGUES = MateriaDomain(id = 1, nome = "Português", cor = 0)
 private val MATEMATICA = MateriaDomain(id = 2, nome = "Matemática", cor = 1)
-private val INGLES = MateriaDomain(id = 6, nome = "Inglês", cor = 8)
+private val INGLES = MateriaDomain(id = 6, nome = "Inglês", cor = 8, icone = IconeMateria.IDIOMA)
 private val ARTE = MateriaDomain(id = 7, nome = "Arte", cor = 6)
 
 private fun disciplina(materia: MateriaDomain, ordem: Int) = DisciplinaDomain(

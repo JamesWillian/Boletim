@@ -4,5 +4,6 @@ data class MateriaDomain(
     val id: Long = 0L,
     val nome: String = "",
     val abreviacao: String? = null,
-    val cor: Int = 0
+    val cor: Int = 0,
+    val icone: IconeMateria = IconeMateria.PADRAO
 )

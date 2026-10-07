@@ -4,6 +4,7 @@ data class DisciplinaResumo(
     val id: Long,
     val nome: String,
     val cor: Int,
+    val icone: IconeMateria,
     val media: Double?,
     val status: StatusDisciplina,
     val faltas: Int,

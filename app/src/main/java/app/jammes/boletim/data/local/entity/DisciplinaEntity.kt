@@ -33,6 +33,7 @@ data class DisciplinaEntity(
     @ColumnInfo(name = "ano_letivo_id") val anoLetivoId: Long,
     @ColumnInfo(name = "nome") val nome: String,
     @ColumnInfo(name = "cor") val cor: Int = 0,
+    @ColumnInfo(name = "icone") val icone: String,
     @ColumnInfo(name = "total_aulas") val totalAulas: Int?,
     @ColumnInfo(name = "professor") val professor: String?,
     @ColumnInfo(name = "periodo_inicio") val periodoInicio: Long?,

@@ -4,6 +4,7 @@ data class DisciplinaDomain(
     val id : Long = 0L,
     val nome : String,
     val cor : Int = 0,
+    val icone : IconeMateria = IconeMateria.PADRAO,
     val totalAulas : Int? = null,
     val professor : String? = null,
     val periodoInicio : Long? = null,

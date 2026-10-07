@@ -3,6 +3,7 @@ package app.jammes.boletim.data.local
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 import app.jammes.boletim.data.local.entity.MateriaEntity
+import app.jammes.boletim.domain.model.IconeMateria
 
 /**
  * Insere as matérias padrão quando o banco é criado, ou seja, na primeira vez que o app é
@@ -15,8 +16,8 @@ class MateriasPadraoCallback : RoomDatabase.Callback() {
         // O banco ainda está sendo aberto, então os DAOs não podem ser usados aqui: vai SQL direto.
         MATERIAS.forEach { materia ->
             db.execSQL(
-                "INSERT INTO materia (nome, abreviacao, cor) VALUES (?, ?, ?)",
-                arrayOf<Any?>(materia.nome, materia.abreviacao, materia.cor)
+                "INSERT INTO materia (nome, abreviacao, cor, icone) VALUES (?, ?, ?, ?)",
+                arrayOf<Any?>(materia.nome, materia.abreviacao, materia.cor, materia.icone)
             )
         }
     }
@@ -24,19 +25,22 @@ class MateriasPadraoCallback : RoomDatabase.Callback() {
     companion object {
         // cor = índice em CoresDisciplina.paleta
         val MATERIAS = listOf(
-            MateriaEntity(nome = "Português", abreviacao = "POR", cor = 0),
-            MateriaEntity(nome = "Matemática", abreviacao = "MAT", cor = 1),
-            MateriaEntity(nome = "História", abreviacao = "HIS", cor = 16),
-            MateriaEntity(nome = "Geografia", abreviacao = "GEO", cor = 10),
-            MateriaEntity(nome = "Ciências", abreviacao = "CIE", cor = 2),
-            MateriaEntity(nome = "Inglês", abreviacao = "ING", cor = 8),
-            MateriaEntity(nome = "Arte", abreviacao = "ART", cor = 6),
-            MateriaEntity(nome = "Educação Física", abreviacao = "EDF", cor = 3),
-            MateriaEntity(nome = "Física", abreviacao = "FIS", cor = 5),
-            MateriaEntity(nome = "Química", abreviacao = "QUI", cor = 4),
-            MateriaEntity(nome = "Biologia", abreviacao = "BIO", cor = 11),
-            MateriaEntity(nome = "Filosofia", abreviacao = "FIL", cor = 17),
-            MateriaEntity(nome = "Sociologia", abreviacao = "SOC", cor = 14)
+            materia("Português", "POR", cor = 0, IconeMateria.LIVRO),
+            materia("Matemática", "MAT", cor = 1, IconeMateria.CALCULADORA),
+            materia("História", "HIS", cor = 16, IconeMateria.PERGAMINHO),
+            materia("Geografia", "GEO", cor = 10, IconeMateria.GLOBO),
+            materia("Ciências", "CIE", cor = 2, IconeMateria.MICROSCOPIO),
+            materia("Inglês", "ING", cor = 8, IconeMateria.IDIOMA),
+            materia("Arte", "ART", cor = 6, IconeMateria.PALETA),
+            materia("Educação Física", "EDF", cor = 3, IconeMateria.BOLA),
+            materia("Física", "FIS", cor = 5, IconeMateria.RAIO),
+            materia("Química", "QUI", cor = 4, IconeMateria.FRASCO),
+            materia("Biologia", "BIO", cor = 11, IconeMateria.FOLHA),
+            materia("Filosofia", "FIL", cor = 17, IconeMateria.MENTE),
+            materia("Sociologia", "SOC", cor = 14, IconeMateria.PESSOAS)
         )
+
+        private fun materia(nome: String, abreviacao: String, cor: Int, icone: IconeMateria) =
+            MateriaEntity(nome = nome, abreviacao = abreviacao, cor = cor, icone = IconeMateria.toString(icone))
     }
 }
