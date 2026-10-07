@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- O background do tema escuro (Theme.kt): sem isso o app pisca branco ao abrir no modo escuro -->
+    <color name="fundo">#FF111318</color>
+</resources>

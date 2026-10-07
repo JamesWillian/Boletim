@@ -40,6 +40,7 @@ import app.jammes.boletim.domain.model.DisciplinaResumo
 import app.jammes.boletim.domain.model.StatusDisciplina
 import app.jammes.boletim.domain.model.TipoArredondamento
 import app.jammes.boletim.domain.usecase.arredondarMedia
+import app.jammes.boletim.presentation.ui.theme.BoletimTheme
 import app.jammes.boletim.presentation.ui.theme.CoresDisciplina
 import app.jammes.boletim.presentation.ui.theme.IconesDisciplina
 import java.text.NumberFormat
@@ -206,8 +207,8 @@ private fun DisciplinaCard(
 
 @Composable
 internal fun corDoStatus(status: StatusDisciplina): Color = when (status) {
-    StatusDisciplina.APROVADO -> Color(0xFF2E7D32)
-    StatusDisciplina.ATENCAO -> Color(0xFFB26A00)
+    StatusDisciplina.APROVADO -> BoletimTheme.coresExtras.sucesso
+    StatusDisciplina.ATENCAO -> BoletimTheme.coresExtras.atencao
     StatusDisciplina.ABAIXO -> MaterialTheme.colorScheme.error
     StatusDisciplina.REPROVADO -> MaterialTheme.colorScheme.error
     StatusDisciplina.SEM_NOTA -> MaterialTheme.colorScheme.onSurfaceVariant
