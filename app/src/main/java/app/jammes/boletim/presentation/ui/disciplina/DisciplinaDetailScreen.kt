@@ -1,33 +1,33 @@
 package app.jammes.boletim.presentation.ui.disciplina
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,6 +35,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -43,13 +45,22 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.jammes.boletim.domain.model.AvaliacaoDomain
 import app.jammes.boletim.domain.model.DisciplinaDetalhe
+import app.jammes.boletim.domain.model.RegraAvaliacaoDomain
+import app.jammes.boletim.domain.model.TipoArredondamento
 import app.jammes.boletim.domain.model.TipoAvaliacao
 import app.jammes.boletim.domain.model.TipoMedia
+import app.jammes.boletim.domain.usecase.arredondarMedia
+import app.jammes.boletim.domain.usecase.statusDaMedia
 import app.jammes.boletim.presentation.ui.anoletivo.nomeDoPeriodo
 import app.jammes.boletim.presentation.ui.boletim.corDoStatus
 import app.jammes.boletim.presentation.ui.boletim.formatarMedia
 import app.jammes.boletim.presentation.ui.boletim.nomeDoFiltro
+import app.jammes.boletim.presentation.ui.components.BarraDaMedia
+import app.jammes.boletim.presentation.ui.components.Pilula
+import app.jammes.boletim.presentation.ui.components.SeloDisciplina
 import app.jammes.boletim.presentation.ui.theme.CoresDisciplina
+import app.jammes.boletim.presentation.ui.theme.Espacos
+import app.jammes.boletim.presentation.ui.theme.IconesDisciplina
 import java.math.RoundingMode
 import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
@@ -67,15 +78,30 @@ fun DisciplinaDetailScreen(
     // Guarda só o id, que sobrevive a girar a tela; a avaliação em si vem do state.
     var abertaId by rememberSaveable { mutableStateOf<Long?>(null) }
 
+    val listState = rememberLazyListState()
+    // O botão mostra o texto no topo da lista e encolhe para só o "+" quando a lista rola
+    val fabExpandido by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
+
     Scaffold(
         modifier = modifier,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
             // Sem a disciplina carregada não há onde lançar a avaliação
             if (state is DisciplinaUiState.Sucesso) {
-                FloatingActionButton(onClick = { abertaId = NOVA }) {
-                    Icon(Icons.Filled.Add, contentDescription = "Nova avaliação")
-                }
+                ExtendedFloatingActionButton(
+                    onClick = { abertaId = NOVA },
+                    expanded = fabExpandido,
+                    icon = {
+                        Icon(
+                            Icons.Filled.Add,
+                            // Aberto, o texto ao lado já diz o que o botão faz
+                            contentDescription = if (fabExpandido) null else "Nova avaliação",
+                        )
+                    },
+                    text = { Text("Nova avaliação") },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                )
             }
         },
     ) { paddingValues ->
@@ -101,11 +127,12 @@ fun DisciplinaDetailScreen(
                 val anoInteiro = detalhe.periodoId == null
 
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier.fillMaxSize().padding(paddingValues),
                     contentPadding = PaddingValues(
-                        start = 16.dp,
-                        end = 16.dp,
-                        top = 8.dp,
+                        start = Espacos.l,
+                        end = Espacos.l,
+                        top = Espacos.s,
                         bottom = 96.dp, // a última avaliação não fica atrás do FAB
                     ),
                 ) {
@@ -115,7 +142,8 @@ fun DisciplinaDetailScreen(
                         Text(
                             text = "Avaliações",
                             style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.padding(top = 24.dp, bottom = 4.dp),
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(top = Espacos.xl, bottom = Espacos.s),
                         )
                     }
 
@@ -130,27 +158,41 @@ fun DisciplinaDetailScreen(
                             )
                         }
                     } else {
+                        // Cada período é uma seção: o nome em cima (só no ano inteiro) e as
+                        // avaliações juntas num card, separadas por linhas finas
                         detalhe.avaliacoesPorPeriodo.forEach { grupo ->
-                            if (anoInteiro) {
-                                item(key = "periodo-${grupo.periodo.id}") {
-                                    Text(
-                                        text = nomeDoPeriodo(grupo.periodo.periodo, detalhe.tipoPeriodo).uppercase(),
-                                        style = MaterialTheme.typography.labelLarge,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
-                                    )
+                            item(key = "periodo-${grupo.periodo.id}") {
+                                Column(Modifier.padding(bottom = Espacos.m)) {
+                                    if (anoInteiro) {
+                                        Text(
+                                            text = nomeDoPeriodo(grupo.periodo.periodo, detalhe.tipoPeriodo).uppercase(),
+                                            style = MaterialTheme.typography.labelLarge,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.padding(start = Espacos.xs, top = Espacos.xs, bottom = Espacos.s),
+                                        )
+                                    }
+                                    Card(
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
+                                        ),
+                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                    ) {
+                                        grupo.avaliacoes.forEachIndexed { i, avaliacao ->
+                                            if (i > 0) {
+                                                HorizontalDivider(
+                                                    modifier = Modifier.padding(horizontal = Espacos.l),
+                                                    color = MaterialTheme.colorScheme.outlineVariant,
+                                                )
+                                            }
+                                            AvaliacaoItem(
+                                                avaliacao = avaliacao,
+                                                regra = detalhe.regra,
+                                                mostrarPeso = mostrarPeso,
+                                                onClick = { abertaId = avaliacao.id },
+                                            )
+                                        }
+                                    }
                                 }
-                            }
-                            itemsIndexed(
-                                grupo.avaliacoes,
-                                key = { _, avaliacao -> avaliacao.id }
-                            ) { i, avaliacao ->
-                                if (i > 0) HorizontalDivider()
-                                AvaliacaoItem(
-                                    avaliacao = avaliacao,
-                                    mostrarPeso = mostrarPeso,
-                                    onClick = { abertaId = avaliacao.id },
-                                )
                             }
                         }
                     }
@@ -186,6 +228,8 @@ private fun ResumoDisciplina(
     modifier: Modifier = Modifier,
 ) {
     val disciplina = detalhe.disciplina
+    val cor = CoresDisciplina.de(disciplina.cor)
+    val corStatus = corDoStatus(detalhe.status)
     val dados = listOfNotNull(
         disciplina.professor?.takeIf { it.isNotBlank() },
         disciplina.totalAulas?.let { if (it == 1) "1 aula no ano" else "$it aulas no ano" },
@@ -196,73 +240,97 @@ private fun ResumoDisciplina(
         TipoMedia.SOMA -> "Soma das notas"
     }
 
-    Card(modifier = modifier.fillMaxWidth()) {
-        Row(Modifier.height(IntrinsicSize.Min)) {
-            // Faixa de identidade da disciplina, a mesma do card no Boletim
-            Box(
-                Modifier
-                    .width(4.dp)
-                    .fillMaxHeight()
-                    .background(CoresDisciplina.de(disciplina.cor))
-            )
-            Column(Modifier.padding(16.dp)) {
-                Text(
-                    text = disciplina.nome,
-                    style = MaterialTheme.typography.headlineSmall,
+    // Levemente tingido com a cor da disciplina: a "capa" da folha que a aba abriu
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = cor.copy(alpha = 0.08f).compositeOver(MaterialTheme.colorScheme.surfaceContainerLowest),
+        ),
+        border = BorderStroke(1.dp, cor.copy(alpha = 0.35f)),
+    ) {
+        Column(Modifier.padding(20.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                SeloDisciplina(
+                    cor = cor,
+                    icone = IconesDisciplina.de(disciplina.icone),
+                    tamanho = 44.dp,
                 )
-                if (dados.isNotEmpty()) {
+                Spacer(Modifier.width(Espacos.m))
+                Column {
                     Text(
-                        text = dados,
-                        style = MaterialTheme.typography.bodyMedium,
+                        text = disciplina.nome,
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    if (dados.isNotEmpty()) {
+                        Text(
+                            text = dados,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(20.dp))
+            // Duas colunas, a da média e a das faltas, montadas em linhas: assim cada coisa fica
+            // embaixo do seu número, e os números continuam lado a lado mesmo se um rótulo quebrar
+            // em duas linhas (fonte grande).
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    text = "Média do ${nomeDoFiltro(detalhe.periodoId)}",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(Espacos.l))
+                // Faltas do ano inteiro, em qualquer filtro: o limite de frequência é anual
+                Text(
+                    text = "Faltas no ano",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Row {
+                // Mesma formatação e mesma cor do card no Boletim, para as duas telas não divergirem
+                Text(
+                    text = formatarMedia(detalhe.media),
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = corStatus,
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(Espacos.l))
+                Text(
+                    text = detalhe.faltas.toString(),
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (detalhe.emRiscoPorFalta) {
+                        MaterialTheme.colorScheme.error
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
+                )
+            }
+            Spacer(Modifier.height(Espacos.s))
+            Row {
+                // A barra é só da média: fica na coluna dela, sem passar por baixo das faltas
+                Column(Modifier.weight(1f)) {
+                    BarraDaMedia(media = detalhe.media, mediaMinima = detalhe.regra.mediaMinima, cor = corStatus)
+                    Spacer(Modifier.height(Espacos.s))
+                    Text(
+                        text = "$calculo · mínima ${formatarMedia(detalhe.regra.mediaMinima)}",
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                Spacer(Modifier.height(16.dp))
-                Row {
-                    Column(Modifier.weight(1f)) {
-                        Text(
-                            text = "Média do ${nomeDoFiltro(detalhe.periodoId)}",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        // Mesma formatação e mesma cor do card no Boletim, para as duas telas não divergirem
-                        Text(
-                            text = formatarMedia(detalhe.media),
-                            style = MaterialTheme.typography.displaySmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = corDoStatus(detalhe.status),
-                        )
-                        Text(
-                            text = "$calculo · mínima ${formatarMedia(detalhe.regra.mediaMinima)}",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Spacer(Modifier.width(16.dp))
-                    // Faltas do ano inteiro, em qualquer filtro: o limite de frequência é anual
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            text = "Faltas no ano",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            text = detalhe.faltas.toString(),
-                            style = MaterialTheme.typography.displaySmall,
-                            color = if (detalhe.emRiscoPorFalta) {
-                                MaterialTheme.colorScheme.error
-                            } else {
-                                MaterialTheme.colorScheme.onSurface
-                            },
-                        )
-                        detalhe.limiteFaltas?.let { limite ->
-                            Text(
-                                text = "de $limite permitidas",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
+                detalhe.limiteFaltas?.let { limite ->
+                    Spacer(Modifier.width(Espacos.l))
+                    Text(
+                        text = "de $limite permitidas",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
         }
@@ -272,6 +340,7 @@ private fun ResumoDisciplina(
 @Composable
 private fun AvaliacaoItem(
     avaliacao: AvaliacaoDomain,
+    regra: RegraAvaliacaoDomain,
     mostrarPeso: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -286,13 +355,14 @@ private fun AvaliacaoItem(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClickLabel = "Editar avaliação", onClick = onClick)
-            .padding(vertical = 12.dp),
+            .padding(horizontal = Espacos.l, vertical = Espacos.m),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
             Text(
                 text = avaliacao.nome,
                 style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -304,22 +374,42 @@ private fun AvaliacaoItem(
                 )
             }
         }
-        Spacer(Modifier.width(16.dp))
-        Column(horizontalAlignment = Alignment.End) {
-            Text(
-                // Mesmo formato da média (7,0 · 8,5 · 8,75); sem nota ainda, mostra "—"
-                text = formatarMedia(avaliacao.nota),
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                text = "de ${formatarNumero(avaliacao.notaMaxima)}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        Spacer(Modifier.width(Espacos.l))
+        val nota = avaliacao.nota
+        if (nota == null) {
+            // Ainda não aconteceu (ou a nota não saiu): não entra na média
+            Pilula(texto = "Pendente")
+        } else {
+            Column(horizontalAlignment = Alignment.End) {
+                Text(
+                    // Mesmo formato da média (7,0 · 8,5 · 8,75)
+                    text = formatarMedia(nota),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = corDaNota(nota, avaliacao.notaMaxima, regra),
+                )
+                Text(
+                    text = "de ${formatarNumero(avaliacao.notaMaxima)}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
+
+/**
+ * A nota na cor do status, como se fosse uma média: levada para a escala de 10 (a da média
+ * mínima) e limpa como a tela limpa as médias. Na soma, cada nota é só uma parte do total e não
+ * dá para comparar com a mínima, então fica neutra.
+ */
+@Composable
+private fun corDaNota(nota: Double, notaMaxima: Double, regra: RegraAvaliacaoDomain): Color =
+    if (regra.tipoMedia == TipoMedia.SOMA || notaMaxima <= 0.0) {
+        MaterialTheme.colorScheme.onSurface
+    } else {
+        corDoStatus(statusDaMedia(arredondarMedia(nota / notaMaxima * 10, TipoArredondamento.NENHUM), regra))
+    }
 
 private val FORMATO_DATA = DateTimeFormatter.ofPattern("dd/MM")
 

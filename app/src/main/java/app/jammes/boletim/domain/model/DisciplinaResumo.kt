@@ -6,6 +6,7 @@ data class DisciplinaResumo(
     val cor: Int,
     val icone: IconeMateria,
     val media: Double?,
+    val mediaMinima: Double, // da regra da disciplina: a marca na barra do card
     val status: StatusDisciplina,
     val faltas: Int,
     val limiteFaltas: Int?

@@ -1,9 +1,11 @@
 package app.jammes.boletim.presentation.ui.boletim
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -18,9 +20,16 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ArrowDownward
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.material.icons.rounded.HourglassEmpty
+import androidx.compose.material.icons.rounded.PriorityHigh
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -31,17 +40,24 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.jammes.boletim.domain.model.Boletim
 import app.jammes.boletim.domain.model.DisciplinaResumo
 import app.jammes.boletim.domain.model.StatusDisciplina
 import app.jammes.boletim.domain.model.TipoArredondamento
 import app.jammes.boletim.domain.usecase.arredondarMedia
+import app.jammes.boletim.presentation.ui.components.AnelDaMedia
+import app.jammes.boletim.presentation.ui.components.BarraDaMedia
+import app.jammes.boletim.presentation.ui.components.Pilula
+import app.jammes.boletim.presentation.ui.components.SeloDisciplina
 import app.jammes.boletim.presentation.ui.theme.BoletimTheme
 import app.jammes.boletim.presentation.ui.theme.CoresDisciplina
+import app.jammes.boletim.presentation.ui.theme.Espacos
 import app.jammes.boletim.presentation.ui.theme.IconesDisciplina
 import java.text.NumberFormat
 import java.util.Locale
@@ -85,20 +101,19 @@ fun BoletimScreen(
 
             is BoletimUiState.Sucesso -> LazyVerticalGrid(
                 contentPadding = PaddingValues(
-                    start = 16.dp,
-                    end = 16.dp,
-                    top = 8.dp,
+                    start = Espacos.l,
+                    end = Espacos.l,
+                    top = Espacos.s,
                     bottom = 96.dp,
                 ),
                 columns = GridCells.Fixed(2),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(Espacos.m),
+                verticalArrangement = Arrangement.spacedBy(Espacos.m),
             ) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     ResumoGeral(
-                        periodoId = (state as BoletimUiState.Sucesso).boletim.periodoId,
-                        mediaGeral = (state as BoletimUiState.Sucesso).boletim.mediaGeral,
-                        totalFaltas = (state as BoletimUiState.Sucesso).boletim.totalFaltas,
+                        boletim = (state as BoletimUiState.Sucesso).boletim,
+                        modifier = Modifier.padding(bottom = Espacos.xs),
                     )
                 }
                 items((state as BoletimUiState.Sucesso).boletim.disciplinas, key = { it.id }) {
@@ -109,39 +124,79 @@ fun BoletimScreen(
     }
 }
 
+/**
+ * O destaque da tela: a média geral grande, num anel com a marca da mínima, e embaixo quantas
+ * disciplinas estão em cada situação.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ResumoGeral(
-    periodoId: Long?,
-    mediaGeral: Double?,
-    totalFaltas: Int,
+    boletim: Boletim,
     modifier: Modifier = Modifier,
 ) {
-    Row(
-        modifier = modifier.fillMaxWidth().padding(bottom = 4.dp),
-        verticalAlignment = Alignment.Bottom,
+    val corStatus = corDoStatus(boletim.status)
+    val algumaEmRisco = boletim.disciplinas.any { it.emRiscoPorFalta }
+
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
-        Column(Modifier.weight(1f)) {
-            Text(
-                text = "Média do ${nomeDoFiltro(periodoId)}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+        Column(Modifier.padding(20.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = "Média do ${nomeDoFiltro(boletim.periodoId)}",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = formatarMedia(boletim.mediaGeral),
+                        style = MaterialTheme.typography.displayMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = "Mínima ${formatarMedia(boletim.mediaMinima)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(Modifier.width(Espacos.l))
+                AnelDaMedia(
+                    media = boletim.mediaGeral,
+                    mediaMinima = boletim.mediaMinima,
+                    cor = corStatus,
+                    modifier = Modifier.size(88.dp),
+                ) {
+                    Icon(
+                        imageVector = iconeDoStatus(boletim.status),
+                        contentDescription = descricaoDoStatus(boletim.status),
+                        tint = corStatus,
+                        modifier = Modifier.size(28.dp),
+                    )
+                }
+            }
+
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = Espacos.l),
+                color = MaterialTheme.colorScheme.outlineVariant,
             )
-            Text(
-                text = formatarMedia(mediaGeral),
-                style = MaterialTheme.typography.displaySmall,
-                fontWeight = FontWeight.SemiBold,
-            )
+
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(Espacos.s),
+                verticalArrangement = Arrangement.spacedBy(Espacos.s),
+            ) {
+                contagemPorStatus(boletim.disciplinas).forEach { (texto, status) ->
+                    Pilula(texto = texto, cor = corDoStatus(status))
+                }
+                Pilula(
+                    texto = textoFaltas(boletim.totalFaltas),
+                    // Neutra, a não ser que alguma disciplina já tenha passado do limite
+                    cor = if (algumaEmRisco) MaterialTheme.colorScheme.error else null,
+                )
+            }
         }
-        Text(
-            text = when (totalFaltas) {
-                0 -> "Sem faltas"
-                1 -> "1 falta"
-                else -> "$totalFaltas faltas"
-            },
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(bottom = 6.dp),
-        )
     }
 }
 
@@ -151,56 +206,62 @@ private fun DisciplinaCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val corDisciplina = CoresDisciplina.de(resumo.cor)
     val corStatus = corDoStatus(resumo.status)
-    val corFaltas = if (resumo.emRiscoPorFalta) {
-        MaterialTheme.colorScheme.error
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    }
 
     Card(
         onClick = onClick,
-        modifier = modifier.height(120.dp)
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
-        Row(Modifier.fillMaxSize()) {
-            // Faixa de identidade da disciplina
-            Box(
-                Modifier
-                    .width(4.dp)
-                    .fillMaxSize()
-                    .background(corDisciplina)
-            )
-            Column(Modifier.fillMaxSize().padding(14.dp)) {
-                Row {
-                    Text(
-                        text = resumo.nome,
-                        style = MaterialTheme.typography.titleSmall,
-                        maxLines = 2,
-                        minLines = 2, // mantém os cards alinhados na grade
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Icon(
-                        imageVector = IconesDisciplina.de(resumo.icone),
-                        contentDescription = null, // o nome ao lado já identifica a disciplina
-                        tint = corDisciplina,
-                        modifier = Modifier.padding(start = 8.dp).size(20.dp),
-                    )
-                }
-                Spacer(Modifier.weight(1f))
+        Column(Modifier.padding(Espacos.l)) {
+            Row {
+                Text(
+                    text = resumo.nome,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    minLines = 2, // mantém os cards alinhados na grade
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                Spacer(Modifier.width(Espacos.s))
+                SeloDisciplina(
+                    cor = CoresDisciplina.de(resumo.cor),
+                    icone = IconesDisciplina.de(resumo.icone),
+                    tamanho = 32.dp,
+                )
+            }
+            Spacer(Modifier.height(Espacos.m))
+            if (resumo.media != null) {
                 Text(
                     text = formatarMedia(resumo.media),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = corStatus,
                 )
+            } else {
                 Text(
-                    text = "${resumo.faltas} faltas",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = corFaltas,
+                    text = "Sem notas",
+                    // Mesma altura de linha da média, para o card não encolher
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontSize = MaterialTheme.typography.titleMedium.fontSize,
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            Spacer(Modifier.height(Espacos.s))
+            BarraDaMedia(media = resumo.media, mediaMinima = resumo.mediaMinima, cor = corStatus)
+            Spacer(Modifier.height(Espacos.s))
+            Text(
+                text = textoFaltas(resumo.faltas),
+                style = MaterialTheme.typography.labelMedium,
+                color = if (resumo.emRiscoPorFalta) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+            )
         }
     }
 }
@@ -214,7 +275,45 @@ internal fun corDoStatus(status: StatusDisciplina): Color = when (status) {
     StatusDisciplina.SEM_NOTA -> MaterialTheme.colorScheme.onSurfaceVariant
 }
 
-/** O que o chip de cima está mostrando: um período, ou o ano letivo inteiro (chip "Todos"). */
+// A cor nunca vem sozinha: o ícone diz a mesma coisa para quem não distingue as cores
+private fun iconeDoStatus(status: StatusDisciplina): ImageVector = when (status) {
+    StatusDisciplina.APROVADO -> Icons.Rounded.Check
+    StatusDisciplina.ATENCAO -> Icons.Rounded.PriorityHigh
+    StatusDisciplina.ABAIXO, StatusDisciplina.REPROVADO -> Icons.Rounded.ArrowDownward
+    StatusDisciplina.SEM_NOTA -> Icons.Rounded.HourglassEmpty
+}
+
+private fun descricaoDoStatus(status: StatusDisciplina): String = when (status) {
+    StatusDisciplina.APROVADO -> "Acima da mínima, com folga"
+    StatusDisciplina.ATENCAO -> "Perto da mínima"
+    StatusDisciplina.ABAIXO, StatusDisciplina.REPROVADO -> "Abaixo da mínima"
+    StatusDisciplina.SEM_NOTA -> "Ainda sem notas"
+}
+
+/** "1 com folga", "4 no limite", "2 abaixo", "5 sem nota": só as situações que aparecem, nessa ordem. */
+private fun contagemPorStatus(disciplinas: List<DisciplinaResumo>): List<Pair<String, StatusDisciplina>> {
+    val porStatus = disciplinas.groupingBy {
+        // Reprovado entra junto com abaixo: no boletim do período os dois pedem a mesma atenção
+        if (it.status == StatusDisciplina.REPROVADO) StatusDisciplina.ABAIXO else it.status
+    }.eachCount()
+    return listOf(
+        StatusDisciplina.APROVADO to "com folga",
+        StatusDisciplina.ATENCAO to "no limite",
+        StatusDisciplina.ABAIXO to "abaixo",
+        StatusDisciplina.SEM_NOTA to "sem nota",
+    ).mapNotNull { (status, rotulo) ->
+        porStatus[status]?.let { quantidade -> "$quantidade $rotulo" to status }
+    }
+}
+
+/** "Sem faltas", "1 falta", "3 faltas". */
+internal fun textoFaltas(faltas: Int): String = when (faltas) {
+    0 -> "Sem faltas"
+    1 -> "1 falta"
+    else -> "$faltas faltas"
+}
+
+/** O que o seletor de cima está mostrando: um período, ou o ano letivo inteiro (opção "Ano letivo"). */
 internal fun nomeDoFiltro(periodoId: Long?): String =
     if (periodoId == null) "ano letivo" else "período"
 

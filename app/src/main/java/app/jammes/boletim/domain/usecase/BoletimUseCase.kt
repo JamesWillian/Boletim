@@ -176,16 +176,27 @@ class ObterBoletim @Inject constructor(
                 cor = d.cor,
                 icone = d.icone,
                 media = media,
+                mediaMinima = regra.mediaMinima,
                 status = statusDaMedia(media, regra),
                 faltas = d.faltas.sumOf { it.qtdAulas }, // ano inteiro, contra o limite anual
                 limiteFaltas = CalcularFrequencia.limiteFaltas(d.totalAulas, regra),
             )
         }
 
+        val mediaGeral = resumos.mapNotNull { it.media }.takeIf { it.isNotEmpty() }?.average()
+        val regraDoAno = dados.regras.padraoDoAno()
+
         return Boletim(
             periodoId = periodoId,
             disciplinas = resumos,
-            mediaGeral = resumos.mapNotNull { it.media }.takeIf { it.isNotEmpty() }?.average(),
+            mediaGeral = mediaGeral,
+            mediaMinima = regraDoAno.mediaMinima,
+            // A média geral chega sem arredondar: o status sai da mesma limpeza que a tela faz
+            // ao mostrar o número, para a cor nunca contradizer o que está escrito
+            status = statusDaMedia(
+                mediaGeral?.let { arredondarMedia(it, TipoArredondamento.NENHUM) },
+                regraDoAno,
+            ),
             totalFaltas = resumos.sumOf { it.faltas },
         )
     }
