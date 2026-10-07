@@ -1,5 +1,7 @@
 package app.jammes.boletim.presentation.navigation
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -26,7 +28,7 @@ import app.jammes.boletim.presentation.ui.components.IdentificacaoCard
  *
  * ```
  * ┌─────────────────────────────────┐
- * │ IdentificacaoCard               │
+ * │ IdentificacaoCard               │ ◄── some nos ajustes do ano letivo
  * ├────────────────────────────┬────┤
  * │                            │    │
  * │ AppNavHost                 │ ◄──── AbasDisciplinas, só nas telas
@@ -52,13 +54,19 @@ fun AppScaffold(
     Scaffold(
         modifier = modifier,
         topBar = {
-            IdentificacaoCard(
-                modifier = Modifier.statusBarsPadding(),
-                contexto = contexto,
-                aluno = aluno,
-                anosLetivos = anosLetivos,
-                onSelectPeriodo = onSelecionarPeriodo
-            )
+            // A barra de status fica sempre reservada aqui fora; só o card entra e sai, encolhendo.
+            // Assim a tela de baixo sobe junto com ele, sem pular nem ir para trás da barra de status.
+            Column(Modifier.statusBarsPadding()) {
+                AnimatedVisibility(visible = entradaAtual?.mostraIdentificacao != false) {
+                    IdentificacaoCard(
+                        contexto = contexto,
+                        aluno = aluno,
+                        anosLetivos = anosLetivos,
+                        onSelectPeriodo = onSelecionarPeriodo,
+                        onAbrirAjustesAnoLetivo = { navController.abrirAjustesAnoLetivo() }
+                    )
+                }
+            }
         }
     ) { paddingValues ->
         Row(

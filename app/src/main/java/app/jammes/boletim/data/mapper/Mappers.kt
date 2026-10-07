@@ -3,6 +3,7 @@ package app.jammes.boletim.data.mapper
 import app.jammes.boletim.data.local.entity.AlunoEntity
 import app.jammes.boletim.data.local.entity.AnoLetivoEntity
 import app.jammes.boletim.data.local.entity.AvaliacaoEntity
+import app.jammes.boletim.data.local.entity.ContagemLancamentos
 import app.jammes.boletim.data.local.entity.DisciplinaComDados
 import app.jammes.boletim.data.local.entity.DisciplinaEntity
 import app.jammes.boletim.data.local.entity.FaltaEntity
@@ -16,6 +17,7 @@ import app.jammes.boletim.domain.model.DisciplinaDados
 import app.jammes.boletim.domain.model.TipoAvaliacao
 import app.jammes.boletim.domain.model.DisciplinaDomain
 import app.jammes.boletim.domain.model.FaltaDomain
+import app.jammes.boletim.domain.model.Lancamentos
 import app.jammes.boletim.domain.model.MateriaDomain
 import app.jammes.boletim.domain.model.PeriodoDomain
 import app.jammes.boletim.domain.model.RegraAvaliacaoDomain
@@ -192,3 +194,7 @@ fun DisciplinaComDados.toDomain(): DisciplinaDados = DisciplinaDados(
     faltas = faltas.map { it.toDomain() },
     totalAulas = disciplina.totalAulas
 )
+
+fun List<ContagemLancamentos>.toDomain(): Map<Long, Lancamentos> = associate {
+    it.id to Lancamentos(avaliacoes = it.avaliacoes, faltas = it.faltas)
+}

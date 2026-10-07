@@ -45,12 +45,29 @@ fun AppNavHost(
 
         // Sem as abas
         composable<Routes.Materia> { MateriaScreen() }
-        composable<Routes.AnoLetivo> { AnoLetivoScreen() }
+        composable<Routes.AnoLetivo> {
+            AnoLetivoScreen(onVoltar = { navController.fecharAjustesAnoLetivo() })
+        }
         composable<Routes.Aluno> { AlunoScreen() }
     }
 }
 
 // Ações de navegação ------------------------------------------------------------------------
+
+/** Abre os ajustes do ano letivo por cima da tela atual; tocar de novo no botão não empilha outra. */
+fun NavController.abrirAjustesAnoLetivo() {
+    navigate(Routes.AnoLetivo) {
+        launchSingleTop = true
+    }
+}
+
+/**
+ * Fecha os ajustes do ano letivo. Só tira essa tela da pilha: se for chamado duas vezes
+ * (salvou e tocou em voltar ao mesmo tempo), a segunda não leva junto a tela de baixo.
+ */
+fun NavController.fecharAjustesAnoLetivo() {
+    popBackStack<Routes.AnoLetivo>(inclusive = true)
+}
 
 /** Volta ao Boletim Geral, tirando da pilha a disciplina que estiver aberta. */
 fun NavController.abrirBoletimGeral() {
@@ -73,6 +90,13 @@ fun NavController.abrirDisciplina(disciplinaId: Long) {
 }
 
 // O que a moldura (AppScaffold) precisa saber da tela atual ---------------------------------
+
+/**
+ * O card de identificação some nos ajustes do ano letivo: a tela tem barra própria, e o card
+ * mostraria o ano como está gravado enquanto ele está sendo editado.
+ */
+val NavBackStackEntry.mostraIdentificacao: Boolean
+    get() = !destination.hasRoute<Routes.AnoLetivo>()
 
 /** As abas aparecem em toda tela que está dentro do grafo [Routes.Boletim]. */
 val NavBackStackEntry.mostraAbasDisciplinas: Boolean

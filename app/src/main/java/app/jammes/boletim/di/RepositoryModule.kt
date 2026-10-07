@@ -8,6 +8,7 @@ import app.jammes.boletim.data.repository.DisciplinaRepositoryImpl
 import app.jammes.boletim.data.repository.FaltaRepositoryImpl
 import app.jammes.boletim.data.repository.MateriaRepositoryImpl
 import app.jammes.boletim.data.repository.RegraAvaliacaoRepositoryImpl
+import app.jammes.boletim.data.repository.TransacaoImpl
 import app.jammes.boletim.domain.repository.AlunoRepository
 import app.jammes.boletim.domain.repository.AnoLetivoRepository
 import app.jammes.boletim.domain.repository.AvaliacaoRepository
@@ -16,6 +17,7 @@ import app.jammes.boletim.domain.repository.DisciplinaRepository
 import app.jammes.boletim.domain.repository.FaltaRepository
 import app.jammes.boletim.domain.repository.MateriaRepository
 import app.jammes.boletim.domain.repository.RegraAvaliacaoRepository
+import app.jammes.boletim.domain.repository.Transacao
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -57,4 +59,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindContextoRepository(impl: ContextoRepositoryImpl): ContextoRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindTransacao(impl: TransacaoImpl): Transacao
 }

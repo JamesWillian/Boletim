@@ -5,6 +5,7 @@ import app.jammes.boletim.data.local.dao.PeriodoDao
 import app.jammes.boletim.data.mapper.toDomain
 import app.jammes.boletim.data.mapper.toEntity
 import app.jammes.boletim.domain.model.AnoLetivoDomain
+import app.jammes.boletim.domain.model.Lancamentos
 import app.jammes.boletim.domain.model.PeriodoDomain
 import app.jammes.boletim.domain.repository.AnoLetivoRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -67,4 +68,7 @@ class AnoLetivoRepositoryImpl @Inject constructor(
     override suspend fun deletePeriodo(periodo: PeriodoDomain) {
         periodoDao.delete(periodo.toEntity())
     }
+
+    override suspend fun countLancamentosByPeriodo(anoLetivoId: Long): Map<Long, Lancamentos> =
+        periodoDao.contarLancamentos(anoLetivoId).toDomain()
 }

@@ -16,12 +16,15 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.jammes.boletim.domain.model.AlunoDomain
@@ -29,14 +32,15 @@ import app.jammes.boletim.domain.model.AnoLetivoDomain
 import app.jammes.boletim.domain.model.Contexto
 import app.jammes.boletim.domain.model.PeriodoDomain
 
-/** Topo do app: aluno, ano letivo e os chips para trocar de período. */
+/** Topo do app: aluno, ano letivo, o botão dos ajustes do ano e os chips para trocar de período. */
 @Composable
 fun IdentificacaoCard(
     modifier: Modifier = Modifier,
     contexto: Contexto,
     aluno: AlunoDomain?,
     anosLetivos: List<AnoLetivoDomain> = emptyList(),
-    onSelectPeriodo: (PeriodoDomain) -> Unit = {}
+    onSelectPeriodo: (PeriodoDomain) -> Unit = {},
+    onAbrirAjustesAnoLetivo: () -> Unit = {}
 ) {
     val ano = anosLetivos.find { ano -> ano.id == contexto.anoLetivoId }
     val periodos = ano?.periodo.orEmpty()
@@ -63,10 +67,16 @@ fun IdentificacaoCard(
                     )
                 }
                 Column(modifier = Modifier
-                    .fillMaxWidth()
+                    .weight(1f)
                     .padding(start = 12.dp)) {
                     Text(aluno?.nome ?: "")
                     Text(if (ano?.id != null) "${ano.ano} - ${ano.serie}" else "")
+                }
+                IconButton(
+                    onClick = onAbrirAjustesAnoLetivo,
+                    modifier = Modifier.align(Alignment.CenterVertically)
+                ) {
+                    Icon(Icons.Outlined.CalendarMonth, contentDescription = "Ajustes do ano letivo")
                 }
             }
             LazyRow(

@@ -304,14 +304,14 @@ fun AvaliacaoBottomSheet(
     }
 }
 
-private val FORMATO_DATA_COMPLETA = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+internal val FORMATO_DATA_COMPLETA: DateTimeFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
 
 // Aceita vírgula ou ponto. Vazio, ou texto que não é número, vira null.
-private fun lerNumero(texto: String): Double? =
+internal fun lerNumero(texto: String): Double? =
     texto.trim().replace(',', '.').toDoubleOrNull()?.takeIf { it.isFinite() }
 
 // O DatePicker trabalha com a meia-noite UTC do dia escolhido, em milissegundos
-private fun LocalDate.paraMillisUtc(): Long = atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+internal fun LocalDate.paraMillisUtc(): Long = atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
 
-private fun millisUtcParaData(millis: Long): LocalDate =
+internal fun millisUtcParaData(millis: Long): LocalDate =
     Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()

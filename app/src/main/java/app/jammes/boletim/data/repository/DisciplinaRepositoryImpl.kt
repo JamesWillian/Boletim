@@ -5,6 +5,7 @@ import app.jammes.boletim.data.mapper.toDomain
 import app.jammes.boletim.data.mapper.toEntity
 import app.jammes.boletim.domain.model.DisciplinaDados
 import app.jammes.boletim.domain.model.DisciplinaDomain
+import app.jammes.boletim.domain.model.Lancamentos
 import app.jammes.boletim.domain.repository.DisciplinaRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -45,4 +46,7 @@ class DisciplinaRepositoryImpl @Inject constructor(
         disciplinaDao.observarBoletim(anoLetivoId).map { lista ->
             lista.map { it.toDomain() }
         }
+
+    override suspend fun countLancamentosByDisciplina(anoLetivoId: Long): Map<Long, Lancamentos> =
+        disciplinaDao.contarLancamentos(anoLetivoId).toDomain()
 }

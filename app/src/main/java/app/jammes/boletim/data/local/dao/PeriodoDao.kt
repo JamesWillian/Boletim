@@ -7,6 +7,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import app.jammes.boletim.data.local.entity.AnoLetivoEntity
+import app.jammes.boletim.data.local.entity.ContagemLancamentos
 import app.jammes.boletim.data.local.entity.PeriodoEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -24,4 +25,15 @@ interface PeriodoDao {
 
     @Query("SELECT * FROM periodo WHERE ano_letivo_id = :anoLetivoId ORDER BY periodo ASC")
     fun observarPorAnoLetivo(anoLetivoId: Long): Flow<List<PeriodoEntity>>
+
+    @Query(
+        """
+        SELECT p.id AS id,
+            (SELECT COUNT(*) FROM avaliacao a WHERE a.periodo_id = p.id) AS avaliacoes,
+            (SELECT COALESCE(SUM(f.qtd_aulas), 0) FROM falta f WHERE f.periodo_id = p.id) AS faltas
+        FROM periodo p
+        WHERE p.ano_letivo_id = :anoLetivoId
+        """
+    )
+    suspend fun contarLancamentos(anoLetivoId: Long): List<ContagemLancamentos>
 }

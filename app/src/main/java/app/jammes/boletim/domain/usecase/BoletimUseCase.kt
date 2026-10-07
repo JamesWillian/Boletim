@@ -93,10 +93,13 @@ private val REGRA_PADRAO = RegraAvaliacaoDomain(
     tipoMedia = TipoMedia.SIMPLES
 )
 
-/** Exceção da disciplina se existir, senão a regra padrão do ano (disciplinaId nulo). */
+/** Exceção da disciplina se existir, senão a regra padrão do ano. */
 internal fun List<RegraAvaliacaoDomain>.paraDisciplina(disciplinaId: Long): RegraAvaliacaoDomain =
-    firstOrNull { it.disciplinaId == disciplinaId }
-        ?: firstOrNull { it.disciplinaId == null } // CriarAnoLetivo garante que a padrão existe
+    firstOrNull { it.disciplinaId == disciplinaId } ?: padraoDoAno()
+
+/** A regra padrão do ano (disciplinaId nulo). Enquanto ela não for gravada, vale a REGRA_PADRAO. */
+internal fun List<RegraAvaliacaoDomain>.padraoDoAno(): RegraAvaliacaoDomain =
+    firstOrNull { it.disciplinaId == null } // CriarAnoLetivo garante que a padrão existe
         ?: REGRA_PADRAO
 
 // ---------------------------------------------------------------------------
