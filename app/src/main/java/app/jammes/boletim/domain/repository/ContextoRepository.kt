@@ -7,7 +7,8 @@ interface ContextoRepository {
 
     val contexto: Flow<Contexto?>
 
-    suspend fun selecionarAluno(alunoId: Long, anoLetivoId: Long, periodoId: Long)
-    suspend fun selecionarAnoLetivo(anoLetivoId: Long, periodoId: Long)
-    suspend fun selecionarPeriodo(periodoId: Long)
+    // periodoId null: o ano letivo inteiro
+    suspend fun selecionarAluno(alunoId: Long, anoLetivoId: Long, periodoId: Long?)
+    suspend fun selecionarAnoLetivo(anoLetivoId: Long, periodoId: Long?)
+    suspend fun selecionarPeriodo(periodoId: Long?)
 }

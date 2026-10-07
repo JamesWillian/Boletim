@@ -648,7 +648,7 @@ private data class DataAberta(val periodo: Int, val inicio: Boolean) : Serializa
 private val TipoPeriodo.feminino: Boolean
     get() = this == TipoPeriodo.UNIDADE
 
-private fun nomeDoPeriodo(numero: Int, tipo: TipoPeriodo): String =
+internal fun nomeDoPeriodo(numero: Int, tipo: TipoPeriodo): String =
     "$numero${if (tipo.feminino) "ª" else "º"} ${tipo.displayName}"
 
 /** "3 avaliações e 2 faltas", "1 avaliação", "1 falta". */

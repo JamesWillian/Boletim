@@ -4,6 +4,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -44,7 +45,10 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import app.jammes.boletim.domain.model.AvaliacaoDomain
+import app.jammes.boletim.domain.model.PeriodoDomain
 import app.jammes.boletim.domain.model.TipoAvaliacao
+import app.jammes.boletim.domain.model.TipoPeriodo
+import app.jammes.boletim.presentation.ui.anoletivo.nomeDoPeriodo
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
@@ -56,12 +60,17 @@ import java.time.format.DateTimeFormatter
  * Só monta a avaliação; quem grava e exclui é a tela, pelos callbacks.
  *
  * A nota pode ficar vazia: é a avaliação que ainda não aconteceu, e ela fica fora da média.
+ *
+ * Com [periodos], o formulário pergunta em qual deles a avaliação fica. Vazio, ela fica
+ * no período que veio na [avaliacao].
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AvaliacaoBottomSheet(
     avaliacao: AvaliacaoDomain,
     mostrarPeso: Boolean,
+    periodos: List<PeriodoDomain>,
+    tipoPeriodo: TipoPeriodo,
     onDismiss: () -> Unit,
     onSalvar: (AvaliacaoDomain) -> Unit,
     onExcluir: () -> Unit,
@@ -76,6 +85,7 @@ fun AvaliacaoBottomSheet(
     var notaMaxima by rememberSaveable { mutableStateOf(formatarNumero(avaliacao.notaMaxima)) }
     var peso by rememberSaveable { mutableStateOf(formatarNumero(avaliacao.peso)) }
     var tipo by rememberSaveable { mutableStateOf(avaliacao.tipo) }
+    var periodoId by rememberSaveable { mutableStateOf(avaliacao.periodoId) }
     var data by rememberSaveable { mutableStateOf(avaliacao.data) }
     var escolhendoData by rememberSaveable { mutableStateOf(false) }
     var confirmandoExclusao by rememberSaveable { mutableStateOf(false) }
@@ -95,6 +105,7 @@ fun AvaliacaoBottomSheet(
             notaMaxima = notaMaximaValor,
             peso = pesoValor,
             tipo = tipo,
+            periodoId = periodoId,
             data = data,
         )
 
@@ -208,6 +219,25 @@ fun AvaliacaoBottomSheet(
                             onClick = { tipo = opcao },
                             label = { Text(opcao.displayname) }
                         )
+                    }
+                }
+            }
+
+            if (periodos.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "Período",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        periodos.forEach { opcao ->
+                            FilterChip(
+                                selected = periodoId == opcao.id,
+                                onClick = { periodoId = opcao.id },
+                                label = { Text(nomeDoPeriodo(opcao.periodo, tipoPeriodo)) }
+                            )
+                        }
                     }
                 }
             }

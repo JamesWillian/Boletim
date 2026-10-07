@@ -70,7 +70,8 @@ class ContextoViewModel @Inject constructor(
     fun trocarAno(anoLetivoId: Long, periodoId: Long) {
         viewModelScope.launch { contextRepo.selecionarAnoLetivo(anoLetivoId, periodoId) }
     }
-    fun trocarPeriodo(periodoId: Long) {
+    /** null: o ano letivo inteiro. */
+    fun trocarPeriodo(periodoId: Long?) {
         viewModelScope.launch { contextRepo.selecionarPeriodo(periodoId) }
     }
 }

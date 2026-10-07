@@ -40,6 +40,14 @@ class AnoLetivoRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun observeById(id: Long): Flow<AnoLetivoDomain?> =
+        combine(
+            anoLetivoDao.observarPorId(id),
+            periodoDao.observarPorAnoLetivo(id),
+        ) { ano, periodos ->
+            ano?.toDomain(periodos.map { it.toDomain() })
+        }
+
     override suspend fun upsert(anoLetivo: AnoLetivoDomain): Long {
         val anoLetivoEntity = anoLetivo.toEntity()
 

@@ -7,6 +7,7 @@ import app.jammes.boletim.data.local.entity.FaltaEntity
 import app.jammes.boletim.data.local.entity.PeriodoEntity
 import app.jammes.boletim.data.mapper.Converters
 import app.jammes.boletim.domain.model.Contexto
+import app.jammes.boletim.domain.model.TipoAvaliacao
 import java.time.LocalDate
 import kotlin.time.Clock
 
@@ -123,6 +124,51 @@ class DadosDeTesteCallback : RoomDatabase.Callback() {
             // Sem nota: marcadas, mas ainda não aconteceram (ficam fora da média)
             avaliacao(13, PORTUGUES, "Prova 2", null, LocalDate.of(2024, 4, 30)),
             avaliacao(14, MATEMATICA, "Prova 2", null, LocalDate.of(2024, 5, 20), periodoId = 2),
+            // Da 2ª à 4ª Unidade, para o filtro "Todos" ter o que agrupar e a média anual ter o que calcular.
+            // Português: bom o ano todo
+            avaliacao(15, PORTUGUES, "Prova 3", 7.5, LocalDate.of(2024, 6, 10), periodoId = 2),
+            avaliacao(16, PORTUGUES, "Seminário", 9.0, LocalDate.of(2024, 6, 20), periodoId = 2),
+            avaliacao(17, PORTUGUES, "Redação", 8.0, LocalDate.of(2024, 7, 5), periodoId = 2),
+            avaliacao(18, PORTUGUES, "Prova 4", 8.5, LocalDate.of(2024, 8, 20), periodoId = 3),
+            avaliacao(19, PORTUGUES, "Leitura", 9.5, LocalDate.of(2024, 9, 5), periodoId = 3),
+            avaliacao(20, PORTUGUES, "Redação 2", 7.0, LocalDate.of(2024, 9, 25), periodoId = 3),
+            avaliacao(21, PORTUGUES, "Prova 5", 8.0, LocalDate.of(2024, 10, 15), periodoId = 4),
+            avaliacao(22, PORTUGUES, "Trabalho final", null, LocalDate.of(2024, 12, 5), periodoId = 4),
+            // Matemática: começa abaixo da mínima e melhora
+            avaliacao(23, MATEMATICA, "Teste 2", 6.5, LocalDate.of(2024, 6, 5), periodoId = 2),
+            avaliacao(24, MATEMATICA, "Lista de exercícios", 7.0, LocalDate.of(2024, 6, 25), periodoId = 2),
+            avaliacao(25, MATEMATICA, "Prova 3", 7.5, LocalDate.of(2024, 8, 22), periodoId = 3),
+            avaliacao(26, MATEMATICA, "Teste 3", 8.0, LocalDate.of(2024, 9, 10), periodoId = 3),
+            avaliacao(27, MATEMATICA, "Trabalho", 7.0, LocalDate.of(2024, 9, 26), periodoId = 3),
+            avaliacao(28, MATEMATICA, "Prova 4", 8.0, LocalDate.of(2024, 10, 20), periodoId = 4),
+            avaliacao(29, MATEMATICA, "Olimpíada", 9.0, LocalDate.of(2024, 11, 12), periodoId = 4),
+            avaliacao(30, MATEMATICA, "Prova final", null, LocalDate.of(2024, 12, 10), periodoId = 4),
+            // História: nada na 1ª Unidade (fica fora da média anual, não conta como zero) e cai na 3ª
+            avaliacao(31, HISTORIA, "Prova 1", 8.0, LocalDate.of(2024, 5, 20), periodoId = 2),
+            avaliacao(32, HISTORIA, "Trabalho em grupo", 7.0, LocalDate.of(2024, 6, 12), periodoId = 2),
+            avaliacao(33, HISTORIA, "Seminário", 9.0, LocalDate.of(2024, 7, 2), periodoId = 2),
+            avaliacao(34, HISTORIA, "Prova 2", 6.0, LocalDate.of(2024, 8, 15), periodoId = 3),
+            avaliacao(35, HISTORIA, "Resumo", 5.5, LocalDate.of(2024, 9, 3), periodoId = 3),
+            avaliacao(36, HISTORIA, "Debate", 7.0, LocalDate.of(2024, 9, 20), periodoId = 3),
+            avaliacao(37, HISTORIA, "Prova 3", 7.5, LocalDate.of(2024, 10, 18), periodoId = 4),
+            avaliacao(38, HISTORIA, "Linha do tempo", 8.0, LocalDate.of(2024, 11, 8), periodoId = 4),
+            // Geografia: 6,9 na 2ª e 7,1 na 3ª, média anual exatamente na mínima (7,0)
+            avaliacao(39, GEOGRAFIA, "Prova 1", 6.8, LocalDate.of(2024, 5, 22), periodoId = 2),
+            avaliacao(40, GEOGRAFIA, "Mapa", 7.0, LocalDate.of(2024, 6, 18), periodoId = 2),
+            avaliacao(41, GEOGRAFIA, "Prova 2", 7.2, LocalDate.of(2024, 8, 28), periodoId = 3),
+            avaliacao(42, GEOGRAFIA, "Maquete", 7.0, LocalDate.of(2024, 9, 18), periodoId = 3),
+            avaliacao(43, GEOGRAFIA, "Prova 3", null, LocalDate.of(2024, 11, 20), periodoId = 4),
+            // Ciências: ótima, despenca na 3ª e recupera. A recuperação aparece na lista, mas fica fora da conta
+            avaliacao(44, CIENCIAS, "Prova 2", 9.0, LocalDate.of(2024, 5, 28), periodoId = 2),
+            avaliacao(45, CIENCIAS, "Experimento", 8.5, LocalDate.of(2024, 6, 14), periodoId = 2),
+            avaliacao(46, CIENCIAS, "Feira de ciências", 10.0, LocalDate.of(2024, 7, 10), periodoId = 2),
+            avaliacao(47, CIENCIAS, "Prova 3", 5.0, LocalDate.of(2024, 8, 21), periodoId = 3),
+            avaliacao(48, CIENCIAS, "Relatório 2", 6.0, LocalDate.of(2024, 9, 6), periodoId = 3),
+            avaliacao(49, CIENCIAS, "Questionário", 5.5, LocalDate.of(2024, 9, 19), periodoId = 3),
+            avaliacao(50, CIENCIAS, "Prova 4", 7.0, LocalDate.of(2024, 10, 17), periodoId = 4),
+            avaliacao(51, CIENCIAS, "Laboratório 2", 8.0, LocalDate.of(2024, 11, 6), periodoId = 4),
+            avaliacao(52, CIENCIAS, "Projeto", 7.5, LocalDate.of(2024, 11, 28), periodoId = 4),
+            avaliacao(53, CIENCIAS, "Recuperação", 7.0, LocalDate.of(2024, 9, 27), periodoId = 3, tipo = TipoAvaliacao.RECUPERACAO),
         )
 
         private val FALTAS = listOf(
@@ -147,6 +193,7 @@ class DadosDeTesteCallback : RoomDatabase.Callback() {
             nota: Double?,
             data: LocalDate,
             periodoId: Long = 1,
+            tipo: TipoAvaliacao = TipoAvaliacao.NORMAL,
         ) = AvaliacaoEntity(
             id = id,
             disciplinaId = disciplinaId,
@@ -155,6 +202,7 @@ class DadosDeTesteCallback : RoomDatabase.Callback() {
             nota = nota,
             notaMaxima = 10.0,
             peso = 1.0,
+            tipo = TipoAvaliacao.toString(tipo),
             data = data,
             criadoEm = CRIADO_EM,
         )

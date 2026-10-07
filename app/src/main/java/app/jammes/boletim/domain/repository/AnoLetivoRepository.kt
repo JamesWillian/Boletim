@@ -7,6 +7,8 @@ import kotlinx.coroutines.flow.Flow
 
 interface AnoLetivoRepository {
     fun observeByAluno(alunoId: Long): Flow<List<AnoLetivoDomain>>
+    /** O ano letivo com os períodos dele; null quando não existe. */
+    fun observeById(id: Long): Flow<AnoLetivoDomain?>
     suspend fun upsert(anoLetivo: AnoLetivoDomain): Long
     suspend fun delete(anoLetivo: AnoLetivoDomain)
 

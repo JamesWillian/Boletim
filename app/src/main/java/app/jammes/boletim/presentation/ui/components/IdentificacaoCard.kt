@@ -32,14 +32,17 @@ import app.jammes.boletim.domain.model.AnoLetivoDomain
 import app.jammes.boletim.domain.model.Contexto
 import app.jammes.boletim.domain.model.PeriodoDomain
 
-/** Topo do app: aluno, ano letivo, o botão dos ajustes do ano e os chips para trocar de período. */
+/**
+ * Topo do app: aluno, ano letivo, o botão dos ajustes do ano e os chips para trocar de período.
+ * O chip "Todos" chama [onSelectPeriodo] com null: o boletim passa a ser o do ano letivo inteiro.
+ */
 @Composable
 fun IdentificacaoCard(
     modifier: Modifier = Modifier,
     contexto: Contexto,
     aluno: AlunoDomain?,
     anosLetivos: List<AnoLetivoDomain> = emptyList(),
-    onSelectPeriodo: (PeriodoDomain) -> Unit = {},
+    onSelectPeriodo: (PeriodoDomain?) -> Unit = {},
     onAbrirAjustesAnoLetivo: () -> Unit = {}
 ) {
     val ano = anosLetivos.find { ano -> ano.id == contexto.anoLetivoId }
@@ -84,6 +87,15 @@ fun IdentificacaoCard(
                 contentPadding = PaddingValues(horizontal = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                if (periodos.isNotEmpty()) {
+                    item {
+                        FilterChip(
+                            selected = contexto.periodoId == null,
+                            onClick = { onSelectPeriodo(null) },
+                            label = { Text("Todos") }
+                        )
+                    }
+                }
                 items(periodos) { periodo ->
                     FilterChip(
                         selected = (contexto.periodoId == periodo.id),

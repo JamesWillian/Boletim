@@ -45,8 +45,10 @@ import app.jammes.boletim.domain.model.AvaliacaoDomain
 import app.jammes.boletim.domain.model.DisciplinaDetalhe
 import app.jammes.boletim.domain.model.TipoAvaliacao
 import app.jammes.boletim.domain.model.TipoMedia
+import app.jammes.boletim.presentation.ui.anoletivo.nomeDoPeriodo
 import app.jammes.boletim.presentation.ui.boletim.corDoStatus
 import app.jammes.boletim.presentation.ui.boletim.formatarMedia
+import app.jammes.boletim.presentation.ui.boletim.nomeDoFiltro
 import app.jammes.boletim.presentation.ui.theme.CoresDisciplina
 import java.math.RoundingMode
 import java.text.NumberFormat
@@ -92,8 +94,11 @@ fun DisciplinaDetailScreen(
             }
 
             is DisciplinaUiState.Sucesso -> {
+                val detalhe = s.detalhe
                 // O peso só muda a conta na média ponderada; nas outras, mostrar confundiria
-                val mostrarPeso = s.detalhe.regra.tipoMedia == TipoMedia.PONDERADA
+                val mostrarPeso = detalhe.regra.tipoMedia == TipoMedia.PONDERADA
+                // No ano letivo inteiro as avaliações aparecem separadas, com o nome do período
+                val anoInteiro = detalhe.periodoId == null
 
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().padding(paddingValues),
@@ -104,7 +109,7 @@ fun DisciplinaDetailScreen(
                         bottom = 96.dp, // a última avaliação não fica atrás do FAB
                     ),
                 ) {
-                    item { ResumoDisciplina(detalhe = s.detalhe) }
+                    item { ResumoDisciplina(detalhe = detalhe) }
 
                     item {
                         Text(
@@ -114,10 +119,10 @@ fun DisciplinaDetailScreen(
                         )
                     }
 
-                    if (s.detalhe.avaliacoes.isEmpty()) {
+                    if (detalhe.avaliacoesPorPeriodo.isEmpty()) {
                         item {
                             Text(
-                                text = "Nenhuma avaliação neste período",
+                                text = "Nenhuma avaliação neste ${nomeDoFiltro(detalhe.periodoId)}",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center,
@@ -125,29 +130,44 @@ fun DisciplinaDetailScreen(
                             )
                         }
                     } else {
-                        itemsIndexed(
-                            s.detalhe.avaliacoes,
-                            key = { _, avaliacao -> avaliacao.id }
-                        ) { i, avaliacao ->
-                            if (i > 0) HorizontalDivider()
-                            AvaliacaoItem(
-                                avaliacao = avaliacao,
-                                mostrarPeso = mostrarPeso,
-                                onClick = { abertaId = avaliacao.id },
-                            )
+                        detalhe.avaliacoesPorPeriodo.forEach { grupo ->
+                            if (anoInteiro) {
+                                item(key = "periodo-${grupo.periodo.id}") {
+                                    Text(
+                                        text = nomeDoPeriodo(grupo.periodo.periodo, detalhe.tipoPeriodo).uppercase(),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.padding(top = 12.dp, bottom = 4.dp),
+                                    )
+                                }
+                            }
+                            itemsIndexed(
+                                grupo.avaliacoes,
+                                key = { _, avaliacao -> avaliacao.id }
+                            ) { i, avaliacao ->
+                                if (i > 0) HorizontalDivider()
+                                AvaliacaoItem(
+                                    avaliacao = avaliacao,
+                                    mostrarPeso = mostrarPeso,
+                                    onClick = { abertaId = avaliacao.id },
+                                )
+                            }
                         }
                     }
                 }
 
                 val aberta = when (abertaId) {
                     null -> null
-                    NOVA -> remember { viewModel.novaAvaliacao(s.detalhe.periodoId) }
-                    else -> s.detalhe.avaliacoes.find { it.id == abertaId }
+                    NOVA -> remember { viewModel.novaAvaliacao(detalhe) }
+                    else -> detalhe.avaliacoes.find { it.id == abertaId }
                 }
                 if (aberta != null) {
                     AvaliacaoBottomSheet(
                         avaliacao = aberta,
                         mostrarPeso = mostrarPeso,
+                        // Num período, a avaliação fica nele; no ano inteiro, o formulário pergunta
+                        periodos = if (anoInteiro) detalhe.periodos else emptyList(),
+                        tipoPeriodo = detalhe.tipoPeriodo,
                         onDismiss = { abertaId = null },
                         onSalvar = viewModel::salvar,
                         onExcluir = { viewModel.excluir(aberta) },
@@ -198,23 +218,52 @@ private fun ResumoDisciplina(
                     )
                 }
                 Spacer(Modifier.height(16.dp))
-                Text(
-                    text = "Média do período",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                // Mesma formatação e mesma cor do card no Boletim, para as duas telas não divergirem
-                Text(
-                    text = formatarMedia(detalhe.media),
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = corDoStatus(detalhe.status),
-                )
-                Text(
-                    text = "$calculo · mínima ${formatarMedia(detalhe.regra.mediaMinima)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Row {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            text = "Média do ${nomeDoFiltro(detalhe.periodoId)}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        // Mesma formatação e mesma cor do card no Boletim, para as duas telas não divergirem
+                        Text(
+                            text = formatarMedia(detalhe.media),
+                            style = MaterialTheme.typography.displaySmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = corDoStatus(detalhe.status),
+                        )
+                        Text(
+                            text = "$calculo · mínima ${formatarMedia(detalhe.regra.mediaMinima)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Spacer(Modifier.width(16.dp))
+                    // Faltas do ano inteiro, em qualquer filtro: o limite de frequência é anual
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text(
+                            text = "Faltas no ano",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = detalhe.faltas.toString(),
+                            style = MaterialTheme.typography.displaySmall,
+                            color = if (detalhe.emRiscoPorFalta) {
+                                MaterialTheme.colorScheme.error
+                            } else {
+                                MaterialTheme.colorScheme.onSurface
+                            },
+                        )
+                        detalhe.limiteFaltas?.let { limite ->
+                            Text(
+                                text = "de $limite permitidas",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                }
             }
         }
     }

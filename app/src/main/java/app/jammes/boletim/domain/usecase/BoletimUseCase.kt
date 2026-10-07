@@ -53,6 +53,33 @@ object CalcularMediaDisciplina {
     }
 }
 
+/**
+ * Média do ano letivo: a média das médias de cada período, como no boletim da escola.
+ * Período ainda sem nota fica de fora (não conta como zero), e o resultado passa pelo
+ * mesmo arredondamento da regra.
+ */
+object CalcularMediaAnual {
+    operator fun invoke(avaliacoes: List<AvaliacaoDomain>, regra: RegraAvaliacaoDomain): Double? {
+        val mediasDosPeriodos = avaliacoes
+            .filter { it.periodoId != null }
+            .groupBy { it.periodoId }
+            .values
+            .mapNotNull { CalcularMediaDisciplina(it, regra) }
+        if (mediasDosPeriodos.isEmpty()) return null
+
+        return arredondarMedia(mediasDosPeriodos.average(), regra.arredondamento)
+    }
+}
+
+/** A média no filtro do Contexto: a do período escolhido, ou a do ano letivo quando periodoId é nulo. */
+fun calcularMediaNoFiltro(
+    avaliacoes: List<AvaliacaoDomain>,
+    regra: RegraAvaliacaoDomain,
+    periodoId: Long?,
+): Double? =
+    if (periodoId == null) CalcularMediaAnual(avaliacoes, regra)
+    else CalcularMediaDisciplina(avaliacoes.filter { it.periodoId == periodoId }, regra)
+
 val DOIS = BigDecimal(2)
 
 fun arredondarMedia(media: Double, tipo: TipoArredondamento): Double {
@@ -139,13 +166,10 @@ class ObterBoletim @Inject constructor(
         }.filterNotNull()
     }
 
-    private fun montar(dados: DadosDoAno, periodoId: Long): Boletim {
+    private fun montar(dados: DadosDoAno, periodoId: Long?): Boletim {
         val resumos = dados.disciplinas.map { d ->
             val regra = dados.regras.paraDisciplina(d.disciplinaId)
-            val media = CalcularMediaDisciplina(
-                avaliacoes = d.avaliacoes.filter { it.periodoId == periodoId },
-                regra = regra,
-            )
+            val media = calcularMediaNoFiltro(d.avaliacoes, regra, periodoId)
             DisciplinaResumo(
                 id = d.disciplinaId,
                 nome = d.nome,
@@ -159,6 +183,7 @@ class ObterBoletim @Inject constructor(
         }
 
         return Boletim(
+            periodoId = periodoId,
             disciplinas = resumos,
             mediaGeral = resumos.mapNotNull { it.media }.takeIf { it.isNotEmpty() }?.average(),
             totalFaltas = resumos.sumOf { it.faltas },

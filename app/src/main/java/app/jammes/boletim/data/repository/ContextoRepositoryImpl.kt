@@ -15,16 +15,16 @@ class ContextoRepositoryImpl @Inject constructor(
     override suspend fun selecionarAluno(
         alunoId: Long,
         anoLetivoId: Long,
-        periodoId: Long
+        periodoId: Long?
     ) {
         prefs.salvar(Contexto(alunoId, anoLetivoId, periodoId))
     }
 
-    override suspend fun selecionarAnoLetivo(anoLetivoId: Long, periodoId: Long) {
+    override suspend fun selecionarAnoLetivo(anoLetivoId: Long, periodoId: Long?) {
         prefs.atualizar { it.copy(anoLetivoId = anoLetivoId, periodoId = periodoId) }
     }
 
-    override suspend fun selecionarPeriodo(periodoId: Long) {
+    override suspend fun selecionarPeriodo(periodoId: Long?) {
         prefs.atualizar { it.copy(periodoId = periodoId) }
     }
 }

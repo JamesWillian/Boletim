@@ -95,6 +95,7 @@ fun BoletimScreen(
             ) {
                 item(span = { GridItemSpan(maxLineSpan) }) {
                     ResumoGeral(
+                        periodoId = (state as BoletimUiState.Sucesso).boletim.periodoId,
                         mediaGeral = (state as BoletimUiState.Sucesso).boletim.mediaGeral,
                         totalFaltas = (state as BoletimUiState.Sucesso).boletim.totalFaltas,
                     )
@@ -109,6 +110,7 @@ fun BoletimScreen(
 
 @Composable
 private fun ResumoGeral(
+    periodoId: Long?,
     mediaGeral: Double?,
     totalFaltas: Int,
     modifier: Modifier = Modifier,
@@ -119,7 +121,7 @@ private fun ResumoGeral(
     ) {
         Column(Modifier.weight(1f)) {
             Text(
-                text = "Média do período",
+                text = "Média do ${nomeDoFiltro(periodoId)}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -210,6 +212,10 @@ internal fun corDoStatus(status: StatusDisciplina): Color = when (status) {
     StatusDisciplina.REPROVADO -> MaterialTheme.colorScheme.error
     StatusDisciplina.SEM_NOTA -> MaterialTheme.colorScheme.onSurfaceVariant
 }
+
+/** O que o chip de cima está mostrando: um período, ou o ano letivo inteiro (chip "Todos"). */
+internal fun nomeDoFiltro(periodoId: Long?): String =
+    if (periodoId == null) "ano letivo" else "período"
 
 // 1 ou 2 casas (7,0 · 7,5 · 6,96), as mesmas que a regra NENHUM guarda: assim o número na tela
 // nunca contradiz a cor do status. A média geral chega sem arredondar e passa pela mesma limpeza.

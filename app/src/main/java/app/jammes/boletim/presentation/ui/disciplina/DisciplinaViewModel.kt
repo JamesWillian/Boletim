@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import app.jammes.boletim.domain.model.AvaliacaoDomain
 import app.jammes.boletim.domain.model.DisciplinaDetalhe
+import app.jammes.boletim.domain.model.periodoDe
 import app.jammes.boletim.domain.repository.AvaliacaoRepository
 import app.jammes.boletim.domain.repository.ContextoRepository
 import app.jammes.boletim.domain.usecase.ObterDisciplinaDetalhe
@@ -53,17 +54,23 @@ class DisciplinaViewModel @Inject constructor(
                 initialValue = DisciplinaUiState.Carregando
             )
 
-    /** Ponto de partida do formulário: no período que está na tela, valendo 10, com peso 1 e a data de hoje. */
-    fun novaAvaliacao(periodoId: Long) = AvaliacaoDomain(
-        disciplinaId = disciplinaId,
-        periodoId = periodoId,
-        nome = "",
-        nota = null,
-        notaMaxima = 10.0,
-        peso = 1.0,
-        data = LocalDate.now(),
-        criadoEm = Clock.System.now(),
-    )
+    /**
+     * Ponto de partida do formulário: valendo 10, com peso 1 e a data de hoje. Fica no período
+     * que está na tela; no ano letivo inteiro, no período de hoje (o formulário deixa trocar).
+     */
+    fun novaAvaliacao(detalhe: DisciplinaDetalhe): AvaliacaoDomain {
+        val hoje = LocalDate.now()
+        return AvaliacaoDomain(
+            disciplinaId = disciplinaId,
+            periodoId = detalhe.periodoId ?: detalhe.periodos.periodoDe(hoje)?.id,
+            nome = "",
+            nota = null,
+            notaMaxima = 10.0,
+            peso = 1.0,
+            data = hoje,
+            criadoEm = Clock.System.now(),
+        )
+    }
 
     fun salvar(avaliacao: AvaliacaoDomain) {
         viewModelScope.launch {

@@ -48,13 +48,13 @@ class ContextoPreferences @Inject constructor(
     private fun Preferences.toContexto(): Contexto? {
         val aluno = this[Keys.ALUNO] ?: return null
         val ano = this[Keys.ANO] ?: return null
-        val periodo = this[Keys.PERIODO] ?: return null
-        return Contexto(aluno, ano, periodo)
+        return Contexto(aluno, ano, periodoId = this[Keys.PERIODO]) // sem período: o ano letivo inteiro
     }
 
     private fun MutablePreferences.escrever(contexto: Contexto) {
         this[Keys.ALUNO] = contexto.alunoId
         this[Keys.ANO] = contexto.anoLetivoId
-        this[Keys.PERIODO] = contexto.periodoId
+        val periodo = contexto.periodoId
+        if (periodo == null) remove(Keys.PERIODO) else this[Keys.PERIODO] = periodo
     }
 }

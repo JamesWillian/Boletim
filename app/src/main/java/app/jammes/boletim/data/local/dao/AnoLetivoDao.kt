@@ -23,4 +23,7 @@ interface AnoLetivoDao {
 
     @Query("SELECT * FROM ano_letivo WHERE aluno_id = :alunoId ORDER BY ano DESC")
     fun observarPorAluno(alunoId: Long): Flow<List<AnoLetivoEntity>>
+
+    @Query("SELECT * FROM ano_letivo WHERE id = :id")
+    fun observarPorId(id: Long): Flow<AnoLetivoEntity?>
 }

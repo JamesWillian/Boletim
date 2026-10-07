@@ -45,7 +45,7 @@ fun AppScaffold(
     aluno: AlunoDomain?,
     anosLetivos: List<AnoLetivoDomain>,
     disciplinas: List<DisciplinaDomain>,
-    onSelecionarPeriodo: (PeriodoDomain) -> Unit,
+    onSelecionarPeriodo: (PeriodoDomain?) -> Unit, // null: o ano letivo inteiro
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
 ) {

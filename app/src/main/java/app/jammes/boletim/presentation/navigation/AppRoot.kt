@@ -47,7 +47,7 @@ fun AppRoot() {
                 aluno = alunos.find { it.id == s.contexto.alunoId },
                 anosLetivos = anosLetivos,
                 disciplinas = disciplinas,
-                onSelecionarPeriodo = { periodo -> contextoVm.trocarPeriodo(periodo.id) }
+                onSelecionarPeriodo = { periodo -> contextoVm.trocarPeriodo(periodo?.id) }
             )
         }
     }
