@@ -2,17 +2,15 @@ package app.jammes.boletim.presentation.navigation
 
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.jammes.boletim.presentation.contexto.ContextoUiState
 import app.jammes.boletim.presentation.contexto.ContextoViewModel
+import app.jammes.boletim.presentation.ui.components.CarregandoDiscreto
 
 /**
  * Raiz da UI. O contexto salvo (aluno, ano e período) decide em que fase o app está:
@@ -31,9 +29,7 @@ fun AppRoot() {
     val state by contextoVm.state.collectAsStateWithLifecycle()
 
     when (val s = state) {
-        ContextoUiState.Carregando -> CircularProgressIndicator(modifier = Modifier
-            .fillMaxSize()
-            .wrapContentSize(align = Alignment.Center)) //TelaCarregando()
+        ContextoUiState.Carregando -> CarregandoDiscreto(Modifier.fillMaxSize()) //TelaCarregando()
 
         ContextoUiState.Vazio -> {} //OnboardingScreen()
 

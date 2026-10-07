@@ -29,7 +29,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.jammes.boletim.domain.model.DisciplinaDomain
@@ -116,10 +118,15 @@ fun AbaDisciplina(
         targetValue = if (isSelected) conteudoSobre(cor) else MaterialTheme.colorScheme.onSurfaceVariant,
         label = "conteudoDaAba",
     )
+    val haptico = LocalHapticFeedback.current
 
     Surface(
         selected = isSelected,
-        onClick = onClick,
+        onClick = {
+            // O mesmo "tique" do seletor de período: trocar de aba é trocar de folha
+            if (!isSelected) haptico.performHapticFeedback(HapticFeedbackType.SegmentTick)
+            onClick()
+        },
         // Começa depois da linha da borda: a aba aberta, da mesma cor, emenda nela
         modifier = modifier.padding(start = BORDA).width(largura),
         shape = RoundedCornerShape(topEnd = 10.dp, bottomEnd = 10.dp),

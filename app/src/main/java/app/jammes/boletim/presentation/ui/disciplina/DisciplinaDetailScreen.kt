@@ -1,5 +1,7 @@
 package app.jammes.boletim.presentation.ui.disciplina
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -19,7 +21,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -37,6 +38,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -52,12 +55,17 @@ import app.jammes.boletim.domain.model.TipoMedia
 import app.jammes.boletim.domain.usecase.arredondarMedia
 import app.jammes.boletim.domain.usecase.statusDaMedia
 import app.jammes.boletim.presentation.ui.anoletivo.nomeDoPeriodo
+import app.jammes.boletim.presentation.ui.boletim.MediaAnimada
 import app.jammes.boletim.presentation.ui.boletim.corDoStatus
 import app.jammes.boletim.presentation.ui.boletim.formatarMedia
 import app.jammes.boletim.presentation.ui.boletim.nomeDoFiltro
 import app.jammes.boletim.presentation.ui.components.BarraDaMedia
+import app.jammes.boletim.presentation.ui.components.CarregandoDiscreto
+import app.jammes.boletim.presentation.ui.components.ChavesCompartilhadas
 import app.jammes.boletim.presentation.ui.components.Pilula
 import app.jammes.boletim.presentation.ui.components.SeloDisciplina
+import app.jammes.boletim.presentation.ui.components.elementoCompartilhado
+import app.jammes.boletim.presentation.ui.components.limitesCompartilhados
 import app.jammes.boletim.presentation.ui.theme.CoresDisciplina
 import app.jammes.boletim.presentation.ui.theme.Espacos
 import app.jammes.boletim.presentation.ui.theme.IconesDisciplina
@@ -78,6 +86,7 @@ fun DisciplinaDetailScreen(
     // Guarda só o id, que sobrevive a girar a tela; a avaliação em si vem do state.
     var abertaId by rememberSaveable { mutableStateOf<Long?>(null) }
 
+    val haptico = LocalHapticFeedback.current
     val listState = rememberLazyListState()
     // O botão mostra o texto no topo da lista e encolhe para só o "+" quando a lista rola
     val fabExpandido by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
@@ -107,10 +116,7 @@ fun DisciplinaDetailScreen(
     ) { paddingValues ->
 
         when (val s = state) {
-            DisciplinaUiState.Carregando -> Box(
-                Modifier.fillMaxSize().padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) { CircularProgressIndicator() }
+            DisciplinaUiState.Carregando -> CarregandoDiscreto(Modifier.fillMaxSize().padding(paddingValues))
 
             DisciplinaUiState.NaoEncontrada -> Box(
                 Modifier.fillMaxSize().padding(paddingValues).padding(32.dp),
@@ -154,7 +160,7 @@ fun DisciplinaDetailScreen(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 32.dp),
+                                modifier = Modifier.animateItem().fillMaxWidth().padding(vertical = 32.dp),
                             )
                         }
                     } else {
@@ -162,7 +168,9 @@ fun DisciplinaDetailScreen(
                         // avaliações juntas num card, separadas por linhas finas
                         detalhe.avaliacoesPorPeriodo.forEach { grupo ->
                             item(key = "periodo-${grupo.periodo.id}") {
-                                Column(Modifier.padding(bottom = Espacos.m)) {
+                                // Ao trocar o período, as seções entram e saem no lugar, e as de
+                                // baixo deslizam em vez de pular
+                                Column(Modifier.animateItem().padding(bottom = Espacos.m)) {
                                     if (anoInteiro) {
                                         Text(
                                             text = nomeDoPeriodo(grupo.periodo.periodo, detalhe.tipoPeriodo).uppercase(),
@@ -172,6 +180,8 @@ fun DisciplinaDetailScreen(
                                         )
                                     }
                                     Card(
+                                        // Avaliação nova ou apagada: o card cresce ou encolhe suave
+                                        modifier = Modifier.animateContentSize(),
                                         colors = CardDefaults.cardColors(
                                             containerColor = MaterialTheme.colorScheme.surfaceContainerLowest,
                                         ),
@@ -211,8 +221,15 @@ fun DisciplinaDetailScreen(
                         periodos = if (anoInteiro) detalhe.periodos else emptyList(),
                         tipoPeriodo = detalhe.tipoPeriodo,
                         onDismiss = { abertaId = null },
-                        onSalvar = viewModel::salvar,
-                        onExcluir = { viewModel.excluir(aberta) },
+                        // Um toque curto confirma no dedo que a avaliação foi gravada ou apagada
+                        onSalvar = { avaliacao ->
+                            haptico.performHapticFeedback(HapticFeedbackType.Confirm)
+                            viewModel.salvar(avaliacao)
+                        },
+                        onExcluir = {
+                            haptico.performHapticFeedback(HapticFeedbackType.Confirm)
+                            viewModel.excluir(aberta)
+                        },
                     )
                 }
             }
@@ -229,7 +246,7 @@ private fun ResumoDisciplina(
 ) {
     val disciplina = detalhe.disciplina
     val cor = CoresDisciplina.de(disciplina.cor)
-    val corStatus = corDoStatus(detalhe.status)
+    val corStatus by animateColorAsState(corDoStatus(detalhe.status), label = "corDoStatus")
     val dados = listOfNotNull(
         disciplina.professor?.takeIf { it.isNotBlank() },
         disciplina.totalAulas?.let { if (it == 1) "1 aula no ano" else "$it aulas no ano" },
@@ -242,7 +259,13 @@ private fun ResumoDisciplina(
 
     // Levemente tingido com a cor da disciplina: a "capa" da folha que a aba abriu
     Card(
-        modifier = modifier.fillMaxWidth(),
+        // A outra ponta do card da disciplina no Boletim: ele se transforma neste resumo
+        modifier = modifier
+            .limitesCompartilhados(
+                chave = ChavesCompartilhadas.card(disciplina.id),
+                forma = MaterialTheme.shapes.large,
+            )
+            .fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
         colors = CardDefaults.cardColors(
             containerColor = cor.copy(alpha = 0.08f).compositeOver(MaterialTheme.colorScheme.surfaceContainerLowest),
@@ -255,6 +278,7 @@ private fun ResumoDisciplina(
                     cor = cor,
                     icone = IconesDisciplina.de(disciplina.icone),
                     tamanho = 44.dp,
+                    modifier = Modifier.elementoCompartilhado(ChavesCompartilhadas.selo(disciplina.id)),
                 )
                 Spacer(Modifier.width(Espacos.m))
                 Column {
@@ -293,13 +317,14 @@ private fun ResumoDisciplina(
             }
             Row {
                 // Mesma formatação e mesma cor do card no Boletim, para as duas telas não divergirem
-                Text(
-                    text = formatarMedia(detalhe.media),
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = corStatus,
-                    modifier = Modifier.weight(1f),
-                )
+                MediaAnimada(detalhe.media, Modifier.weight(1f)) { media ->
+                    Text(
+                        text = formatarMedia(media),
+                        style = MaterialTheme.typography.displaySmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = corStatus,
+                    )
+                }
                 Spacer(Modifier.width(Espacos.l))
                 Text(
                     text = detalhe.faltas.toString(),

@@ -1,8 +1,16 @@
 package app.jammes.boletim.presentation.ui.boletim
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -27,7 +35,6 @@ import androidx.compose.material.icons.rounded.HourglassEmpty
 import androidx.compose.material.icons.rounded.PriorityHigh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -53,8 +60,12 @@ import app.jammes.boletim.domain.model.TipoArredondamento
 import app.jammes.boletim.domain.usecase.arredondarMedia
 import app.jammes.boletim.presentation.ui.components.AnelDaMedia
 import app.jammes.boletim.presentation.ui.components.BarraDaMedia
+import app.jammes.boletim.presentation.ui.components.CarregandoDiscreto
+import app.jammes.boletim.presentation.ui.components.ChavesCompartilhadas
 import app.jammes.boletim.presentation.ui.components.Pilula
 import app.jammes.boletim.presentation.ui.components.SeloDisciplina
+import app.jammes.boletim.presentation.ui.components.elementoCompartilhado
+import app.jammes.boletim.presentation.ui.components.limitesCompartilhados
 import app.jammes.boletim.presentation.ui.theme.BoletimTheme
 import app.jammes.boletim.presentation.ui.theme.CoresDisciplina
 import app.jammes.boletim.presentation.ui.theme.Espacos
@@ -78,10 +89,7 @@ fun BoletimScreen(
     ) { paddingValues ->
 
         when (state) {
-            BoletimUiState.Carregando -> Box(
-                Modifier.fillMaxSize().padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) { CircularProgressIndicator() }
+            BoletimUiState.Carregando -> CarregandoDiscreto(Modifier.fillMaxSize().padding(paddingValues))
 
             BoletimUiState.SemDisciplinas -> Column(
                 modifier = modifier.fillMaxSize().padding(32.dp),
@@ -117,7 +125,13 @@ fun BoletimScreen(
                     )
                 }
                 items((state as BoletimUiState.Sucesso).boletim.disciplinas, key = { it.id }) {
-                    DisciplinaCard(resumo = it, onClick = { onAbrirDisciplina(it.id) })
+                    DisciplinaCard(
+                        resumo = it,
+                        onClick = { onAbrirDisciplina(it.id) },
+                        // Disciplina que entra ou sai do ano aparece e some no lugar, e as outras
+                        // deslizam para as novas posições em vez de pular
+                        modifier = Modifier.animateItem(),
+                    )
                 }
             }
         }
@@ -134,7 +148,7 @@ private fun ResumoGeral(
     boletim: Boletim,
     modifier: Modifier = Modifier,
 ) {
-    val corStatus = corDoStatus(boletim.status)
+    val corStatus by animateColorAsState(corDoStatus(boletim.status), label = "corDoStatusGeral")
     val algumaEmRisco = boletim.disciplinas.any { it.emRiscoPorFalta }
 
     Card(
@@ -151,11 +165,13 @@ private fun ResumoGeral(
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Text(
-                        text = formatarMedia(boletim.mediaGeral),
-                        style = MaterialTheme.typography.displayMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
+                    MediaAnimada(boletim.mediaGeral) { media ->
+                        Text(
+                            text = formatarMedia(media),
+                            style = MaterialTheme.typography.displayMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                    }
                     Text(
                         text = "Mínima ${formatarMedia(boletim.mediaMinima)}",
                         style = MaterialTheme.typography.bodyMedium,
@@ -169,12 +185,14 @@ private fun ResumoGeral(
                     cor = corStatus,
                     modifier = Modifier.size(88.dp),
                 ) {
-                    Icon(
-                        imageVector = iconeDoStatus(boletim.status),
-                        contentDescription = descricaoDoStatus(boletim.status),
-                        tint = corStatus,
-                        modifier = Modifier.size(28.dp),
-                    )
+                    Crossfade(boletim.status, label = "iconeDoStatusGeral") { status ->
+                        Icon(
+                            imageVector = iconeDoStatus(status),
+                            contentDescription = descricaoDoStatus(status),
+                            tint = corStatus,
+                            modifier = Modifier.size(28.dp),
+                        )
+                    }
                 }
             }
 
@@ -206,11 +224,15 @@ private fun DisciplinaCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val corStatus = corDoStatus(resumo.status)
+    val corStatus by animateColorAsState(corDoStatus(resumo.status), label = "corDoStatus")
 
     Card(
         onClick = onClick,
-        modifier = modifier,
+        // Ao abrir a disciplina, este card se transforma no resumo do detalhe (e volta ao fechar)
+        modifier = modifier.limitesCompartilhados(
+            chave = ChavesCompartilhadas.card(resumo.id),
+            forma = MaterialTheme.shapes.medium,
+        ),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) {
@@ -230,25 +252,28 @@ private fun DisciplinaCard(
                     cor = CoresDisciplina.de(resumo.cor),
                     icone = IconesDisciplina.de(resumo.icone),
                     tamanho = 32.dp,
+                    modifier = Modifier.elementoCompartilhado(ChavesCompartilhadas.selo(resumo.id)),
                 )
             }
             Spacer(Modifier.height(Espacos.m))
-            if (resumo.media != null) {
-                Text(
-                    text = formatarMedia(resumo.media),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = corStatus,
-                )
-            } else {
-                Text(
-                    text = "Sem notas",
-                    // Mesma altura de linha da média, para o card não encolher
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontSize = MaterialTheme.typography.titleMedium.fontSize,
-                    ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            MediaAnimada(resumo.media) { media ->
+                if (media != null) {
+                    Text(
+                        text = formatarMedia(media),
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = corStatus,
+                    )
+                } else {
+                    Text(
+                        text = "Sem notas",
+                        // Mesma altura de linha da média, para o card não encolher
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontSize = MaterialTheme.typography.titleMedium.fontSize,
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
             Spacer(Modifier.height(Espacos.s))
             BarraDaMedia(media = resumo.media, mediaMinima = resumo.mediaMinima, cor = corStatus)
@@ -264,6 +289,32 @@ private fun DisciplinaCard(
             )
         }
     }
+}
+
+/**
+ * Troca a média rolando, como um contador: o número novo entra por baixo empurrando o antigo para
+ * cima quando a média sobe, e o contrário quando desce. A caixa corta o que passa das bordas, então
+ * os dois nunca aparecem sobrepostos. Só anima quando o valor muda com a tela aberta (trocar o
+ * período); ao abrir a tela, já aparece no lugar. O [conteudo] desenha o número (ou o "sem nota").
+ */
+@Composable
+internal fun MediaAnimada(
+    media: Double?,
+    modifier: Modifier = Modifier,
+    conteudo: @Composable (media: Double?) -> Unit,
+) {
+    AnimatedContent(
+        targetState = media,
+        modifier = modifier,
+        transitionSpec = {
+            val sentido = if ((targetState ?: 0.0) >= (initialState ?: 0.0)) 1 else -1
+            (slideInVertically { altura -> sentido * altura } + fadeIn()) togetherWith
+                (slideOutVertically { altura -> -sentido * altura } + fadeOut()) using
+                SizeTransform(clip = true)
+        },
+        contentAlignment = Alignment.CenterStart,
+        label = "media",
+    ) { valor -> conteudo(valor) }
 }
 
 @Composable

@@ -1,6 +1,10 @@
 package app.jammes.boletim.presentation.navigation
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.consumeWindowInsets
@@ -82,10 +86,23 @@ fun AppScaffold(
                     .weight(1f)
                     .fillMaxHeight()
             )
-            if (entradaAtual?.mostraAbasDisciplinas == true) {
+            // As abas entram e saem deslizando pela direita (por exemplo, ao abrir os ajustes do
+            // ano), e a tela do centro acompanha, crescendo ou encolhendo no lugar delas
+            AnimatedVisibility(
+                visible = entradaAtual?.mostraAbasDisciplinas == true,
+                enter = slideInHorizontally { largura -> largura } + expandHorizontally(),
+                exit = slideOutHorizontally { largura -> largura } + shrinkHorizontally(),
+            ) {
+                // Nos ajustes do ano, que abrem por cima, a aba marcada continua a da tela de baixo:
+                // assim ela não pula para o Boletim Geral enquanto as abas saem
+                val entradaDasAbas = if (entradaAtual?.mostraAbasDisciplinas == true) {
+                    entradaAtual
+                } else {
+                    navController.previousBackStackEntry
+                }
                 AbasDisciplinas(
                     disciplinas = disciplinas,
-                    disciplinaAbertaId = entradaAtual?.disciplinaAbertaId,
+                    disciplinaAbertaId = entradaDasAbas?.disciplinaAbertaId,
                     onAbrirBoletimGeral = { navController.abrirBoletimGeral() },
                     onAbrirDisciplina = { id -> navController.abrirDisciplina(id) }
                 )

@@ -33,9 +33,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.onPlaced
 import androidx.compose.ui.layout.positionInParent
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -182,6 +184,7 @@ private fun SeletorPeriodo(
     val estilo = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
     val medidor = rememberTextMeasurer()
     val densidade = LocalDensity.current
+    val haptico = LocalHapticFeedback.current
 
     BoxWithConstraints(modifier.fillMaxWidth()) {
         val folga = with(densidade) { (PADDING_OPCAO * 2).roundToPx() }
@@ -243,7 +246,15 @@ private fun SeletorPeriodo(
                             .weight(pesos[i].toFloat())
                             .onPlaced { limites[i] = it.positionInParent().x.roundToInt() to it.size.width }
                             .clip(CircleShape)
-                            .selectable(selected = escolhida, role = Role.Tab, onClick = { onSelecionar(i) })
+                            .selectable(
+                                selected = escolhida,
+                                role = Role.Tab,
+                                onClick = {
+                                    // Um "tique" a cada troca, como um seletor de verdade
+                                    if (!escolhida) haptico.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                    onSelecionar(i)
+                                },
+                            )
                             .padding(horizontal = PADDING_OPCAO, vertical = 8.dp),
                         contentAlignment = Alignment.Center,
                     ) {

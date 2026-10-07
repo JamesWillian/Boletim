@@ -1,6 +1,17 @@
 package app.jammes.boletim.presentation.navigation
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
@@ -14,6 +25,10 @@ import androidx.navigation.toRoute
 import app.jammes.boletim.presentation.ui.aluno.AlunoScreen
 import app.jammes.boletim.presentation.ui.anoletivo.AnoLetivoScreen
 import app.jammes.boletim.presentation.ui.boletim.BoletimScreen
+import app.jammes.boletim.presentation.ui.components.DURACAO_SAIDA
+import app.jammes.boletim.presentation.ui.components.DURACAO_TRANSICAO
+import app.jammes.boletim.presentation.ui.components.LocalEscopoCompartilhado
+import app.jammes.boletim.presentation.ui.components.LocalEscopoDaTela
 import app.jammes.boletim.presentation.ui.disciplina.DisciplinaDetailScreen
 import app.jammes.boletim.presentation.ui.materia.MateriaScreen
 
@@ -22,35 +37,71 @@ import app.jammes.boletim.presentation.ui.materia.MateriaScreen
  *
  * Segue a árvore de [Routes]. Tela nova que precisa das abas de disciplinas entra dentro de
  * `navigation<Routes.Boletim>`; as outras ficam fora e aparecem sem elas ([mostraAbasDisciplinas]).
+ *
+ * O [SharedTransitionLayout] em volta é o que deixa o card do Boletim se transformar no resumo do
+ * detalhe: as telas que participam recebem a própria animação por [LocalEscopoDaTela].
  */
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun AppNavHost(
     navController: NavHostController,
     modifier: Modifier = Modifier,
 ) {
-    NavHost(
-        navController = navController,
-        startDestination = Routes.Boletim,
-        modifier = modifier,
-    ) {
-        // Com as abas de disciplinas
-        navigation<Routes.Boletim>(startDestination = Routes.Boletim.Geral) {
-            composable<Routes.Boletim.Geral> {
-                BoletimScreen(onAbrirDisciplina = { id -> navController.abrirDisciplina(id) })
-            }
-            composable<Routes.Boletim.Disciplina> {
-                DisciplinaDetailScreen() // o id chega no ViewModel pelo SavedStateHandle
-            }
-        }
+    SharedTransitionLayout(modifier) {
+        CompositionLocalProvider(LocalEscopoCompartilhado provides this) {
+            NavHost(
+                navController = navController,
+                startDestination = Routes.Boletim,
+                modifier = Modifier.fillMaxSize(),
+                enterTransition = { entrada },
+                exitTransition = { saida },
+                popEnterTransition = { entrada },
+                popExitTransition = { saida },
+            ) {
+                // Com as abas de disciplinas
+                navigation<Routes.Boletim>(startDestination = Routes.Boletim.Geral) {
+                    composable<Routes.Boletim.Geral> {
+                        CompositionLocalProvider(LocalEscopoDaTela provides this) {
+                            BoletimScreen(onAbrirDisciplina = { id -> navController.abrirDisciplina(id) })
+                        }
+                    }
+                    composable<Routes.Boletim.Disciplina> {
+                        CompositionLocalProvider(LocalEscopoDaTela provides this) {
+                            DisciplinaDetailScreen() // o id chega no ViewModel pelo SavedStateHandle
+                        }
+                    }
+                }
 
-        // Sem as abas
-        composable<Routes.Materia> { MateriaScreen() }
-        composable<Routes.AnoLetivo> {
-            AnoLetivoScreen(onVoltar = { navController.fecharAjustesAnoLetivo() })
+                // Sem as abas
+                composable<Routes.Materia> { MateriaScreen() }
+                // Os ajustes sobem de leve por cima, como uma folha que se abre, e descem ao fechar
+                composable<Routes.AnoLetivo>(
+                    enterTransition = { subindo },
+                    popExitTransition = { descendo },
+                ) {
+                    AnoLetivoScreen(onVoltar = { navController.fecharAjustesAnoLetivo() })
+                }
+                composable<Routes.Aluno> { AlunoScreen() }
+            }
         }
-        composable<Routes.Aluno> { AlunoScreen() }
     }
 }
+
+// Transições ---------------------------------------------------------------------------------
+
+// "Fade through" do Material: a tela que sai some rápido e só então a nova aparece, sem as duas
+// se misturarem no meio. A troca inteira dura DURACAO_TRANSICAO, o mesmo tempo do card que se
+// transforma em resumo, para os dois terminarem juntos.
+private val entrada: EnterTransition =
+    fadeIn(tween(durationMillis = DURACAO_TRANSICAO - DURACAO_SAIDA, delayMillis = DURACAO_SAIDA))
+
+private val saida: ExitTransition = fadeOut(tween(durationMillis = DURACAO_SAIDA))
+
+private val subindo: EnterTransition =
+    slideInVertically(tween(DURACAO_TRANSICAO)) { altura -> altura / 10 } + fadeIn(tween(DURACAO_TRANSICAO))
+
+private val descendo: ExitTransition =
+    slideOutVertically(tween(DURACAO_TRANSICAO)) { altura -> altura / 10 } + fadeOut(tween(DURACAO_TRANSICAO))
 
 // Ações de navegação ------------------------------------------------------------------------
 
