@@ -783,7 +783,7 @@ private fun LinhaDeAjuste(
  * valor e a seta. Um [aviso] aparece embaixo, em vermelho.
  */
 @Composable
-private fun LinhaQueAbre(
+internal fun LinhaQueAbre(
     titulo: String,
     rotuloDoClique: String, // o que o leitor de tela diz que o toque faz
     onClick: () -> Unit,

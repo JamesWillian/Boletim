@@ -93,7 +93,11 @@ fun AppNavGraph() {
                 BoletimScreen(onAbrirDisciplina = {}) // este grafo não tem a tela de disciplina
             }
             composable<Routes.Aluno> {
-                AlunoScreen()
+                AlunoScreen(
+                    onFechar = { navController.popBackStack() },
+                    onContextoTrocado = { navController.popBackStack() },
+                    onAnoLetivoCriado = { navController.navigate(Routes.AnoLetivo) },
+                )
             }
         }
     }

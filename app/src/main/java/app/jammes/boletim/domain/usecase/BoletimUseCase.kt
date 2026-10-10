@@ -114,7 +114,8 @@ fun statusDaMedia(media: Double?, regra: RegraAvaliacaoDomain): StatusDisciplina
     else -> StatusDisciplina.APROVADO
 }
 
-private val REGRA_PADRAO = RegraAvaliacaoDomain(
+/** A regra que vale enquanto o ano não tem a sua gravada; também é a que um ano novo ganha. */
+internal val REGRA_PADRAO = RegraAvaliacaoDomain(
     anoLetivoId = 1, disciplinaId = null,
     mediaMinima = 7.0, mediaRecuperacao = 5.0, frequenciaMinima = 75.0,
     tipoMedia = TipoMedia.SIMPLES

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -20,6 +21,7 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.dialog
 import androidx.navigation.compose.navigation
 import androidx.navigation.toRoute
 import app.jammes.boletim.presentation.ui.aluno.AlunoScreen
@@ -37,6 +39,7 @@ import app.jammes.boletim.presentation.ui.materia.MateriaScreen
  *
  * Segue a árvore de [Routes]. Tela nova que precisa das abas de disciplinas entra dentro de
  * `navigation<Routes.Boletim>`; as outras ficam fora e aparecem sem elas ([mostraAbasDisciplinas]).
+ * Um `dialog` abre por cima da tela atual, e a moldura continua a dela.
  *
  * O [SharedTransitionLayout] em volta é o que deixa o card do Boletim se transformar no resumo do
  * detalhe: as telas que participam recebem a própria animação por [LocalEscopoDaTela].
@@ -81,7 +84,24 @@ fun AppNavHost(
                 ) {
                     AnoLetivoScreen(onVoltar = { navController.fecharAjustesAnoLetivo() })
                 }
-                composable<Routes.Aluno> { AlunoScreen() }
+                // O perfil abre como dialog, por cima da tela atual. A janela dele ocupa a tela toda,
+                // e o AlunoScreen põe o card no alto
+                dialog<Routes.Aluno>(
+                    dialogProperties = DialogProperties(
+                        usePlatformDefaultWidth = false,
+                        decorFitsSystemWindows = false,
+                    ),
+                ) {
+                    AlunoScreen(
+                        onFechar = { navController.fecharPerfilDoAluno() },
+                        // As telas abertas eram do aluno ou do ano anterior: volta ao Boletim Geral
+                        onContextoTrocado = { navController.abrirBoletimGeral() },
+                        onAnoLetivoCriado = {
+                            navController.abrirBoletimGeral()
+                            navController.abrirAjustesAnoLetivo()
+                        },
+                    )
+                }
             }
         }
     }
@@ -120,7 +140,19 @@ fun NavController.fecharAjustesAnoLetivo() {
     popBackStack<Routes.AnoLetivo>(inclusive = true)
 }
 
-/** Volta ao Boletim Geral, tirando da pilha a disciplina que estiver aberta. */
+/** Abre o perfil do aluno por cima da tela atual; tocar de novo na identificação não empilha outro. */
+fun NavController.abrirPerfilDoAluno() {
+    navigate(Routes.Aluno) {
+        launchSingleTop = true
+    }
+}
+
+/** Fecha o perfil. Como nos ajustes do ano, só tira ele da pilha, mesmo se for chamado duas vezes. */
+fun NavController.fecharPerfilDoAluno() {
+    popBackStack<Routes.Aluno>(inclusive = true)
+}
+
+/** Volta ao Boletim Geral, tirando da pilha a disciplina que estiver aberta (e o perfil, se aberto). */
 fun NavController.abrirBoletimGeral() {
     navigate(Routes.Boletim.Geral) {
         popUpTo<Routes.Boletim.Geral>()

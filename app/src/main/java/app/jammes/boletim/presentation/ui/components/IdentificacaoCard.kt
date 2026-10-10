@@ -3,6 +3,7 @@ package app.jammes.boletim.presentation.ui.components
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -18,6 +19,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material3.Icon
@@ -57,6 +59,7 @@ import kotlin.math.roundToInt
 
 /**
  * Topo do app: aluno, ano letivo, o botão dos ajustes do ano e o seletor de período.
+ * Tocar no aluno chama [onAbrirPerfil], onde dá para trocar de aluno e de ano.
  * A opção "Ano letivo" chama [onSelectPeriodo] com null: o boletim passa a ser o do ano inteiro.
  */
 @Composable
@@ -66,7 +69,8 @@ fun IdentificacaoCard(
     aluno: AlunoDomain?,
     anosLetivos: List<AnoLetivoDomain> = emptyList(),
     onSelectPeriodo: (PeriodoDomain?) -> Unit = {},
-    onAbrirAjustesAnoLetivo: () -> Unit = {}
+    onAbrirAjustesAnoLetivo: () -> Unit = {},
+    onAbrirPerfil: () -> Unit = {},
 ) {
     val ano = anosLetivos.find { ano -> ano.id == contexto.anoLetivoId }
     val periodos = ano?.periodo.orEmpty()
@@ -76,28 +80,49 @@ fun IdentificacaoCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = Espacos.l, end = Espacos.xs, top = Espacos.m, bottom = Espacos.m),
+                    .padding(start = Espacos.s, end = Espacos.xs, top = Espacos.xs, bottom = Espacos.xs),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Avatar(nome = aluno?.nome)
-                Column(
+                // O aluno e o ano são um botão só: o toque abre o perfil. O recuo fica dentro do
+                // clique, para a onda do toque ter folga em volta do avatar e do nome
+                Row(
                     modifier = Modifier
                         .weight(1f)
-                        .padding(start = Espacos.m)
+                        .clip(MaterialTheme.shapes.medium)
+                        .clickable(onClickLabel = "Abrir o perfil do aluno", onClick = onAbrirPerfil)
+                        .padding(Espacos.s),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text(
-                        text = aluno?.nome.orEmpty(),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    if (ano != null) {
-                        Text(
-                            text = descricaoDoAno(ano),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                    Avatar(nome = aluno?.nome)
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = Espacos.m)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = aluno?.nome.orEmpty(),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false),
+                            )
+                            // Avisa que o nome abre alguma coisa, como nos seletores de conta
+                            Icon(
+                                Icons.Filled.ExpandMore,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp),
+                            )
+                        }
+                        if (ano != null) {
+                            Text(
+                                text = descricaoDoAno(ano),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
                 IconButton(onClick = onAbrirAjustesAnoLetivo) {
@@ -131,11 +156,12 @@ fun IdentificacaoCard(
 }
 
 /** "9º Ano · 2024"; sem série, só o ano. */
-private fun descricaoDoAno(ano: AnoLetivoDomain): String =
+internal fun descricaoDoAno(ano: AnoLetivoDomain): String =
     listOfNotNull(ano.serie?.takeIf { it.isNotBlank() }, ano.ano.toString()).joinToString(" · ")
 
+/** As iniciais do aluno num círculo azul; sem nome, o ícone de pessoa. */
 @Composable
-private fun Avatar(nome: String?, modifier: Modifier = Modifier) {
+internal fun Avatar(nome: String?, modifier: Modifier = Modifier) {
     val iniciais = nome?.let(::iniciais).orEmpty()
     Box(
         modifier = modifier

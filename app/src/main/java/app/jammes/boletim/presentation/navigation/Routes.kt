@@ -10,9 +10,9 @@ import kotlinx.serialization.Serializable
  * ├── Boletim               grafo: telas COM as abas de disciplinas
  * │   ├── Geral             BoletimScreen
  * │   └── Disciplina(id)    DisciplinaDetailScreen
- * ├── Materia               MateriaScreen     ┐
- * ├── AnoLetivo             AnoLetivoScreen   ├ telas SEM as abas
- * └── Aluno                 AlunoScreen       ┘
+ * ├── Materia               MateriaScreen     ┐ telas SEM as abas
+ * ├── AnoLetivo             AnoLetivoScreen   ┘
+ * └── Aluno                 AlunoScreen         dialog: o perfil, por cima da tela atual
  * ```
  *
  * São @Serializable para a navegação type-safe: `navigate(Routes.Boletim.Disciplina(id))`

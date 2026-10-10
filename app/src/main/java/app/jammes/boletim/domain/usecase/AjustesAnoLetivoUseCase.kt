@@ -4,6 +4,7 @@ import app.jammes.boletim.domain.model.AjustesAnoLetivo
 import app.jammes.boletim.domain.model.AnoLetivoDomain
 import app.jammes.boletim.domain.model.Contexto
 import app.jammes.boletim.domain.model.DisciplinaDomain
+import app.jammes.boletim.domain.model.MateriaDomain
 import app.jammes.boletim.domain.model.RegraAvaliacaoDomain
 import app.jammes.boletim.domain.repository.AnoLetivoRepository
 import app.jammes.boletim.domain.repository.ContextoRepository
@@ -28,17 +29,18 @@ internal fun disciplinasNovas(original: AjustesAnoLetivo, materiaIds: Set<Long>)
 
     return original.materias
         .filter { it.id in materiaIds && it.id !in jaNoAno }
-        .mapIndexed { i, materia ->
-            DisciplinaDomain(
-                nome = materia.nome,
-                cor = materia.cor,
-                icone = materia.icone,
-                ordem = ultimaOrdem + 1 + i,
-                materiaId = materia.id,
-                anoLetivoId = original.anoLetivo.id,
-            )
-        }
+        .mapIndexed { i, materia -> novaDisciplina(materia, original.anoLetivo.id, ordem = ultimaOrdem + 1 + i) }
 }
+
+/** A disciplina de uma matéria que entra no ano: copia nome, cor e ícone dela, como no cadastro. */
+internal fun novaDisciplina(materia: MateriaDomain, anoLetivoId: Long, ordem: Int) = DisciplinaDomain(
+    nome = materia.nome,
+    cor = materia.cor,
+    icone = materia.icone,
+    ordem = ordem,
+    materiaId = materia.id,
+    anoLetivoId = anoLetivoId,
+)
 
 // ---------------------------------------------------------------------------
 // Casos de uso

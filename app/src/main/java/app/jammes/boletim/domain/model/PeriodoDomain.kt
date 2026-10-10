@@ -26,3 +26,12 @@ fun List<PeriodoDomain>.noFiltro(periodoId: Long?): List<PeriodoDomain> =
 /** Do primeiro ao último dia dos períodos, com as férias entre eles. null quando não há nenhum. */
 fun List<PeriodoDomain>.intervalo(): ClosedRange<LocalDate>? =
     if (isEmpty()) null else minOf { it.dataInicio }..maxOf { it.dataFim }
+
+/**
+ * O período que o app abre quando o ano letivo é escolhido: o de hoje, pelo [periodoDe]. Num ano que
+ * já acabou, null: o boletim do ano inteiro, que é o resultado final dele. Sem períodos, também null.
+ */
+fun List<PeriodoDomain>.periodoAoAbrir(hoje: LocalDate): Long? {
+    val fim = intervalo()?.endInclusive ?: return null
+    return if (hoje > fim) null else periodoDe(hoje)?.id
+}

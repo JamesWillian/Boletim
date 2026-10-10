@@ -64,6 +64,32 @@ class PeriodoDomainTest {
     @Test fun `sem periodos nao ha intervalo`() {
         assertNull(emptyList<PeriodoDomain>().intervalo())
     }
+
+    // Período ao abrir o ano -----------------------------------------------------------------
+
+    @Test fun `ano em andamento abre no periodo de hoje`() {
+        assertEquals(2L, periodos.periodoAoAbrir(hoje = LocalDate.of(2024, 9, 10)))
+    }
+
+    @Test fun `nas ferias abre no periodo que ja comecou`() {
+        assertEquals(1L, periodos.periodoAoAbrir(hoje = LocalDate.of(2024, 7, 15)))
+    }
+
+    @Test fun `ano que ainda nao comecou abre no primeiro periodo`() {
+        assertEquals(1L, periodos.periodoAoAbrir(hoje = LocalDate.of(2024, 1, 10)))
+    }
+
+    @Test fun `ano que ja acabou abre inteiro, com o resultado final`() {
+        assertNull(periodos.periodoAoAbrir(hoje = LocalDate.of(2024, 12, 16)))
+    }
+
+    @Test fun `o ultimo dia do ultimo periodo ainda abre nele`() {
+        assertEquals(2L, periodos.periodoAoAbrir(hoje = LocalDate.of(2024, 12, 15)))
+    }
+
+    @Test fun `ano sem periodos abre inteiro`() {
+        assertNull(emptyList<PeriodoDomain>().periodoAoAbrir(hoje = LocalDate.of(2024, 9, 10)))
+    }
 }
 
 private fun periodo(numero: Int, inicio: LocalDate, fim: LocalDate) = PeriodoDomain(

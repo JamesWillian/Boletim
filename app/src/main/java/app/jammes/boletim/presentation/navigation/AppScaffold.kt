@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.DialogNavigator
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import app.jammes.boletim.domain.model.AlunoDomain
@@ -32,7 +33,7 @@ import app.jammes.boletim.presentation.ui.components.IdentificacaoCard
  *
  * ```
  * ┌─────────────────────────────────┐
- * │ IdentificacaoCard               │ ◄── some nos ajustes do ano letivo
+ * │ IdentificacaoCard               │ ◄── some nos ajustes do ano letivo; o aluno abre o perfil
  * ├────────────────────────────┬────┤
  * │                            │    │
  * │ AppNavHost                 │ ◄──── AbasDisciplinas, só nas telas
@@ -53,7 +54,14 @@ fun AppScaffold(
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
 ) {
-    val entradaAtual by navController.currentBackStackEntryAsState()
+    val topo by navController.currentBackStackEntryAsState()
+    // O perfil do aluno é um dialog, aberto por cima: a moldura segue a tela de baixo. Sem isso, as
+    // abas sairiam enquanto ele está aberto
+    val entradaAtual = if (topo?.destination is DialogNavigator.Destination) {
+        navController.previousBackStackEntry
+    } else {
+        topo
+    }
 
     Scaffold(
         modifier = modifier,
@@ -67,7 +75,8 @@ fun AppScaffold(
                         aluno = aluno,
                         anosLetivos = anosLetivos,
                         onSelectPeriodo = onSelecionarPeriodo,
-                        onAbrirAjustesAnoLetivo = { navController.abrirAjustesAnoLetivo() }
+                        onAbrirAjustesAnoLetivo = { navController.abrirAjustesAnoLetivo() },
+                        onAbrirPerfil = { navController.abrirPerfilDoAluno() },
                     )
                 }
             }
