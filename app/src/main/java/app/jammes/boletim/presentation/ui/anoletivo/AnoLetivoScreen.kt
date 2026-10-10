@@ -645,7 +645,7 @@ private fun EscolherData(
 private data class DataAberta(val periodo: Int, val inicio: Boolean) : Serializable
 
 // Unidade é palavra feminina (1ª Unidade); bimestre, trimestre e semestre, masculinas (1º Bimestre)
-private val TipoPeriodo.feminino: Boolean
+internal val TipoPeriodo.feminino: Boolean
     get() = this == TipoPeriodo.UNIDADE
 
 internal fun nomeDoPeriodo(numero: Int, tipo: TipoPeriodo): String =

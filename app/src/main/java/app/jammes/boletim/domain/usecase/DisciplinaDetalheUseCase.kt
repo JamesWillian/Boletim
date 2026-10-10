@@ -7,8 +7,10 @@ import app.jammes.boletim.domain.model.Contexto
 import app.jammes.boletim.domain.model.DisciplinaDetalhe
 import app.jammes.boletim.domain.model.DisciplinaDomain
 import app.jammes.boletim.domain.model.FaltaDomain
+import app.jammes.boletim.domain.model.FaltasDoPeriodo
 import app.jammes.boletim.domain.model.RegraAvaliacaoDomain
 import app.jammes.boletim.domain.model.TipoPeriodo
+import app.jammes.boletim.domain.model.noFiltro
 import app.jammes.boletim.domain.repository.AnoLetivoRepository
 import app.jammes.boletim.domain.repository.AvaliacaoRepository
 import app.jammes.boletim.domain.repository.DisciplinaRepository
@@ -46,7 +48,7 @@ class ObterDisciplinaDetalhe @Inject constructor(
                     avaliacaoRepository.observeByDisciplina(disciplinaId),
                     faltaRepository.observeByDisciplina(disciplinaId),
                     regraRepository.observeByAnoLetivo(disciplina.anoLetivoId),
-                    // Os períodos dão nome e ordem aos grupos de avaliações
+                    // Os períodos dão nome e ordem aos grupos de avaliações e de faltas
                     anoLetivoRepository.observeById(disciplina.anoLetivoId),
                     periodoId,
                 ) { avaliacoes, faltas, regras, anoLetivo, periodo ->
@@ -67,11 +69,15 @@ class ObterDisciplinaDetalhe @Inject constructor(
         val periodos = anoLetivo?.periodo.orEmpty()
         val media = calcularMediaNoFiltro(avaliacoes, regra, periodoId)
 
-        // No ano letivo inteiro entram todos os períodos; num período, só ele
-        val porPeriodo = periodos
-            .filter { periodoId == null || it.id == periodoId }
+        // No ano letivo inteiro entram todos os períodos; num período, só ele. Avaliações e faltas
+        // se agrupam do mesmo jeito, e período sem nada lançado fica de fora.
+        val noFiltro = periodos.noFiltro(periodoId)
+        val avaliacoesPorPeriodo = noFiltro
             .map { periodo -> AvaliacoesDoPeriodo(periodo, avaliacoes.filter { it.periodoId == periodo.id }) }
             .filter { it.avaliacoes.isNotEmpty() }
+        val faltasPorPeriodo = noFiltro
+            .map { periodo -> FaltasDoPeriodo(periodo, faltas.filter { it.periodoId == periodo.id }) }
+            .filter { it.faltas.isNotEmpty() }
 
         return DisciplinaDetalhe(
             disciplina = disciplina,
@@ -79,7 +85,8 @@ class ObterDisciplinaDetalhe @Inject constructor(
             tipoPeriodo = anoLetivo?.tipoPeriodo ?: TipoPeriodo.UNIDADE,
             periodos = periodos,
             regra = regra,
-            avaliacoesPorPeriodo = porPeriodo,
+            avaliacoesPorPeriodo = avaliacoesPorPeriodo,
+            faltasPorPeriodo = faltasPorPeriodo,
             media = media,
             status = statusDaMedia(media, regra),
             faltas = faltas.sumOf { it.qtdAulas },

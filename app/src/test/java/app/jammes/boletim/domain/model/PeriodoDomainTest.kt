@@ -1,7 +1,9 @@
 package app.jammes.boletim.domain.model
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
 
@@ -32,6 +34,35 @@ class PeriodoDomainTest {
 
     @Test fun `sem periodos nao ha o que escolher`() {
         assertNull(emptyList<PeriodoDomain>().periodoDe(LocalDate.of(2024, 9, 10)))
+    }
+
+    // Filtro e intervalo ---------------------------------------------------------------------
+
+    @Test fun `no ano letivo inteiro o filtro tem todos os periodos`() {
+        assertEquals(periodos, periodos.noFiltro(periodoId = null))
+    }
+
+    @Test fun `com um periodo escolhido o filtro tem so ele`() {
+        assertEquals(listOf(2), periodos.noFiltro(periodoId = 2).map { it.periodo })
+    }
+
+    @Test fun `o intervalo vai do inicio do primeiro ao fim do ultimo com as ferias no meio`() {
+        val intervalo = periodos.intervalo()!!
+
+        assertEquals(LocalDate.of(2024, 2, 1), intervalo.start)
+        assertEquals(LocalDate.of(2024, 12, 15), intervalo.endInclusive)
+        assertTrue(LocalDate.of(2024, 7, 15) in intervalo) // férias entre o 1º e o 2º
+    }
+
+    @Test fun `o intervalo de um periodo so sao as datas dele`() {
+        val intervalo = periodos.noFiltro(periodoId = 1).intervalo()!!
+
+        assertTrue(LocalDate.of(2024, 6, 30) in intervalo)
+        assertFalse(LocalDate.of(2024, 8, 1) in intervalo)
+    }
+
+    @Test fun `sem periodos nao ha intervalo`() {
+        assertNull(emptyList<PeriodoDomain>().intervalo())
     }
 }
 

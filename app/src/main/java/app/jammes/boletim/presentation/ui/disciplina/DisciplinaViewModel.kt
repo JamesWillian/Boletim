@@ -6,9 +6,12 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import app.jammes.boletim.domain.model.AvaliacaoDomain
 import app.jammes.boletim.domain.model.DisciplinaDetalhe
+import app.jammes.boletim.domain.model.FaltaDomain
+import app.jammes.boletim.domain.model.intervalo
 import app.jammes.boletim.domain.model.periodoDe
 import app.jammes.boletim.domain.repository.AvaliacaoRepository
 import app.jammes.boletim.domain.repository.ContextoRepository
+import app.jammes.boletim.domain.repository.FaltaRepository
 import app.jammes.boletim.domain.usecase.ObterDisciplinaDetalhe
 import app.jammes.boletim.presentation.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -34,6 +37,7 @@ class DisciplinaViewModel @Inject constructor(
     contextoRepo: ContextoRepository,
     obterDisciplinaDetalhe: ObterDisciplinaDetalhe,
     private val avaliacaoRepo: AvaliacaoRepository,
+    private val faltaRepo: FaltaRepository,
 ): ViewModel() {
 
     // Argumento da rota que abriu a tela. Cada disciplina aberta ganha seu próprio ViewModel,
@@ -81,6 +85,35 @@ class DisciplinaViewModel @Inject constructor(
     fun excluir(avaliacao: AvaliacaoDomain) {
         viewModelScope.launch {
             avaliacaoRepo.delete(avaliacao)
+        }
+    }
+
+    /**
+     * Ponto de partida do formulário de falta: uma falta, hoje. Se hoje cai fora dos períodos da
+     * tela (outro período, ou o ano já acabou), começa no dia mais perto dentro deles. O período
+     * sai da data. null quando a tela não tem período onde a falta possa contar.
+     */
+    fun novaFalta(detalhe: DisciplinaDetalhe): FaltaDomain? {
+        val periodos = detalhe.periodosNoFiltro
+        val dia = LocalDate.now().coerceIn(periodos.intervalo() ?: return null)
+        val periodo = periodos.periodoDe(dia) ?: return null
+        return FaltaDomain(
+            disciplinaId = disciplinaId,
+            periodoId = periodo.id,
+            data = dia,
+            qtdAulas = 1,
+        )
+    }
+
+    fun salvar(falta: FaltaDomain) {
+        viewModelScope.launch {
+            faltaRepo.upsert(falta)
+        }
+    }
+
+    fun excluir(falta: FaltaDomain) {
+        viewModelScope.launch {
+            faltaRepo.delete(falta)
         }
     }
 }
