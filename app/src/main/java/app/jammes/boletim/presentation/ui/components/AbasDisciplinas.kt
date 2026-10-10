@@ -2,6 +2,7 @@ package app.jammes.boletim.presentation.ui.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.GridView
@@ -19,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,7 +67,29 @@ fun AbasDisciplinas(
         label = "corDaAbaAberta",
     )
 
+    // A aba aberta sempre à vista: abrindo a disciplina pelo card do Boletim, a aba dela pode estar
+    // lá embaixo, fora da tela. Se ela já aparece inteira, nada se mexe; se aparece cortada, rola
+    // só o que falta; se nem aparece, rola até ela.
+    val estado = rememberLazyListState()
+    LaunchedEffect(disciplinaAbertaId, disciplinas) {
+        val indice = if (disciplinaAbertaId == null) {
+            0 // o Boletim Geral é o primeiro item
+        } else {
+            disciplinas.indexOfFirst { it.id == disciplinaAbertaId }.takeIf { it >= 0 }?.plus(1)
+                ?: return@LaunchedEffect
+        }
+        val info = estado.layoutInfo
+        val aba = info.visibleItemsInfo.find { it.index == indice }
+        when {
+            aba == null -> estado.animateScrollToItem(indice)
+            aba.offset < info.viewportStartOffset -> estado.animateScrollBy((aba.offset - info.viewportStartOffset).toFloat())
+            aba.offset + aba.size > info.viewportEndOffset ->
+                estado.animateScrollBy((aba.offset + aba.size - info.viewportEndOffset).toFloat())
+        }
+    }
+
     LazyColumn(
+        state = estado,
         modifier = modifier
             .width(LARGURA_ABERTA + BORDA)
             .fillMaxHeight()

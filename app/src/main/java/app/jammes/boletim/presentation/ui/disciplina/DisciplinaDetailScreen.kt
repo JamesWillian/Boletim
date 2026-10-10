@@ -14,14 +14,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.Assignment
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.SearchOff
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -41,7 +46,6 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -62,6 +66,7 @@ import app.jammes.boletim.presentation.ui.boletim.nomeDoFiltro
 import app.jammes.boletim.presentation.ui.components.BarraDaMedia
 import app.jammes.boletim.presentation.ui.components.CarregandoDiscreto
 import app.jammes.boletim.presentation.ui.components.ChavesCompartilhadas
+import app.jammes.boletim.presentation.ui.components.EstadoVazio
 import app.jammes.boletim.presentation.ui.components.Pilula
 import app.jammes.boletim.presentation.ui.components.SeloDisciplina
 import app.jammes.boletim.presentation.ui.components.elementoCompartilhado
@@ -119,10 +124,14 @@ fun DisciplinaDetailScreen(
             DisciplinaUiState.Carregando -> CarregandoDiscreto(Modifier.fillMaxSize().padding(paddingValues))
 
             DisciplinaUiState.NaoEncontrada -> Box(
-                Modifier.fillMaxSize().padding(paddingValues).padding(32.dp),
+                Modifier.fillMaxSize().padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Disciplina não encontrada", style = MaterialTheme.typography.titleMedium)
+                EstadoVazio(
+                    icone = Icons.Outlined.SearchOff,
+                    titulo = "Disciplina não encontrada",
+                    mensagem = "Ela pode ter saído do ano letivo. Escolha outra nas abas ao lado.",
+                )
             }
 
             is DisciplinaUiState.Sucesso -> {
@@ -155,12 +164,23 @@ fun DisciplinaDetailScreen(
 
                     if (detalhe.avaliacoesPorPeriodo.isEmpty()) {
                         item {
-                            Text(
-                                text = "Nenhuma avaliação neste ${nomeDoFiltro(detalhe.periodoId)}",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.animateItem().fillMaxWidth().padding(vertical = 32.dp),
+                            EstadoVazio(
+                                icone = Icons.AutoMirrored.Outlined.Assignment,
+                                titulo = "Nenhuma avaliação neste ${nomeDoFiltro(detalhe.periodoId)}",
+                                mensagem = "Lance as provas, trabalhos e atividades para acompanhar a média.",
+                                modifier = Modifier.animateItem(),
+                                // O mesmo que o botão de baixo faz, mas aqui, onde o olho já está
+                                acao = {
+                                    FilledTonalButton(onClick = { abertaId = NOVA }) {
+                                        Icon(
+                                            Icons.Filled.Add,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(ButtonDefaults.IconSize),
+                                        )
+                                        Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                                        Text("Lançar avaliação")
+                                    }
+                                },
                             )
                         }
                     } else {

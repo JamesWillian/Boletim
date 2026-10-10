@@ -4,4 +4,12 @@
     <style name="Theme.Boletim" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@color/fundo</item>
     </style>
+
+    <!-- A splash: o ícone sobre o mesmo fundo do app (claro ou escuro), para a passagem para a
+         primeira tela não ter corte. A MainActivity troca para o Theme.Boletim ao terminar. -->
+    <style name="Theme.Boletim.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/fundo</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash</item>
+        <item name="postSplashScreenTheme">@style/Theme.Boletim</item>
+    </style>
 </resources>
