@@ -4,6 +4,7 @@ import app.jammes.boletim.data.repository.AlunoRepositoryImpl
 import app.jammes.boletim.data.repository.AnoLetivoRepositoryImpl
 import app.jammes.boletim.data.repository.AvaliacaoRepositoryImpl
 import app.jammes.boletim.data.repository.ContextoRepositoryImpl
+import app.jammes.boletim.data.repository.DicasRepositoryImpl
 import app.jammes.boletim.data.repository.DisciplinaRepositoryImpl
 import app.jammes.boletim.data.repository.FaltaRepositoryImpl
 import app.jammes.boletim.data.repository.MateriaRepositoryImpl
@@ -13,6 +14,7 @@ import app.jammes.boletim.domain.repository.AlunoRepository
 import app.jammes.boletim.domain.repository.AnoLetivoRepository
 import app.jammes.boletim.domain.repository.AvaliacaoRepository
 import app.jammes.boletim.domain.repository.ContextoRepository
+import app.jammes.boletim.domain.repository.DicasRepository
 import app.jammes.boletim.domain.repository.DisciplinaRepository
 import app.jammes.boletim.domain.repository.FaltaRepository
 import app.jammes.boletim.domain.repository.MateriaRepository
@@ -31,6 +33,10 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindAlunoRepository(impl: AlunoRepositoryImpl): AlunoRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindDicasRepository(impl: DicasRepositoryImpl): DicasRepository
 
     @Binds
     @Singleton

@@ -1,18 +1,27 @@
 package app.jammes.boletim.presentation.ui.anoletivo
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
@@ -26,7 +35,8 @@ import java.time.temporal.ChronoUnit
 /**
  * A divisão do ano de relance: uma faixa de janeiro a dezembro com os períodos por cima. Os vãos
  * entre eles são as férias, e um período com as datas erradas (atropelando o vizinho) fica
- * vermelho, como a linha dele. Embaixo vai o resumo em texto, que é o que o leitor de tela lê.
+ * vermelho, como a linha dele. Um traço dourado marca [hoje], quando cai na faixa. Embaixo vai o
+ * resumo em texto, que é o que o leitor de tela lê.
  *
  * É um Canvas só, com os textos medidos pelo TextMeasurer: os vinte e poucos rótulos, um composable
  * para cada, pesariam na abertura da tela.
@@ -38,6 +48,7 @@ internal fun LinhaDoTempoDoAno(
     ano: Int?,
     problemas: List<ProblemaDatas?>, // um por período, como o problemasDasDatas devolve
     modifier: Modifier = Modifier,
+    hoje: LocalDate = LocalDate.now(),
 ) {
     val referencia = ano ?: periodos.firstOrNull()?.inicio?.year ?: LocalDate.now().year
     val faixa = remember(periodos, referencia) { faixaDaLinhaDoTempo(periodos, referencia) }
@@ -50,6 +61,8 @@ internal fun LinhaDoTempoDoAno(
     val corDoErro = MaterialTheme.colorScheme.errorContainer
     val textoDoErro = MaterialTheme.colorScheme.onErrorContainer
     val corDoMes = MaterialTheme.colorScheme.onSurfaceVariant
+    val corDeHoje = MaterialTheme.colorScheme.tertiary
+    val hojeNaFaixa = hoje in faixa
     val estiloDoPeriodo = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)
     val estiloDoMes = MaterialTheme.typography.labelSmall
 
@@ -88,6 +101,17 @@ internal fun LinhaDoTempoDoAno(
                 }
             }
 
+            if (hojeNaFaixa) {
+                val x = size.width * (fracaoDaFaixa(hoje, faixa) + fracaoDaFaixa(hoje.plusDays(1), faixa)) / 2
+                drawLine(
+                    color = corDeHoje,
+                    start = Offset(x, -3.dp.toPx()),
+                    end = Offset(x, altura + 3.dp.toPx()),
+                    strokeWidth = 2.dp.toPx(),
+                    cap = StrokeCap.Round,
+                )
+            }
+
             // A inicial de cada mês, embaixo do meio dele
             meses.forEach { mes ->
                 val meio = size.width * (fracaoDaFaixa(mes.inicio, faixa) + fracaoDaFaixa(mes.fim.plusDays(1), faixa)) / 2
@@ -100,11 +124,20 @@ internal fun LinhaDoTempoDoAno(
             }
         }
         Spacer(Modifier.height(Espacos.xs))
-        Text(
-            text = resumoDaDivisao(periodos, tipo, ano),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = resumoDaDivisao(periodos, tipo, ano),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+            // A legenda do traço
+            if (hojeNaFaixa) {
+                Box(Modifier.size(width = 2.dp, height = 12.dp).clip(RoundedCornerShape(1.dp)).background(corDeHoje))
+                Spacer(Modifier.width(6.dp))
+                Text("hoje", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = corDeHoje)
+            }
+        }
     }
 }
 

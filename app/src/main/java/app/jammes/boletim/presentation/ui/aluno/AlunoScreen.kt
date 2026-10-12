@@ -111,6 +111,7 @@ fun AlunoScreen(
     onFechar: () -> Unit,
     onContextoTrocado: () -> Unit, // aluno ou ano trocado: o que estava aberto era do anterior
     onAnoLetivoCriado: () -> Unit, // o ano novo já está aberto: falta conferir os ajustes dele
+    onNovoAluno: () -> Unit, // abre o cadastro, que é o onboarding a partir do passo do aluno
     modifier: Modifier = Modifier,
     viewModel: AlunoViewModel = hiltViewModel(),
 ) {
@@ -205,8 +206,7 @@ fun AlunoScreen(
                             }
                         },
                         onCriarAnoLetivo = viewModel::criarAnoLetivo,
-                        // TODO: abrir o onboarding, quando a tela existir
-                        onNovoAluno = { avisar("O cadastro de novo aluno ainda não está disponível") },
+                        onNovoAluno = onNovoAluno,
                         // TODO: abrir as configurações de backup, quando existirem
                         onBackup = { avisar("As configurações de backup ainda não estão disponíveis") },
                     )

@@ -11,6 +11,7 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -33,16 +34,23 @@ import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.HourglassEmpty
 import androidx.compose.material.icons.rounded.PriorityHigh
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RichTooltip
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TooltipAnchorPosition
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -62,6 +70,7 @@ import app.jammes.boletim.presentation.ui.components.AnelDaMedia
 import app.jammes.boletim.presentation.ui.components.BarraDaMedia
 import app.jammes.boletim.presentation.ui.components.CarregandoDiscreto
 import app.jammes.boletim.presentation.ui.components.ChavesCompartilhadas
+import app.jammes.boletim.presentation.ui.components.DURACAO_TRANSICAO
 import app.jammes.boletim.presentation.ui.components.Pilula
 import app.jammes.boletim.presentation.ui.components.SeloDisciplina
 import app.jammes.boletim.presentation.ui.components.elementoCompartilhado
@@ -70,6 +79,7 @@ import app.jammes.boletim.presentation.ui.theme.BoletimTheme
 import app.jammes.boletim.presentation.ui.theme.CoresDisciplina
 import app.jammes.boletim.presentation.ui.theme.Espacos
 import app.jammes.boletim.presentation.ui.theme.IconesDisciplina
+import kotlinx.coroutines.delay
 import java.text.NumberFormat
 import java.util.Locale
 
@@ -82,6 +92,7 @@ fun BoletimScreen(
 ) {
 
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val dica by viewModel.dicaDaPrimeiraNota.collectAsStateWithLifecycle()
 
     Scaffold(
         modifier = modifier,
@@ -124,14 +135,24 @@ fun BoletimScreen(
                         modifier = Modifier.padding(bottom = Espacos.xs),
                     )
                 }
-                items((state as BoletimUiState.Sucesso).boletim.disciplinas, key = { it.id }) {
-                    DisciplinaCard(
-                        resumo = it,
-                        onClick = { onAbrirDisciplina(it.id) },
+                val disciplinas = (state as BoletimUiState.Sucesso).boletim.disciplinas
+                items(disciplinas, key = { it.id }) {
+                    ComDicaDaPrimeiraNota(
+                        mostrar = dica && it.id == disciplinas.first().id,
+                        onDispensar = viewModel::dispensarDica,
                         // Disciplina que entra ou sai do ano aparece e some no lugar, e as outras
                         // deslizam para as novas posições em vez de pular
                         modifier = Modifier.animateItem(),
-                    )
+                    ) {
+                        DisciplinaCard(
+                            resumo = it,
+                            onClick = {
+                                // Abrir uma matéria é fazer o que a dica pede: ela já cumpriu o papel
+                                if (dica) viewModel.dispensarDica()
+                                onAbrirDisciplina(it.id)
+                            },
+                        )
+                    }
                 }
             }
         }
@@ -215,6 +236,65 @@ private fun ResumoGeral(
                 )
             }
         }
+    }
+}
+
+/**
+ * A dica que aparece uma vez só, logo depois do onboarding, apontando para o primeiro card: é ali
+ * que se lança a primeira nota. Some no "Entendi", num toque fora ou quando um card é aberto.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ComDicaDaPrimeiraNota(
+    mostrar: Boolean,
+    onDispensar: () -> Unit,
+    modifier: Modifier = Modifier,
+    conteudo: @Composable () -> Unit,
+) {
+    if (!mostrar) {
+        Box(modifier) { conteudo() }
+        return
+    }
+    val estado = rememberTooltipState(isPersistent = true)
+    // Um instante depois da tela, para não aparecer no meio da animação de entrada
+    LaunchedEffect(estado) {
+        delay(DURACAO_TRANSICAO.toLong())
+        estado.show()
+    }
+    val dispensar = {
+        estado.dismiss()
+        onDispensar()
+    }
+    TooltipBox(
+        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
+        tooltip = {
+            RichTooltip(
+                title = { Text("Lance a primeira nota") },
+                action = {
+                    // O TextButton usaria a primária, apagada sobre o fundo invertido
+                    TextButton(
+                        onClick = dispensar,
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.inversePrimary),
+                    ) { Text("Entendi") }
+                },
+                caretShape = TooltipDefaults.caretShape(),
+                // Invertida, para destacar sobre os cards nos dois temas
+                colors = TooltipDefaults.richTooltipColors(
+                    containerColor = MaterialTheme.colorScheme.inverseSurface,
+                    contentColor = MaterialTheme.colorScheme.inverseOnSurface,
+                    titleContentColor = MaterialTheme.colorScheme.inverseOnSurface,
+                    actionContentColor = MaterialTheme.colorScheme.inversePrimary,
+                ),
+            ) {
+                Text("Toque numa matéria para lançar notas e faltas.")
+            }
+        },
+        state = estado,
+        onDismissRequest = dispensar,
+        hasAction = true,
+        modifier = modifier,
+    ) {
+        conteudo()
     }
 }
 

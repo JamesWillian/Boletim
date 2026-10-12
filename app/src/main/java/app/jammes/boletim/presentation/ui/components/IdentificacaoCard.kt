@@ -156,8 +156,10 @@ fun IdentificacaoCard(
 }
 
 /** "9º Ano · 2024"; sem série, só o ano. */
-internal fun descricaoDoAno(ano: AnoLetivoDomain): String =
-    listOfNotNull(ano.serie?.takeIf { it.isNotBlank() }, ano.ano.toString()).joinToString(" · ")
+internal fun descricaoDoAno(ano: AnoLetivoDomain): String = descricaoDoAno(ano.serie, ano.ano)
+
+internal fun descricaoDoAno(serie: String?, ano: Int): String =
+    listOfNotNull(serie?.takeIf { it.isNotBlank() }, ano.toString()).joinToString(" · ")
 
 /** As iniciais do aluno num círculo azul; sem nome, o ícone de pessoa. */
 @Composable

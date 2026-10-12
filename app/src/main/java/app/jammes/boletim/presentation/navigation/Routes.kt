@@ -11,7 +11,8 @@ import kotlinx.serialization.Serializable
  * │   ├── Geral             BoletimScreen
  * │   └── Disciplina(id)    DisciplinaDetailScreen
  * ├── Materia               MateriaScreen     ┐ telas SEM as abas
- * ├── AnoLetivo             AnoLetivoScreen   ┘
+ * ├── AnoLetivo             AnoLetivoScreen   │
+ * ├── NovoAluno             OnboardingScreen  ┘ o cadastro de outro aluno, sem as boas-vindas
  * └── Aluno                 AlunoScreen         dialog: o perfil, por cima da tela atual
  * ```
  *
@@ -28,5 +29,6 @@ object Routes {
 
     @Serializable data object Materia
     @Serializable data object AnoLetivo
+    @Serializable data object NovoAluno
     @Serializable data object Aluno
 }

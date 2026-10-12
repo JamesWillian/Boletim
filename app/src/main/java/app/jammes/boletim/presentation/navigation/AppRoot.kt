@@ -11,6 +11,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.jammes.boletim.presentation.contexto.ContextoUiState
 import app.jammes.boletim.presentation.contexto.ContextoViewModel
 import app.jammes.boletim.presentation.ui.components.CarregandoDiscreto
+import app.jammes.boletim.presentation.ui.onboarding.OnboardingScreen
 
 /**
  * Raiz da UI. O contexto salvo (aluno, ano e período) decide em que fase o app está:
@@ -31,7 +32,7 @@ fun AppRoot() {
     when (val s = state) {
         ContextoUiState.Carregando -> CarregandoDiscreto(Modifier.fillMaxSize()) //TelaCarregando()
 
-        ContextoUiState.Vazio -> {} //OnboardingScreen()
+        ContextoUiState.Vazio -> OnboardingScreen()
 
         is ContextoUiState.Definido -> {
             val alunos by contextoVm.alunos.collectAsStateWithLifecycle()

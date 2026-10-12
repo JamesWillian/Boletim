@@ -1,6 +1,5 @@
 package app.jammes.boletim.data.local
 
-import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 import app.jammes.boletim.data.local.entity.AvaliacaoEntity
 import app.jammes.boletim.data.local.entity.FaltaEntity
@@ -8,22 +7,37 @@ import app.jammes.boletim.data.local.entity.PeriodoEntity
 import app.jammes.boletim.data.mapper.Converters
 import app.jammes.boletim.domain.model.Contexto
 import app.jammes.boletim.domain.model.TipoAvaliacao
+import app.jammes.boletim.domain.repository.ContextoRepository
+import jakarta.inject.Inject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import kotlin.time.Clock
 
 /**
- * Dados de teste: popula o banco quando ele é criado, como o [MateriasPadraoCallback] faz com as
- * matérias. Depois de instalar o app (ou limpar os dados), ele já abre com aluno, ano letivo,
- * disciplinas, avaliações e faltas, sem precisar cadastrar nada.
- *
- * Só entra em build de debug (veja o DatabaseModule). O Contexto fica no DataStore, fora do banco,
- * então quem salva o [CONTEXTO] é o BoletimApp.
+ * Dados de teste: aluno, ano letivo, disciplinas, avaliações e faltas, para testar sem cadastrar nada.
+ * Entram pelo botão temporário das boas-vindas, que só aparece em build de debug. As matérias padrão
+ * não dependem disto: o [MateriasPadraoCallback] continua gravando elas quando o banco é criado.
  */
-class DadosDeTesteCallback : RoomDatabase.Callback() {
+class DadosDeTeste @Inject constructor(
+    private val database: AppDatabase,
+    private val contextoRepository: ContextoRepository,
+) {
+    /**
+     * Grava os dados, se o aluno deles ainda não estiver no banco, e abre o app neles: com o
+     * [CONTEXTO] salvo, o app sai das boas-vindas.
+     */
+    suspend fun carregar() {
+        withContext(Dispatchers.IO) {
+            val db = database.openHelper.writableDatabase
+            val jaGravados = db.query("SELECT 1 FROM aluno WHERE id = ${CONTEXTO.alunoId}").use { it.moveToFirst() }
+            if (!jaGravados) database.runInTransaction { inserir(db) }
+        }
+        with(CONTEXTO) { contextoRepository.selecionarAluno(alunoId, anoLetivoId, periodoId) }
+    }
 
-    override fun onCreate(db: SupportSQLiteDatabase) {
-        // Como no MateriasPadraoCallback, o banco ainda está sendo aberto: vai SQL direto.
-        // Os ids são fixos para o CONTEXTO e as chaves estrangeiras apontarem para as linhas certas.
+    private fun inserir(db: SupportSQLiteDatabase) {
+        // SQL direto, com ids fixos para o CONTEXTO e as chaves estrangeiras apontarem para as linhas certas
         val converters = Converters()
         val criadoEm = converters.instantToLong(CRIADO_EM)
 
@@ -48,8 +62,8 @@ class DadosDeTesteCallback : RoomDatabase.Callback() {
             )
         }
         DISCIPLINAS.forEach {
-            // Roda depois do MateriasPadraoCallback (é a ordem do addCallback), então a matéria já
-            // existe. A disciplina copia nome, cor e ícone dela, como faria o cadastro.
+            // O MateriasPadraoCallback gravou as matérias quando o banco foi criado. A disciplina
+            // copia nome, cor e ícone dela, como faria o cadastro.
             db.execSQL(
                 """
                 INSERT INTO disciplina (id, materia_id, ano_letivo_id, nome, cor, icone, total_aulas, professor, ativa, ordem)

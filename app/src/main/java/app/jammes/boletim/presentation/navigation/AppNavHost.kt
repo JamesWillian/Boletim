@@ -33,6 +33,7 @@ import app.jammes.boletim.presentation.ui.components.LocalEscopoCompartilhado
 import app.jammes.boletim.presentation.ui.components.LocalEscopoDaTela
 import app.jammes.boletim.presentation.ui.disciplina.DisciplinaDetailScreen
 import app.jammes.boletim.presentation.ui.materia.MateriaScreen
+import app.jammes.boletim.presentation.ui.onboarding.OnboardingScreen
 
 /**
  * Grafo de navegação: decide qual tela ocupa o centro do [AppScaffold].
@@ -84,6 +85,18 @@ fun AppNavHost(
                 ) {
                     AnoLetivoScreen(onVoltar = { navController.fecharAjustesAnoLetivo() })
                 }
+                // O cadastro de outro aluno é o onboarding a partir do passo do aluno; sobe como os ajustes
+                composable<Routes.NovoAluno>(
+                    enterTransition = { subindo },
+                    popExitTransition = { descendo },
+                ) {
+                    OnboardingScreen(
+                        novoAluno = true,
+                        onFechar = { navController.fecharNovoAluno() },
+                        // O aluno novo já está aberto: o boletim dele toma o lugar de tudo
+                        onConcluido = { navController.abrirBoletimGeral() },
+                    )
+                }
                 // O perfil abre como dialog, por cima da tela atual. A janela dele ocupa a tela toda,
                 // e o AlunoScreen põe o card no alto
                 dialog<Routes.Aluno>(
@@ -100,6 +113,7 @@ fun AppNavHost(
                             navController.abrirBoletimGeral()
                             navController.abrirAjustesAnoLetivo()
                         },
+                        onNovoAluno = { navController.abrirNovoAluno() },
                     )
                 }
             }
@@ -152,12 +166,28 @@ fun NavController.fecharPerfilDoAluno() {
     popBackStack<Routes.Aluno>(inclusive = true)
 }
 
-/** Volta ao Boletim Geral, tirando da pilha a disciplina que estiver aberta (e o perfil, se aberto). */
+/**
+ * Volta ao Boletim Geral, tirando da pilha o que estiver por cima dele: a disciplina aberta, o perfil
+ * ou o cadastro de aluno.
+ */
 fun NavController.abrirBoletimGeral() {
     navigate(Routes.Boletim.Geral) {
         popUpTo<Routes.Boletim.Geral>()
         launchSingleTop = true
     }
+}
+
+/** Fecha o perfil e abre no lugar dele o cadastro de outro aluno. */
+fun NavController.abrirNovoAluno() {
+    navigate(Routes.NovoAluno) {
+        popUpTo<Routes.Aluno> { inclusive = true }
+        launchSingleTop = true
+    }
+}
+
+/** Desiste do cadastro. Como nos ajustes, só tira ele da pilha, mesmo se for chamado duas vezes. */
+fun NavController.fecharNovoAluno() {
+    popBackStack<Routes.NovoAluno>(inclusive = true)
 }
 
 /**
@@ -175,11 +205,11 @@ fun NavController.abrirDisciplina(disciplinaId: Long) {
 // O que a moldura (AppScaffold) precisa saber da tela atual ---------------------------------
 
 /**
- * O card de identificação some nos ajustes do ano letivo: a tela tem barra própria, e o card
- * mostraria o ano como está gravado enquanto ele está sendo editado.
+ * O card de identificação some nos ajustes do ano letivo, que têm barra própria (e o card mostraria
+ * o ano como está gravado enquanto ele é editado), e no cadastro de outro aluno, que ainda não existe.
  */
 val NavBackStackEntry.mostraIdentificacao: Boolean
-    get() = !destination.hasRoute<Routes.AnoLetivo>()
+    get() = !destination.hasRoute<Routes.AnoLetivo>() && !destination.hasRoute<Routes.NovoAluno>()
 
 /** As abas aparecem em toda tela que está dentro do grafo [Routes.Boletim]. */
 val NavBackStackEntry.mostraAbasDisciplinas: Boolean

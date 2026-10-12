@@ -1207,7 +1207,7 @@ internal fun nomeDoArredondamento(tipo: TipoArredondamento): String = when (tipo
     TipoArredondamento.BAIXO -> "Para baixo"
 }
 
-private fun detalheDoArredondamento(tipo: TipoArredondamento): String = when (tipo) {
+internal fun detalheDoArredondamento(tipo: TipoArredondamento): String = when (tipo) {
     TipoArredondamento.NENHUM -> "Fica com até 2 casas"
     TipoArredondamento.MEIO_PONTO -> "Vai para o 0,5 mais próximo"
     TipoArredondamento.INTEIRO -> "Vai para o inteiro mais próximo"

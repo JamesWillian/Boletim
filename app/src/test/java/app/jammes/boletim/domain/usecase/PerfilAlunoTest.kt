@@ -92,10 +92,10 @@ class PerfilAlunoTest {
 
     // Ano novo -------------------------------------------------------------------------------
 
-    @Test fun `ano novo comeca com 4 unidades de fevereiro a dezembro`() {
+    @Test fun `ano novo comeca com 4 bimestres de fevereiro a dezembro`() {
         val novo = anoLetivoNovo(alunoId = JAMES.id, ano = 2026, serie = "1º Ano EM")
 
-        assertEquals(TipoPeriodo.UNIDADE, novo.tipoPeriodo)
+        assertEquals(TipoPeriodo.BIMESTRE, novo.tipoPeriodo)
         assertEquals(4, novo.qtdPeriodos)
         assertEquals(listOf(1, 2, 3, 4), novo.periodo.map { it.periodo })
         assertEquals(LocalDate.of(2026, 2, 1), novo.periodo.first().dataInicio)
@@ -109,6 +109,17 @@ class PerfilAlunoTest {
 
         assertTrue(periodos.all { it.dataFim > it.dataInicio })
         assertTrue(periodos.zipWithNext().all { (antes, depois) -> depois.dataInicio > antes.dataFim })
+    }
+
+    @Test fun `trimestres, semestres e unidades tambem vao de fevereiro a meados de dezembro, sem sobrepor`() {
+        for ((tipo, quantidade) in listOf(TipoPeriodo.TRIMESTRE to 3, TipoPeriodo.SEMESTRE to 2, TipoPeriodo.UNIDADE to 4)) {
+            val periodos = periodosPadrao(2026, tipo)
+
+            assertEquals(quantidade, periodos.size)
+            assertEquals(LocalDate.of(2026, 2, 1), periodos.first().dataInicio)
+            assertEquals(LocalDate.of(2026, 12, 15), periodos.last().dataFim)
+            assertTrue(periodos.zipWithNext().all { (antes, depois) -> depois.dataInicio > antes.dataFim })
+        }
     }
 
     @Test fun `serie do ano novo vai sem os espacos, e em branco fica sem serie`() {

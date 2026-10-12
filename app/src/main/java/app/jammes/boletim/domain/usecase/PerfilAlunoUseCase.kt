@@ -4,8 +4,10 @@ import app.jammes.boletim.domain.model.AlunoComAno
 import app.jammes.boletim.domain.model.AlunoDomain
 import app.jammes.boletim.domain.model.AnoLetivoDomain
 import app.jammes.boletim.domain.model.Contexto
+import app.jammes.boletim.domain.model.MateriaDomain
 import app.jammes.boletim.domain.model.PerfilAluno
 import app.jammes.boletim.domain.model.PeriodoDomain
+import app.jammes.boletim.domain.model.RegraAvaliacaoDomain
 import app.jammes.boletim.domain.model.TipoPeriodo
 import app.jammes.boletim.domain.model.periodoAoAbrir
 import app.jammes.boletim.domain.repository.AlunoRepository
@@ -61,31 +63,49 @@ internal fun montarPerfil(
 }
 
 /**
- * Os períodos de um ano novo: 4 unidades, de fevereiro a meados de dezembro, com as férias de julho
- * no meio. É só o ponto de partida; os ajustes do ano abrem logo depois para conferir.
+ * Os períodos de um ano novo, de fevereiro a meados de dezembro: 4 bimestres (ou unidades), com as
+ * férias de julho entre o 2º e o 3º; 3 trimestres, com as férias dentro do 2º; ou 2 semestres,
+ * separados pelas férias. É só o ponto de partida; dá para conferir nos ajustes do ano.
  */
-internal fun periodosPadrao(ano: Int): List<PeriodoDomain> = listOf(
-    LocalDate.of(ano, 2, 1) to LocalDate.of(ano, 4, 30),
-    LocalDate.of(ano, 5, 1) to LocalDate.of(ano, 7, 15),
-    LocalDate.of(ano, 8, 1) to LocalDate.of(ano, 9, 30),
-    LocalDate.of(ano, 10, 1) to LocalDate.of(ano, 12, 15),
-).mapIndexed { i, (inicio, fim) ->
+internal fun periodosPadrao(ano: Int, tipo: TipoPeriodo = TipoPeriodo.BIMESTRE): List<PeriodoDomain> = when (tipo) {
+    TipoPeriodo.TRIMESTRE -> listOf(
+        LocalDate.of(ano, 2, 1) to LocalDate.of(ano, 5, 15),
+        LocalDate.of(ano, 5, 16) to LocalDate.of(ano, 8, 31),
+        LocalDate.of(ano, 9, 1) to LocalDate.of(ano, 12, 15),
+    )
+    TipoPeriodo.SEMESTRE -> listOf(
+        LocalDate.of(ano, 2, 1) to LocalDate.of(ano, 7, 15),
+        LocalDate.of(ano, 8, 1) to LocalDate.of(ano, 12, 15),
+    )
+    TipoPeriodo.BIMESTRE, TipoPeriodo.UNIDADE -> listOf(
+        LocalDate.of(ano, 2, 1) to LocalDate.of(ano, 4, 30),
+        LocalDate.of(ano, 5, 1) to LocalDate.of(ano, 7, 15),
+        LocalDate.of(ano, 8, 1) to LocalDate.of(ano, 9, 30),
+        LocalDate.of(ano, 10, 1) to LocalDate.of(ano, 12, 15),
+    )
+}.mapIndexed { i, (inicio, fim) ->
     // anoLetivoId 0: o ano ainda não foi gravado, e o id dele só sai do banco
     PeriodoDomain(anoLetivoId = 0, periodo = i + 1, dataInicio = inicio, dataFim = fim)
 }
 
-/** O ano letivo novo, ainda sem id, com os [periodosPadrao]. Série em branco fica sem série. */
-internal fun anoLetivoNovo(alunoId: Long, ano: Int, serie: String?): AnoLetivoDomain {
-    val periodos = periodosPadrao(ano)
-    return AnoLetivoDomain(
-        ano = ano,
-        serie = serie?.trim()?.ifEmpty { null },
-        periodo = periodos,
-        tipoPeriodo = TipoPeriodo.UNIDADE,
-        qtdPeriodos = periodos.size,
-        alunoId = alunoId,
-    )
-}
+/**
+ * O ano letivo novo, ainda sem id, com os [periodos]: os [periodosPadrao] do [tipo], se não vierem
+ * outros. Série em branco fica sem série.
+ */
+internal fun anoLetivoNovo(
+    alunoId: Long,
+    ano: Int,
+    serie: String?,
+    tipo: TipoPeriodo = TipoPeriodo.BIMESTRE,
+    periodos: List<PeriodoDomain> = periodosPadrao(ano, tipo),
+) = AnoLetivoDomain(
+    ano = ano,
+    serie = serie?.trim()?.ifEmpty { null },
+    periodo = periodos,
+    tipoPeriodo = tipo,
+    qtdPeriodos = periodos.size,
+    alunoId = alunoId,
+)
 
 // ---------------------------------------------------------------------------
 // Casos de uso
@@ -108,12 +128,41 @@ class ObterPerfilAluno @Inject constructor(
         )
 }
 
+/**
+ * Grava um ano letivo novo com os períodos dele, a regra do ano e uma disciplina para cada matéria,
+ * na ordem da lista. Não abre transação: quem chama já está dentro de uma, para o ano nunca ficar
+ * pela metade.
+ */
+class GravarAnoLetivoNovo @Inject constructor(
+    private val anoLetivoRepository: AnoLetivoRepository,
+    private val regraRepository: RegraAvaliacaoRepository,
+    private val disciplinaRepository: DisciplinaRepository,
+) {
+    /** Devolve o ano já com o id dele e os dos períodos. */
+    suspend operator fun invoke(
+        novo: AnoLetivoDomain,
+        materias: List<MateriaDomain>,
+        regra: RegraAvaliacaoDomain = REGRA_PADRAO,
+    ): AnoLetivoDomain {
+        val id = anoLetivoRepository.upsert(novo)
+        val periodos = novo.periodo.map { periodo ->
+            val doAno = periodo.copy(anoLetivoId = id)
+            doAno.copy(id = anoLetivoRepository.upsertPeriodo(doAno))
+        }
+        // A regra do ano gravada: o cálculo e os ajustes passam a ler ela
+        regraRepository.upsert(regra.copy(anoLetivoId = id, disciplinaId = null))
+        materias.forEachIndexed { i, materia ->
+            disciplinaRepository.upsert(novaDisciplina(materia, id, ordem = i + 1))
+        }
+        return novo.copy(id = id, periodo = periodos)
+    }
+}
+
 class CriarAnoLetivo @Inject constructor(
     private val transacao: Transacao,
     private val anoLetivoRepository: AnoLetivoRepository,
-    private val regraRepository: RegraAvaliacaoRepository,
     private val materiaRepository: MateriaRepository,
-    private val disciplinaRepository: DisciplinaRepository,
+    private val gravarAnoLetivoNovo: GravarAnoLetivoNovo,
     private val contextoRepository: ContextoRepository,
 ) {
     /**
@@ -129,21 +178,7 @@ class CriarAnoLetivo @Inject constructor(
             throw AnoLetivoRepetidoException(ano)
         }
         val materias = materiaRepository.observeMaterias().first().take(MATERIAS_DO_ANO_NOVO)
-        val novo = anoLetivoNovo(alunoId, ano, serie)
-
-        val criado = transacao {
-            val id = anoLetivoRepository.upsert(novo)
-            val periodos = novo.periodo.map { periodo ->
-                val doAno = periodo.copy(anoLetivoId = id)
-                doAno.copy(id = anoLetivoRepository.upsertPeriodo(doAno))
-            }
-            // A regra padrão gravada: o cálculo e os ajustes passam a ler a do próprio ano
-            regraRepository.upsert(REGRA_PADRAO.copy(anoLetivoId = id))
-            materias.forEachIndexed { i, materia ->
-                disciplinaRepository.upsert(novaDisciplina(materia, id, ordem = i + 1))
-            }
-            novo.copy(id = id, periodo = periodos)
-        }
+        val criado = transacao { gravarAnoLetivoNovo(anoLetivoNovo(alunoId, ano, serie), materias) }
 
         contextoRepository.selecionarAnoLetivo(criado.id, criado.periodo.periodoAoAbrir(hoje))
     }
