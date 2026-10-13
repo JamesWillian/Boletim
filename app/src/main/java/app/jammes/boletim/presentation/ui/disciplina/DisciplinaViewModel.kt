@@ -59,19 +59,21 @@ class DisciplinaViewModel @Inject constructor(
             )
 
     /**
-     * Ponto de partida do formulário: valendo 10, com peso 1 e a data de hoje. Fica no período
-     * que está na tela; no ano letivo inteiro, no período de hoje (o formulário deixa trocar).
+     * Ponto de partida do formulário: valendo 10, com peso 1 e a data de hoje. Se hoje cai fora
+     * dos períodos da tela (outro período, ou o ano já acabou), começa no dia mais perto dentro
+     * deles, como a falta. Fica no período que está na tela; no ano letivo inteiro, no da data.
      */
     fun novaAvaliacao(detalhe: DisciplinaDetalhe): AvaliacaoDomain {
         val hoje = LocalDate.now()
+        val dia = detalhe.periodosNoFiltro.intervalo()?.let { hoje.coerceIn(it) } ?: hoje
         return AvaliacaoDomain(
             disciplinaId = disciplinaId,
-            periodoId = detalhe.periodoId ?: detalhe.periodos.periodoDe(hoje)?.id,
+            periodoId = detalhe.periodoId ?: detalhe.periodos.periodoDe(dia)?.id,
             nome = "",
             nota = null,
             notaMaxima = 10.0,
             peso = 1.0,
-            data = hoje,
+            data = dia,
             criadoEm = Clock.System.now(),
         )
     }

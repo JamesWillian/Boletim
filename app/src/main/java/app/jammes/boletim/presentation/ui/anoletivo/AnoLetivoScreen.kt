@@ -780,7 +780,8 @@ private fun LinhaDeAjuste(
 
 /**
  * Uma linha que mostra um ajuste e abre o editor dele: o selo no [inicio], o nome, o [resumo] do
- * valor e a seta. Um [aviso] aparece embaixo, em vermelho.
+ * valor e a seta. Um [aviso] aparece embaixo, em vermelho. Com [fim], ele fica no lugar da seta
+ * (por exemplo, a seta para baixo de uma seção que abre ali mesmo).
  */
 @Composable
 internal fun LinhaQueAbre(
@@ -790,6 +791,7 @@ internal fun LinhaQueAbre(
     modifier: Modifier = Modifier,
     resumo: String? = null,
     aviso: String? = null,
+    fim: (@Composable () -> Unit)? = null,
     inicio: @Composable () -> Unit,
 ) {
     Row(
@@ -821,11 +823,15 @@ internal fun LinhaQueAbre(
                 )
             }
         }
-        Icon(
-            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
+        if (fim != null) {
+            fim()
+        } else {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
     }
 }
 

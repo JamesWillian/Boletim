@@ -150,13 +150,15 @@ private const val VARREDURA = 270f
 
 /**
  * Pílula de texto curto: com [cor], ganha uma bolinha e um fundo tingido (contagem de status);
- * sem ela, fica neutra (por exemplo, "Pendente").
+ * sem ela, fica neutra. Com [icone], ele entra no lugar da bolinha, na mesma cor (por exemplo, o
+ * relógio de "Agendada").
  */
 @Composable
 fun Pilula(
     texto: String,
     modifier: Modifier = Modifier,
     cor: Color? = null,
+    icone: ImageVector? = null,
 ) {
     Row(
         modifier = modifier
@@ -165,7 +167,15 @@ fun Pilula(
             .padding(horizontal = 10.dp, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (cor != null) {
+        if (icone != null) {
+            Icon(
+                imageVector = icone,
+                contentDescription = null, // o texto ao lado já diz
+                tint = cor ?: MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(14.dp),
+            )
+            Spacer(Modifier.width(6.dp))
+        } else if (cor != null) {
             Box(
                 Modifier
                     .size(8.dp)

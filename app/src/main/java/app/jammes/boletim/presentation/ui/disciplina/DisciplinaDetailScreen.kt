@@ -27,6 +27,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.Assignment
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.EventAvailable
+import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.SearchOff
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -64,11 +65,8 @@ import app.jammes.boletim.domain.model.DisciplinaDetalhe
 import app.jammes.boletim.domain.model.FaltaDomain
 import app.jammes.boletim.domain.model.PeriodoDomain
 import app.jammes.boletim.domain.model.RegraAvaliacaoDomain
-import app.jammes.boletim.domain.model.TipoArredondamento
 import app.jammes.boletim.domain.model.TipoAvaliacao
 import app.jammes.boletim.domain.model.TipoMedia
-import app.jammes.boletim.domain.usecase.arredondarMedia
-import app.jammes.boletim.domain.usecase.statusDaMedia
 import app.jammes.boletim.presentation.ui.anoletivo.nomeDoPeriodo
 import app.jammes.boletim.presentation.ui.boletim.MediaAnimada
 import app.jammes.boletim.presentation.ui.boletim.corDoStatus
@@ -86,8 +84,6 @@ import app.jammes.boletim.presentation.ui.theme.CoresDisciplina
 import app.jammes.boletim.presentation.ui.theme.Espacos
 import app.jammes.boletim.presentation.ui.theme.IconesDisciplina
 import kotlinx.coroutines.launch
-import java.math.RoundingMode
-import java.text.NumberFormat
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
@@ -218,9 +214,11 @@ fun DisciplinaDetailScreen(
                 if (avaliacaoAberta != null) {
                     AvaliacaoBottomSheet(
                         avaliacao = avaliacaoAberta,
-                        mostrarPeso = mostrarPeso,
+                        disciplina = detalhe.disciplina,
+                        regra = detalhe.regra,
+                        periodos = detalhe.periodos,
                         // Num período, a avaliação fica nele; no ano inteiro, o formulário pergunta
-                        periodos = if (detalhe.periodoId == null) detalhe.periodos else emptyList(),
+                        escolherPeriodo = detalhe.periodoId == null,
                         tipoPeriodo = detalhe.tipoPeriodo,
                         onDismiss = { avaliacaoAbertaId = null },
                         // Um toque curto confirma no dedo que a avaliação foi gravada ou apagada
@@ -594,8 +592,8 @@ private fun AvaliacaoItem(
         Spacer(Modifier.width(Espacos.l))
         val nota = avaliacao.nota
         if (nota == null) {
-            // Ainda não aconteceu (ou a nota não saiu): não entra na média
-            Pilula(texto = "Pendente")
+            // Ainda não aconteceu (ou a nota não saiu): não entra na média. Igual à do formulário.
+            Pilula(texto = "Agendada", cor = MaterialTheme.colorScheme.primary, icone = Icons.Outlined.Schedule)
         } else {
             Column(horizontalAlignment = Alignment.End) {
                 Text(
@@ -615,29 +613,12 @@ private fun AvaliacaoItem(
     }
 }
 
-/**
- * A nota na cor do status, como se fosse uma média: levada para a escala de 10 (a da média
- * mínima) e limpa como a tela limpa as médias. Na soma, cada nota é só uma parte do total e não
- * dá para comparar com a mínima, então fica neutra.
- */
+/** A nota na cor do status, pelo [statusDaNota]. Na soma não há status, então fica neutra. */
 @Composable
-private fun corDaNota(nota: Double, notaMaxima: Double, regra: RegraAvaliacaoDomain): Color =
-    if (regra.tipoMedia == TipoMedia.SOMA || notaMaxima <= 0.0) {
-        MaterialTheme.colorScheme.onSurface
-    } else {
-        corDoStatus(statusDaMedia(arredondarMedia(nota / notaMaxima * 10, TipoArredondamento.NENHUM), regra))
-    }
+internal fun corDaNota(nota: Double, notaMaxima: Double, regra: RegraAvaliacaoDomain): Color =
+    statusDaNota(nota, notaMaxima, regra)?.let { corDoStatus(it) } ?: MaterialTheme.colorScheme.onSurface
 
 private val FORMATO_DATA = DateTimeFormatter.ofPattern("dd/MM")
-
-// Peso, nota máxima e os campos do formulário: até 2 casas, sem zero sobrando (1 · 1,5 · 10)
-internal fun formatarNumero(valor: Double): String =
-    NumberFormat.getNumberInstance(Locale.forLanguageTag("pt-BR"))
-        .apply {
-            maximumFractionDigits = 2
-            roundingMode = RoundingMode.HALF_UP
-        }
-        .format(valor)
 
 @Composable
 private fun FaltaItem(
