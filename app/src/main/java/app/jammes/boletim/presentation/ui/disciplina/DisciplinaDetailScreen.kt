@@ -1,15 +1,21 @@
 package app.jammes.boletim.presentation.ui.disciplina
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -65,19 +71,24 @@ import app.jammes.boletim.domain.model.DisciplinaDetalhe
 import app.jammes.boletim.domain.model.FaltaDomain
 import app.jammes.boletim.domain.model.PeriodoDomain
 import app.jammes.boletim.domain.model.RegraAvaliacaoDomain
+import app.jammes.boletim.domain.model.Substituta
 import app.jammes.boletim.domain.model.TipoAvaliacao
 import app.jammes.boletim.domain.model.TipoMedia
+import app.jammes.boletim.domain.model.lancouAFinal
 import app.jammes.boletim.presentation.ui.anoletivo.nomeDoPeriodo
+import app.jammes.boletim.presentation.ui.boletim.LinhaDaOutraMedia
 import app.jammes.boletim.presentation.ui.boletim.MediaAnimada
 import app.jammes.boletim.presentation.ui.boletim.corDoStatus
 import app.jammes.boletim.presentation.ui.boletim.formatarMedia
 import app.jammes.boletim.presentation.ui.boletim.nomeDoFiltro
+import app.jammes.boletim.presentation.ui.boletim.outraMedia
 import app.jammes.boletim.presentation.ui.components.BarraDaMedia
 import app.jammes.boletim.presentation.ui.components.CarregandoDiscreto
 import app.jammes.boletim.presentation.ui.components.ChavesCompartilhadas
 import app.jammes.boletim.presentation.ui.components.EstadoVazio
 import app.jammes.boletim.presentation.ui.components.Pilula
 import app.jammes.boletim.presentation.ui.components.SeloDisciplina
+import app.jammes.boletim.presentation.ui.components.SeloDoTipo
 import app.jammes.boletim.presentation.ui.components.elementoCompartilhado
 import app.jammes.boletim.presentation.ui.components.limitesCompartilhados
 import app.jammes.boletim.presentation.ui.theme.CoresDisciplina
@@ -89,6 +100,7 @@ import java.util.Locale
 
 @Composable
 fun DisciplinaDetailScreen(
+    onEditar: (disciplinaId: Long) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: DisciplinaViewModel = hiltViewModel()
 ) {
@@ -102,6 +114,8 @@ fun DisciplinaDetailScreen(
     // Guarda só o id, que sobrevive a girar a tela; a avaliação ou a falta em si vem do state.
     var avaliacaoAbertaId by rememberSaveable { mutableStateOf<Long?>(null) }
     var faltaAbertaId by rememberSaveable { mutableStateOf<Long?>(null) }
+    // A confirmação aberta de finalizar ou reabrir; o que ela diz vem do state
+    var dialogo by rememberSaveable { mutableStateOf<DialogoDoFechamento?>(null) }
 
     val haptico = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
@@ -114,33 +128,41 @@ fun DisciplinaDetailScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         floatingActionButton = {
             // Sem a disciplina carregada não há onde lançar nada
-            if (state is DisciplinaUiState.Sucesso) {
-                ExtendedFloatingActionButton(
-                    // Lança o que a aba aberta lista
-                    onClick = {
-                        when (aba) {
-                            AbaDoDetalhe.AVALIACOES -> avaliacaoAbertaId = NOVA
-                            AbaDoDetalhe.FALTAS -> faltaAbertaId = NOVA
-                        }
-                    },
-                    expanded = fabExpandido,
-                    icon = {
-                        // O FAB do Material esconde o texto do leitor de tela: quem diz o que o
-                        // botão faz é a descrição do ícone, aberto ou encolhido
-                        Icon(Icons.Filled.Add, contentDescription = aba.lancar)
-                    },
-                    text = {
-                        // Ao trocar de aba o texto troca num fade, e o botão estica ou encolhe até
-                        // a largura nova em vez de pular
-                        AnimatedContent(
-                            targetState = aba,
-                            transitionSpec = { fadeIn() togetherWith fadeOut() },
-                            label = "textoDoFab",
-                        ) { Text(it.lancar) }
-                    },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                )
+            val carregada = state as? DisciplinaUiState.Sucesso
+            if (carregada != null) {
+                // Finalizada, não se lança mais nada: o botão sai encolhendo, e volta se ela for reaberta
+                AnimatedVisibility(
+                    visible = !carregada.detalhe.finalizada,
+                    enter = scaleIn() + fadeIn(),
+                    exit = scaleOut() + fadeOut(),
+                ) {
+                    ExtendedFloatingActionButton(
+                        // Lança o que a aba aberta lista
+                        onClick = {
+                            when (aba) {
+                                AbaDoDetalhe.AVALIACOES -> avaliacaoAbertaId = NOVA
+                                AbaDoDetalhe.FALTAS -> faltaAbertaId = NOVA
+                            }
+                        },
+                        expanded = fabExpandido,
+                        icon = {
+                            // O FAB do Material esconde o texto do leitor de tela: quem diz o que o
+                            // botão faz é a descrição do ícone, aberto ou encolhido
+                            Icon(Icons.Filled.Add, contentDescription = aba.lancar)
+                        },
+                        text = {
+                            // Ao trocar de aba o texto troca num fade, e o botão estica ou encolhe até
+                            // a largura nova em vez de pular
+                            AnimatedContent(
+                                targetState = aba,
+                                transitionSpec = { fadeIn() togetherWith fadeOut() },
+                                label = "textoDoFab",
+                            ) { Text(it.lancar) }
+                        },
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary,
+                    )
+                }
             }
         },
     ) { paddingValues ->
@@ -175,7 +197,21 @@ fun DisciplinaDetailScreen(
                     ),
                 ) {
                     item(key = "resumo") {
-                        ResumoDisciplina(detalhe = detalhe, modifier = Modifier.padding(bottom = Espacos.l))
+                        Column(Modifier.padding(bottom = Espacos.l)) {
+                            ResumoDisciplina(detalhe = detalhe)
+                            // Logo embaixo da média: fechar o ano da disciplina (ou reabrir) e editá-la
+                            AcoesDaDisciplina(
+                                finalizada = detalhe.finalizada,
+                                // Sem nota em nenhum período não há o que fechar: o botão explica por quê
+                                onFinalizar = {
+                                    dialogo = if (detalhe.fechamento == null) DialogoDoFechamento.SEM_NOTA
+                                    else DialogoDoFechamento.FINALIZAR
+                                },
+                                onReabrir = { dialogo = DialogoDoFechamento.REABRIR },
+                                onEditar = { onEditar(detalhe.disciplina.id) },
+                                modifier = Modifier.padding(top = Espacos.m),
+                            )
+                        }
                     }
 
                     // As abas grudam no topo quando a lista rola: dá para trocar de lista de qualquer ponto
@@ -193,15 +229,16 @@ fun DisciplinaDetailScreen(
                     }
                     item(key = "espaco") { Spacer(Modifier.height(Espacos.m)) }
 
+                    // Finalizada, as listas são só para ler: nada abre o formulário
                     when (aba) {
                         AbaDoDetalhe.AVALIACOES -> listaDeAvaliacoes(
                             detalhe = detalhe,
                             mostrarPeso = mostrarPeso,
-                            onAbrir = { avaliacaoAbertaId = it },
+                            onAbrir = if (detalhe.finalizada) null else ({ avaliacaoAbertaId = it }),
                         )
                         AbaDoDetalhe.FALTAS -> listaDeFaltas(
                             detalhe = detalhe,
-                            onAbrir = { faltaAbertaId = it },
+                            onAbrir = if (detalhe.finalizada) null else ({ faltaAbertaId = it }),
                         )
                     }
                 }
@@ -217,6 +254,9 @@ fun DisciplinaDetailScreen(
                         disciplina = detalhe.disciplina,
                         regra = detalhe.regra,
                         periodos = detalhe.periodos,
+                        // Para saber se já tem recuperação no período ou final no ano: num período, a
+                        // lista tem só as dele, e a final nem aparece como opção
+                        lancadas = detalhe.avaliacoes,
                         // Num período, a avaliação fica nele; no ano inteiro, o formulário pergunta
                         escolherPeriodo = detalhe.periodoId == null,
                         tipoPeriodo = detalhe.tipoPeriodo,
@@ -225,6 +265,11 @@ fun DisciplinaDetailScreen(
                         onSalvar = { avaliacao ->
                             haptico.performHapticFeedback(HapticFeedbackType.Confirm)
                             viewModel.salvar(avaliacao)
+                            // A final ganhou nota: talvez o ano da disciplina tenha acabado. A pergunta
+                            // espera o formulário descer; sem nota em nenhum período, não há o que fechar
+                            if (avaliacao.lancouAFinal(antes = avaliacaoAberta) && detalhe.fechamento != null) {
+                                dialogo = DialogoDoFechamento.FINALIZAR_DEPOIS_DA_FINAL
+                            }
                         },
                         onExcluir = {
                             haptico.performHapticFeedback(HapticFeedbackType.Confirm)
@@ -255,6 +300,45 @@ fun DisciplinaDetailScreen(
                             viewModel.excluir(faltaAberta)
                         },
                     )
+                }
+
+                // Só com os formulários fechados: a pergunta que vem depois da final espera o sheet
+                // terminar de descer, e então já mostra a média com a nota dela
+                if (avaliacaoAbertaId == null && faltaAbertaId == null) {
+                    val fecharDialogo = { dialogo = null }
+                    when (dialogo) {
+                        DialogoDoFechamento.FINALIZAR, DialogoDoFechamento.FINALIZAR_DEPOIS_DA_FINAL -> {
+                            val fechamento = detalhe.fechamento
+                            if (fechamento == null) {
+                                AvisoSemNota(detalhe.tipoPeriodo, onFechar = fecharDialogo)
+                            } else {
+                                ConfirmarFinalizacao(
+                                    disciplina = detalhe.disciplina.nome,
+                                    fechamento = fechamento,
+                                    tipoPeriodo = detalhe.tipoPeriodo,
+                                    depoisDaFinal = dialogo == DialogoDoFechamento.FINALIZAR_DEPOIS_DA_FINAL,
+                                    onFinalizar = {
+                                        haptico.performHapticFeedback(HapticFeedbackType.Confirm)
+                                        viewModel.finalizar(detalhe)
+                                        dialogo = null
+                                    },
+                                    onCancelar = fecharDialogo,
+                                )
+                            }
+                        }
+                        DialogoDoFechamento.SEM_NOTA -> AvisoSemNota(detalhe.tipoPeriodo, onFechar = fecharDialogo)
+                        DialogoDoFechamento.REABRIR -> ConfirmarReabertura(
+                            disciplina = detalhe.disciplina.nome,
+                            situacao = detalhe.situacao,
+                            onReabrir = {
+                                haptico.performHapticFeedback(HapticFeedbackType.Confirm)
+                                viewModel.reabrir()
+                                dialogo = null
+                            },
+                            onCancelar = fecharDialogo,
+                        )
+                        null -> Unit
+                    }
                 }
             }
         }
@@ -301,20 +385,28 @@ private fun AbasDoDetalhe(
     }
 }
 
-/** A aba das avaliações: um card por período, ou o convite para lançar a primeira. */
+/**
+ * A aba das avaliações: um card por período e, no ano letivo inteiro, o da final por último, ou o
+ * convite para lançar a primeira.
+ */
 private fun LazyListScope.listaDeAvaliacoes(
     detalhe: DisciplinaDetalhe,
     mostrarPeso: Boolean,
-    onAbrir: (avaliacaoId: Long) -> Unit, // NOVA lança uma
+    onAbrir: ((avaliacaoId: Long) -> Unit)?, // NOVA lança uma; null: finalizada, nada abre
 ) {
-    if (detalhe.avaliacoesPorPeriodo.isEmpty()) {
+    if (detalhe.avaliacoes.isEmpty()) {
         item(key = "avaliacoes-vazio") {
             EstadoVazio(
                 icone = Icons.AutoMirrored.Outlined.Assignment,
                 titulo = "Nenhuma avaliação neste ${nomeDoFiltro(detalhe.periodoId)}",
-                mensagem = "Lance as provas, trabalhos e atividades para acompanhar a média.",
+                mensagem = if (onAbrir != null) "Lance as provas, trabalhos e atividades para acompanhar a média."
+                else "A disciplina está finalizada. Reabra para lançar avaliações.",
                 modifier = Modifier.animateItem(),
-                acao = { BotaoLancar(texto = "Lançar avaliação", onClick = { onAbrir(NOVA) }) },
+                acao = if (onAbrir != null) {
+                    { BotaoLancar(texto = "Lançar avaliação", onClick = { onAbrir(NOVA) }) }
+                } else {
+                    null
+                },
             )
         }
     } else {
@@ -329,7 +421,24 @@ private fun LazyListScope.listaDeAvaliacoes(
                         avaliacao = avaliacao,
                         regra = detalhe.regra,
                         mostrarPeso = mostrarPeso,
-                        onClick = { onAbrir(avaliacao.id) },
+                        onClick = onAbrir?.let { abrir -> { abrir(avaliacao.id) } },
+                    )
+                }
+            }
+        }
+        // A final é do ano, não de um período: tem o grupo dela, depois de todos
+        if (detalhe.finais.isNotEmpty()) {
+            item(key = "avaliacoes-final") {
+                GrupoDoPeriodo(
+                    titulo = "FINAL",
+                    itens = detalhe.finais,
+                    modifier = Modifier.animateItem(),
+                ) { avaliacao ->
+                    AvaliacaoItem(
+                        avaliacao = avaliacao,
+                        regra = detalhe.regra,
+                        mostrarPeso = mostrarPeso,
+                        onClick = onAbrir?.let { abrir -> { abrir(avaliacao.id) } },
                     )
                 }
             }
@@ -340,16 +449,21 @@ private fun LazyListScope.listaDeAvaliacoes(
 /** A aba das faltas: os dias de falta agrupados por período, do mesmo jeito que as avaliações. */
 private fun LazyListScope.listaDeFaltas(
     detalhe: DisciplinaDetalhe,
-    onAbrir: (faltaId: Long) -> Unit, // NOVA lança uma
+    onAbrir: ((faltaId: Long) -> Unit)?, // NOVA lança uma; null: finalizada, nada abre
 ) {
     if (detalhe.faltasPorPeriodo.isEmpty()) {
         item(key = "faltas-vazio") {
             EstadoVazio(
                 icone = Icons.Outlined.EventAvailable,
                 titulo = "Nenhuma falta neste ${nomeDoFiltro(detalhe.periodoId)}",
-                mensagem = "Quando faltar, lance o dia aqui para acompanhar a frequência.",
+                mensagem = if (onAbrir != null) "Quando faltar, lance o dia aqui para acompanhar a frequência."
+                else "A disciplina está finalizada. Reabra para lançar faltas.",
                 modifier = Modifier.animateItem(),
-                acao = { BotaoLancar(texto = "Lançar falta", onClick = { onAbrir(NOVA) }) },
+                acao = if (onAbrir != null) {
+                    { BotaoLancar(texto = "Lançar falta", onClick = { onAbrir(NOVA) }) }
+                } else {
+                    null
+                },
             )
         }
     } else {
@@ -360,7 +474,7 @@ private fun LazyListScope.listaDeFaltas(
                     itens = grupo.faltas,
                     modifier = Modifier.animateItem(),
                 ) { falta ->
-                    FaltaItem(falta = falta, onClick = { onAbrir(falta.id) })
+                    FaltaItem(falta = falta, onClick = onAbrir?.let { abrir -> { abrir(falta.id) } })
                 }
             }
         }
@@ -492,7 +606,7 @@ private fun ResumoDisciplina(
             // em duas linhas (fonte grande).
             Row(verticalAlignment = Alignment.Bottom) {
                 Text(
-                    text = "Média do ${nomeDoFiltro(detalhe.periodoId)}",
+                    text = tituloDaMedia(detalhe.periodoId, detalhe.substituta),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f),
@@ -506,14 +620,30 @@ private fun ResumoDisciplina(
                 )
             }
             Row {
-                // Mesma formatação e mesma cor do card no Boletim, para as duas telas não divergirem
-                MediaAnimada(detalhe.media, Modifier.weight(1f)) { media ->
-                    Text(
-                        text = formatarMedia(media),
-                        style = MaterialTheme.typography.displaySmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = corStatus,
-                    )
+                // Finalizada, a situação vem na frente da média. Se não couber na linha (fonte
+                // grande), ela desce para baixo do número em vez de apertar
+                FlowRow(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(Espacos.s),
+                    itemVerticalAlignment = Alignment.CenterVertically,
+                ) {
+                    // Mesma formatação e mesma cor do card no Boletim, para as duas telas não divergirem
+                    MediaAnimada(detalhe.media) { media ->
+                        Text(
+                            text = formatarMedia(media),
+                            style = MaterialTheme.typography.displaySmall,
+                            fontWeight = FontWeight.SemiBold,
+                            color = corStatus,
+                        )
+                    }
+                    // Entra e sai abrindo espaço, sem pular
+                    AnimatedContent(
+                        targetState = detalhe.situacao,
+                        transitionSpec = { fadeIn() togetherWith fadeOut() using SizeTransform(clip = false) },
+                        label = "situacao",
+                    ) { situacao ->
+                        if (situacao != null) SeloDaSituacao(situacao)
+                    }
                 }
                 Spacer(Modifier.width(Espacos.l))
                 Text(
@@ -526,6 +656,10 @@ private fun ResumoDisciplina(
                         MaterialTheme.colorScheme.onSurface
                     },
                 )
+            }
+            // Com recuperação ou final lançada, a média que ficou de fora vem logo embaixo, menor
+            outraMedia(detalhe.mediaRegular, detalhe.substituta, detalhe.periodoId)?.let { (rotulo, media) ->
+                LinhaDaOutraMedia(rotulo = rotulo, media = media)
             }
             Spacer(Modifier.height(Espacos.s))
             Row {
@@ -557,22 +691,26 @@ private fun AvaliacaoItem(
     avaliacao: AvaliacaoDomain,
     regra: RegraAvaliacaoDomain,
     mostrarPeso: Boolean,
-    onClick: () -> Unit,
+    onClick: (() -> Unit)?, // null: a disciplina está finalizada, e a avaliação não abre
     modifier: Modifier = Modifier,
 ) {
+    // O tipo vai no selo antes do nome (R ou F); o peso só na normal, que é a única que ele muda
     val descricao = listOfNotNull(
         avaliacao.data?.format(FORMATO_DATA),
-        avaliacao.tipo.takeIf { it != TipoAvaliacao.NORMAL }?.displayname,
-        if (mostrarPeso) "Peso ${formatarNumero(avaliacao.peso)}" else null,
+        if (mostrarPeso && avaliacao.tipo == TipoAvaliacao.NORMAL) "Peso ${formatarNumero(avaliacao.peso)}" else null,
     ).joinToString(" · ")
 
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClickLabel = "Editar avaliação", onClick = onClick)
+            .then(if (onClick != null) Modifier.clickable(onClickLabel = "Editar avaliação", onClick = onClick) else Modifier)
             .padding(horizontal = Espacos.l, vertical = Espacos.m),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (avaliacao.tipo != TipoAvaliacao.NORMAL) {
+            SeloDoTipo(avaliacao.tipo)
+            Spacer(Modifier.width(Espacos.m))
+        }
         Column(Modifier.weight(1f)) {
             Text(
                 text = avaliacao.nome,
@@ -601,7 +739,7 @@ private fun AvaliacaoItem(
                     text = formatarMedia(nota),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
-                    color = corDaNota(nota, avaliacao.notaMaxima, regra),
+                    color = corDaNota(nota, avaliacao.notaMaxima, regra, avaliacao.tipo),
                 )
                 Text(
                     text = "de ${formatarNumero(avaliacao.notaMaxima)}",
@@ -613,23 +751,37 @@ private fun AvaliacaoItem(
     }
 }
 
-/** A nota na cor do status, pelo [statusDaNota]. Na soma não há status, então fica neutra. */
+/** A nota na cor do status, pelo [statusDaNota]. Sem status (a normal na soma), fica neutra. */
 @Composable
-internal fun corDaNota(nota: Double, notaMaxima: Double, regra: RegraAvaliacaoDomain): Color =
-    statusDaNota(nota, notaMaxima, regra)?.let { corDoStatus(it) } ?: MaterialTheme.colorScheme.onSurface
+internal fun corDaNota(
+    nota: Double,
+    notaMaxima: Double,
+    regra: RegraAvaliacaoDomain,
+    tipo: TipoAvaliacao = TipoAvaliacao.NORMAL,
+): Color = statusDaNota(nota, notaMaxima, regra, tipo)?.let { corDoStatus(it) } ?: MaterialTheme.colorScheme.onSurface
+
+/**
+ * O que está em cima do número do resumo: "Média do período" (ou "do ano letivo") e, quando a
+ * recuperação ou a final foi maior e tomou o lugar, "Média com recuperação" ou "Média com a final".
+ */
+private fun tituloDaMedia(periodoId: Long?, substituta: Substituta?): String = when {
+    substituta == null || !substituta.substituiu -> "Média do ${nomeDoFiltro(periodoId)}"
+    substituta.tipo == TipoAvaliacao.FINAL -> "Média com a final"
+    else -> "Média com recuperação"
+}
 
 private val FORMATO_DATA = DateTimeFormatter.ofPattern("dd/MM")
 
 @Composable
 private fun FaltaItem(
     falta: FaltaDomain,
-    onClick: () -> Unit,
+    onClick: (() -> Unit)?, // null: a disciplina está finalizada, e a falta não abre
     modifier: Modifier = Modifier,
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClickLabel = "Editar falta", onClick = onClick)
+            .then(if (onClick != null) Modifier.clickable(onClickLabel = "Editar falta", onClick = onClick) else Modifier)
             .padding(horizontal = Espacos.l, vertical = Espacos.m),
         verticalAlignment = Alignment.CenterVertically,
     ) {

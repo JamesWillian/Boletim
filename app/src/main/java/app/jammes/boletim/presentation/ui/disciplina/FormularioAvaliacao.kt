@@ -8,6 +8,7 @@ import app.jammes.boletim.domain.model.TipoArredondamento
 import app.jammes.boletim.domain.model.TipoAvaliacao
 import app.jammes.boletim.domain.model.TipoMedia
 import app.jammes.boletim.domain.model.TipoPeriodo
+import app.jammes.boletim.domain.model.intervalo
 import app.jammes.boletim.domain.model.periodoDe
 import app.jammes.boletim.domain.usecase.arredondarMedia
 import app.jammes.boletim.domain.usecase.notaNaEscalaDe10
@@ -31,6 +32,9 @@ import java.util.Locale
  * Sem nota, a avaliação fica agendada: ainda não aconteceu, ou a nota não saiu, e fica fora da
  * média. Uma avaliação depois de hoje só pode ficar agendada. A data é obrigatória; só fica vazia
  * numa avaliação gravada antes disso, e aí precisa ser escolhida para gravar de novo.
+ *
+ * A recuperação é de um período e a final é do ano: a final grava sem período, e o [periodoId] do
+ * formulário só fica guardado para o caso de ela voltar a ser normal ou recuperação.
  */
 data class FormularioAvaliacao(
     val nome: String,
@@ -80,20 +84,28 @@ data class FormularioAvaliacao(
     /**
      * O que impede de gravar, ou null quando dá para gravar. Vem o primeiro na ordem da tela:
      * nome, nota, data e, por último, o que fica em "Mais opções". O peso só conta [comPeso].
+     * [vagaOcupada]: já existe outra recuperação no período, ou outra final no ano (quem sabe é a
+     * tela, que tem as avaliações da disciplina).
      */
-    fun problema(comPeso: Boolean, hoje: LocalDate): Problema? = when {
+    fun problema(comPeso: Boolean, hoje: LocalDate, vagaOcupada: Boolean = false): Problema? = when {
         nome.isBlank() -> Problema.SEM_NOME
         notaInvalida -> Problema.NOTA_FORA_DA_ESCALA
         !agendada && noFuturo(hoje) -> Problema.NOTA_NO_FUTURO
         data == null -> Problema.SEM_DATA
+        vagaOcupada -> Problema.VAGA_OCUPADA
         notaMaximaValor == null -> Problema.NOTA_MAXIMA
         comPeso && pesoValor == null -> Problema.PESO
         else -> null
     }
 
     /** A avaliação pronta para gravar, a partir da [original], ou null enquanto houver um [problema]. */
-    fun paraGravar(original: AvaliacaoDomain, comPeso: Boolean, hoje: LocalDate): AvaliacaoDomain? {
-        if (problema(comPeso, hoje) != null) return null
+    fun paraGravar(
+        original: AvaliacaoDomain,
+        comPeso: Boolean,
+        hoje: LocalDate,
+        vagaOcupada: Boolean = false,
+    ): AvaliacaoDomain? {
+        if (problema(comPeso, hoje, vagaOcupada) != null) return null
         return original.copy(
             nome = nome.trim(),
             nota = notaValor, // vazia fica null
@@ -101,7 +113,8 @@ data class FormularioAvaliacao(
             // Escondido, o peso fica como estava: fora da média ponderada ele não muda a conta
             peso = if (comPeso) pesoValor ?: return null else original.peso,
             tipo = tipo,
-            periodoId = periodoId,
+            // A final é do ano inteiro: não fica em nenhum período
+            periodoId = if (tipo == TipoAvaliacao.FINAL) null else periodoId,
             data = data,
         )
     }
@@ -129,10 +142,31 @@ data class FormularioAvaliacao(
         copy(periodoId = periodo.id, data = data?.coerceIn(periodo.dataInicio..periodo.dataFim))
 
     /**
-     * O formulário da próxima avaliação, depois de gravar esta com "Outra": o que costuma se
-     * repetir numa sequência (data, período, tipo, valor e peso) fica; o nome e a nota esvaziam.
+     * Outro tipo. A final pode ficar depois do último período (ver [intervaloDaFinal]); deixando de
+     * ser final, a data volta para dentro dos [periodos] e o período passa a ser o dela, como em
+     * [comData]. Sem [periodos] (num período, onde a final não aparece), só troca o tipo.
      */
-    fun paraAProxima(): FormularioAvaliacao = copy(nome = "", nota = "")
+    fun comTipo(novo: TipoAvaliacao, periodos: List<PeriodoDomain>): FormularioAvaliacao {
+        val saindoDaFinal = tipo == TipoAvaliacao.FINAL && novo != TipoAvaliacao.FINAL
+        val intervalo = periodos.intervalo()
+        val dia = data
+        return if (saindoDaFinal && dia != null && intervalo != null) {
+            copy(tipo = novo).comData(dia.coerceIn(intervalo), periodos)
+        } else {
+            copy(tipo = novo)
+        }
+    }
+
+    /**
+     * O formulário da próxima avaliação, depois de gravar esta com "Outra": o que costuma se
+     * repetir numa sequência (data, período, valor e peso) fica; o nome e a nota esvaziam. O tipo
+     * também fica, menos depois de uma recuperação ou de uma final: só cabe uma, então a próxima
+     * volta a ser normal (com os [periodos], como em [comTipo]).
+     */
+    fun paraAProxima(periodos: List<PeriodoDomain>): FormularioAvaliacao {
+        val limpo = copy(nome = "", nota = "")
+        return if (tipo == TipoAvaliacao.NORMAL) limpo else limpo.comTipo(TipoAvaliacao.NORMAL, periodos)
+    }
 
     /** O peso um passo acima ([sentido] 1) ou abaixo (-1), pelo − e +; sem peso válido, parte do 1. */
     fun comPassoNoPeso(sentido: Int): FormularioAvaliacao =
@@ -159,7 +193,9 @@ data class FormularioAvaliacao(
     ).joinToString(" · ")
 
     /** O que está errado em "Mais opções", para a linha avisar com a seção fechada; null quando nada. */
-    fun avisoDasOpcoes(comPeso: Boolean): String? = when {
+    fun avisoDasOpcoes(comPeso: Boolean, vagaOcupada: Boolean = false): String? = when {
+        vagaOcupada && tipo == TipoAvaliacao.FINAL -> "Já tem uma final no ano"
+        vagaOcupada -> "Já tem uma recuperação no período"
         notaMaximaValor == null -> "Confira a nota máxima"
         comPeso && pesoValor == null -> "Confira o peso"
         else -> null
@@ -170,6 +206,7 @@ data class FormularioAvaliacao(
         NOTA_FORA_DA_ESCALA,
         NOTA_NO_FUTURO,
         SEM_DATA,
+        VAGA_OCUPADA, // já tem outra recuperação no período, ou outra final no ano
         NOTA_MAXIMA,
         PESO,
     }
@@ -208,6 +245,16 @@ internal const val PASSO_DO_PESO = 0.5
 internal val FAIXA_DO_PESO = 0.5..10.0
 
 /**
+ * Os dias em que a final pode ser marcada: do começo do ano letivo até o fim do ano no calendário,
+ * porque ela costuma vir depois do último período (num 4º bimestre que acaba em 30 de novembro, a
+ * final de dezembro tem que caber). null sem períodos.
+ */
+internal fun intervaloDaFinal(periodos: List<PeriodoDomain>): ClosedRange<LocalDate>? {
+    val ano = periodos.intervalo() ?: return null
+    return ano.start..maxOf(ano.endInclusive, LocalDate.of(ano.endInclusive.year, 12, 31))
+}
+
+/**
  * Os dias do [inicio] ao [fim], os dois inclusive; um lado null não tem limite. Pode não caber
  * nenhum (início depois do fim): um período que ainda não começou, com a nota já digitada.
  */
@@ -233,7 +280,8 @@ internal data class AvisoDaNota(val texto: String, val erro: Boolean)
 
 /**
  * O que a nota faz na conta, ou o que está errado com ela. Na [soma] a nota entra na soma, não na
- * média. [doPeriodo] é o período com o artigo ("do 4º Bimestre"), ou null sem período.
+ * média. [doPeriodo] é o período com o artigo ("do 4º Bimestre"), ou null sem período. A
+ * recuperação e a final não entram na conta: tomam o lugar dela, se forem maiores.
  */
 internal fun avisoDaNota(
     formulario: FormularioAvaliacao,
@@ -258,6 +306,10 @@ internal fun avisoDaNota(
             erro = false,
         )
         formulario.agendada -> AvisoDaNota("Fica fora da $conta até você lançar a nota.", erro = false)
+        formulario.tipo == TipoAvaliacao.FINAL ->
+            AvisoDaNota("Substitui a $conta do ano letivo, se for maior.", erro = false)
+        formulario.tipo == TipoAvaliacao.RECUPERACAO && doPeriodo != null ->
+            AvisoDaNota("Substitui a $conta $doPeriodo, se for maior.", erro = false)
         doPeriodo != null -> AvisoDaNota("Entra na $conta $doPeriodo.", erro = false)
         else -> AvisoDaNota("Entra na $conta.", erro = false)
     }
@@ -267,13 +319,34 @@ internal fun avisoDaNota(
 internal fun doPeriodo(periodo: PeriodoDomain, tipo: TipoPeriodo): String =
     "${if (tipo.feminino) "da" else "do"} ${nomeDoPeriodo(periodo.periodo, tipo)}"
 
+/** "no 4º Bimestre", "na 1ª Unidade". */
+internal fun noPeriodo(periodo: PeriodoDomain, tipo: TipoPeriodo): String =
+    "${if (tipo.feminino) "na" else "no"} ${nomeDoPeriodo(periodo.periodo, tipo)}"
+
+/**
+ * Por que o tipo escolhido não cabe: a [ocupante] já é a recuperação do período ([noPeriodo], como
+ * "no 4º Bimestre") ou a final do ano. Diz o nome dela, para achar na lista.
+ */
+internal fun textoDaVagaOcupada(ocupante: AvaliacaoDomain, noPeriodo: String?): String =
+    if (ocupante.tipo == TipoAvaliacao.FINAL) {
+        "Já tem uma final no ano: “${ocupante.nome}”."
+    } else {
+        "Já tem uma recuperação ${noPeriodo ?: "neste período"}: “${ocupante.nome}”."
+    }
+
 /**
  * A situação de uma nota como se fosse uma média: levada para a escala de 10 pela mesma conta do
  * cálculo ([notaNaEscalaDe10]), então a cor da nota e a média nunca discordam, e limpa como a tela
- * limpa as médias. Na soma, cada nota é só uma parte do total e não dá para comparar com a mínima: null.
+ * limpa as médias. Na soma, uma nota normal é só uma parte do total e não dá para comparar com a
+ * mínima: null. A recuperação e a final valem a média inteira, então têm status mesmo na soma.
  */
-internal fun statusDaNota(nota: Double, notaMaxima: Double, regra: RegraAvaliacaoDomain): StatusDisciplina? =
-    if (regra.tipoMedia == TipoMedia.SOMA) {
+internal fun statusDaNota(
+    nota: Double,
+    notaMaxima: Double,
+    regra: RegraAvaliacaoDomain,
+    tipo: TipoAvaliacao = TipoAvaliacao.NORMAL,
+): StatusDisciplina? =
+    if (regra.tipoMedia == TipoMedia.SOMA && tipo == TipoAvaliacao.NORMAL) {
         null
     } else {
         notaNaEscalaDe10(nota, notaMaxima)

@@ -29,8 +29,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import app.jammes.boletim.domain.model.TipoAvaliacao
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -63,6 +67,41 @@ fun SeloDisciplina(
             contentDescription = null, // o nome da disciplina está sempre ao lado
             tint = cor,
             modifier = Modifier.size(tamanho * 0.55f),
+        )
+    }
+}
+
+/**
+ * A letra que marca a recuperação (R) e a final (F) na lista de avaliações, num quadrado arredondado
+ * como o [SeloDisciplina]: a recuperação no dourado da marca, a final no azul. A normal não tem selo.
+ * O leitor de tela diz o tipo inteiro, não a letra.
+ */
+@Composable
+fun SeloDoTipo(
+    tipo: TipoAvaliacao,
+    modifier: Modifier = Modifier,
+    tamanho: Dp = 28.dp,
+) {
+    val (letra, fundo, cor) = when (tipo) {
+        TipoAvaliacao.NORMAL -> return
+        TipoAvaliacao.RECUPERACAO ->
+            Triple("R", MaterialTheme.colorScheme.tertiaryContainer, MaterialTheme.colorScheme.onTertiaryContainer)
+        TipoAvaliacao.FINAL ->
+            Triple("F", MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
+    }
+    Box(
+        modifier = modifier
+            .size(tamanho)
+            .clip(RoundedCornerShape(tamanho * 0.3f))
+            .background(fundo)
+            .clearAndSetSemantics { contentDescription = tipo.displayname },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = letra,
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.Bold,
+            color = cor,
         )
     }
 }

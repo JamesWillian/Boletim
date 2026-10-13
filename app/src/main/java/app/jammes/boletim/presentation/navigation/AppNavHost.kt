@@ -71,7 +71,10 @@ fun AppNavHost(
                     }
                     composable<Routes.Boletim.Disciplina> {
                         CompositionLocalProvider(LocalEscopoDaTela provides this) {
-                            DisciplinaDetailScreen() // o id chega no ViewModel pelo SavedStateHandle
+                            DisciplinaDetailScreen( // o id chega no ViewModel pelo SavedStateHandle
+                                // A tela de edição da disciplina chega na próxima fase: é daqui que ela abre
+                                onEditar = {},
+                            )
                         }
                     }
                 }

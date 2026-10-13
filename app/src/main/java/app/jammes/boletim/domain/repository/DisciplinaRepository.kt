@@ -12,6 +12,8 @@ interface DisciplinaRepository {
     fun observeById(id: Long): Flow<DisciplinaDomain?>
     fun observeByAnoLetivo(anoLetivoId: Long): Flow<List<DisciplinaDomain>>
     fun observeBoletim(anoLetivoId: Long): Flow<List<DisciplinaDados>>
+    /** false finaliza a disciplina (ela fica no boletim, sem novos lançamentos); true reabre. */
+    suspend fun setAtiva(disciplinaId: Long, ativa: Boolean)
     /** id da disciplina → o que já foi lançado nela, para cada disciplina do ano. */
     suspend fun countLancamentosByDisciplina(anoLetivoId: Long): Map<Long, Lancamentos>
 }

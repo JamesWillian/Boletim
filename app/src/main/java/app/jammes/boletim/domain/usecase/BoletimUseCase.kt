@@ -5,11 +5,15 @@ import app.jammes.boletim.domain.model.Boletim
 import app.jammes.boletim.domain.model.Contexto
 import app.jammes.boletim.domain.model.DisciplinaDados
 import app.jammes.boletim.domain.model.DisciplinaResumo
+import app.jammes.boletim.domain.model.MediaNoFiltro
+import app.jammes.boletim.domain.model.PeriodoDomain
 import app.jammes.boletim.domain.model.RegraAvaliacaoDomain
 import app.jammes.boletim.domain.model.StatusDisciplina
+import app.jammes.boletim.domain.model.Substituta
 import app.jammes.boletim.domain.model.TipoArredondamento
 import app.jammes.boletim.domain.model.TipoAvaliacao
 import app.jammes.boletim.domain.model.TipoMedia
+import app.jammes.boletim.domain.repository.AnoLetivoRepository
 import app.jammes.boletim.domain.repository.DisciplinaRepository
 import app.jammes.boletim.domain.repository.RegraAvaliacaoRepository
 import jakarta.inject.Inject
@@ -39,11 +43,14 @@ private const val ESCALA_DA_MEDIA = 10.0
 fun notaNaEscalaDe10(nota: Double, notaMaxima: Double): Double? =
     if (notaMaxima > 0.0) nota * ESCALA_DA_MEDIA / notaMaxima else null
 
+/**
+ * A média regular: só a das avaliações normais, já arredondada pela regra. A recuperação e a final
+ * não entram nela; elas tomam o lugar dela depois, em [CalcularMediaDoPeriodo] e [CalcularMediaAnual].
+ */
 object CalcularMediaDisciplina {
     private class NotaLancada(val nota: Double, val peso: Double)
 
     operator fun invoke(avaliacoes: List<AvaliacaoDomain>, regra: RegraAvaliacaoDomain): Double? {
-        // TODO: recuperação e arredondamento entram aqui
         val validas = avaliacoes
             .filter { it.tipo == TipoAvaliacao.NORMAL }
             .mapNotNull { avaliacao ->
@@ -73,21 +80,60 @@ object CalcularMediaDisciplina {
 }
 
 /**
- * Média do ano letivo: a média das médias de cada período, como no boletim da escola.
- * Período ainda sem nota fica de fora (não conta como zero), e o resultado passa pelo
- * mesmo arredondamento da regra.
+ * A média de um período: a regular, ou a nota da recuperação quando ela é maior. As [avaliacoes]
+ * são só as do período.
+ */
+object CalcularMediaDoPeriodo {
+    operator fun invoke(avaliacoes: List<AvaliacaoDomain>, regra: RegraAvaliacaoDomain): MediaNoFiltro =
+        substituirSeMaior(CalcularMediaDisciplina(avaliacoes, regra), avaliacoes, TipoAvaliacao.RECUPERACAO, regra)
+}
+
+/**
+ * Média do ano letivo: a média das médias de cada período (já com a recuperação de cada um), como no
+ * boletim da escola, e a final no lugar dela quando a final é maior. Período ainda sem nota fica de
+ * fora (não conta como zero), e o resultado passa pelo mesmo arredondamento da regra.
  */
 object CalcularMediaAnual {
-    operator fun invoke(avaliacoes: List<AvaliacaoDomain>, regra: RegraAvaliacaoDomain): Double? {
+    operator fun invoke(avaliacoes: List<AvaliacaoDomain>, regra: RegraAvaliacaoDomain): MediaNoFiltro {
         val mediasDosPeriodos = avaliacoes
-            .filter { it.periodoId != null }
+            // A final é do ano, não de um período, mesmo que tenha ficado com um
+            .filter { it.periodoId != null && it.tipo != TipoAvaliacao.FINAL }
             .groupBy { it.periodoId }
             .values
-            .mapNotNull { CalcularMediaDisciplina(it, regra) }
-        if (mediasDosPeriodos.isEmpty()) return null
+            .mapNotNull { CalcularMediaDoPeriodo(it, regra).media }
+        val regular = mediasDosPeriodos
+            .takeIf { it.isNotEmpty() }
+            ?.let { arredondarMedia(it.average(), regra.arredondamento) }
 
-        return arredondarMedia(mediasDosPeriodos.average(), regra.arredondamento)
+        return substituirSeMaior(regular, avaliacoes, TipoAvaliacao.FINAL, regra)
     }
+}
+
+/**
+ * A [regular] com a recuperação ou a final (o [tipo]) no lugar, quando ela é maior. A nota vale como
+ * uma média: vai para a escala de 10, mesmo na soma, e passa pelo arredondamento da regra. Só cabe
+ * uma de cada; se o banco tiver mais, vale a maior. Agendada, sem nota, ainda não conta.
+ */
+private fun substituirSeMaior(
+    regular: Double?,
+    avaliacoes: List<AvaliacaoDomain>,
+    tipo: TipoAvaliacao,
+    regra: RegraAvaliacaoDomain,
+): MediaNoFiltro {
+    val nota = avaliacoes
+        .filter { it.tipo == tipo }
+        .mapNotNull { avaliacao -> avaliacao.nota?.let { notaNaEscalaDe10(it, avaliacao.notaMaxima) } }
+        .maxOrNull()
+        ?.let { arredondarMedia(it, regra.arredondamento) }
+        ?: return MediaNoFiltro(media = regular, regular = regular, substituta = null)
+
+    // Sem média regular (nenhuma normal com nota ainda), a recuperação ou a final é a média
+    val substituiu = regular == null || nota > regular
+    return MediaNoFiltro(
+        media = if (substituiu) nota else regular,
+        regular = regular,
+        substituta = Substituta(tipo, nota, substituiu),
+    )
 }
 
 /** A média no filtro do Contexto: a do período escolhido, ou a do ano letivo quando periodoId é nulo. */
@@ -95,9 +141,9 @@ fun calcularMediaNoFiltro(
     avaliacoes: List<AvaliacaoDomain>,
     regra: RegraAvaliacaoDomain,
     periodoId: Long?,
-): Double? =
+): MediaNoFiltro =
     if (periodoId == null) CalcularMediaAnual(avaliacoes, regra)
-    else CalcularMediaDisciplina(avaliacoes.filter { it.periodoId == periodoId }, regra)
+    else CalcularMediaDoPeriodo(avaliacoes.filter { it.periodoId == periodoId }, regra)
 
 val DOIS = BigDecimal(2)
 
@@ -156,11 +202,13 @@ internal fun List<RegraAvaliacaoDomain>.padraoDoAno(): RegraAvaliacaoDomain =
 class ObterBoletim @Inject constructor(
     private val disciplinaRepository: DisciplinaRepository,
     private val regraRepository: RegraAvaliacaoRepository,
+    private val anoLetivoRepository: AnoLetivoRepository,
 ) {
     private data class DadosDoAno(
         val anoLetivoId: Long,
         val disciplinas: List<DisciplinaDados>,
         val regras: List<RegraAvaliacaoDomain>,
+        val periodos: List<PeriodoDomain>,
     )
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -174,8 +222,10 @@ class ObterBoletim @Inject constructor(
                 combine(
                     disciplinaRepository.observeBoletim(anoId),
                     regraRepository.observeByAnoLetivo(anoId),
-                ) { disciplinas, regras ->
-                    DadosDoAno(anoId, disciplinas, regras)
+                    // Os períodos entram no fechamento do ano das finalizadas, como no detalhe
+                    anoLetivoRepository.observeById(anoId),
+                ) { disciplinas, regras, anoLetivo ->
+                    DadosDoAno(anoId, disciplinas, regras, anoLetivo?.periodo.orEmpty())
                 }
             }
 
@@ -189,17 +239,23 @@ class ObterBoletim @Inject constructor(
     private fun montar(dados: DadosDoAno, periodoId: Long?): Boletim {
         val resumos = dados.disciplinas.map { d ->
             val regra = dados.regras.paraDisciplina(d.disciplinaId)
-            val media = calcularMediaNoFiltro(d.avaliacoes, regra, periodoId)
+            val calculo = calcularMediaNoFiltro(d.avaliacoes, regra, periodoId)
+            val faltas = d.faltas.sumOf { it.qtdAulas } // ano inteiro, contra o limite anual
+            val limiteFaltas = CalcularFrequencia.limiteFaltas(d.totalAulas, regra)
             DisciplinaResumo(
                 id = d.disciplinaId,
                 nome = d.nome,
                 cor = d.cor,
                 icone = d.icone,
-                media = media,
+                media = calculo.media,
+                mediaRegular = calculo.regular,
+                substituta = calculo.substituta,
                 mediaMinima = regra.mediaMinima,
-                status = statusDaMedia(media, regra),
-                faltas = d.faltas.sumOf { it.qtdAulas }, // ano inteiro, contra o limite anual
-                limiteFaltas = CalcularFrequencia.limiteFaltas(d.totalAulas, regra),
+                status = statusDaMedia(calculo.media, regra),
+                faltas = faltas,
+                limiteFaltas = limiteFaltas,
+                // Só depois de finalizada, e com a conta do detalhe: o card e a tela dela não divergem
+                situacao = if (d.ativa) null else fecharAno(d.avaliacoes, dados.periodos, regra, faltas, limiteFaltas)?.situacao,
             )
         }
 

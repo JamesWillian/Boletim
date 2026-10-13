@@ -47,6 +47,10 @@ class DisciplinaRepositoryImpl @Inject constructor(
             lista.map { it.toDomain() }
         }
 
+    override suspend fun setAtiva(disciplinaId: Long, ativa: Boolean) {
+        disciplinaDao.definirAtiva(disciplinaId, if (ativa) 1 else 0)
+    }
+
     override suspend fun countLancamentosByDisciplina(anoLetivoId: Long): Map<Long, Lancamentos> =
         disciplinaDao.contarLancamentos(anoLetivoId).toDomain()
 }

@@ -3,6 +3,7 @@ package app.jammes.boletim.domain.model
 /**
  * Uma disciplina vista no filtro do Contexto: um período, ou o ano letivo inteiro.
  * As avaliações e as faltas vêm separadas por período, e a média é a que as avaliações dão nesse filtro.
+ * A final é do ano, não de um período: fica em [finais], que só aparece no ano letivo inteiro.
  */
 data class DisciplinaDetalhe(
     val disciplina: DisciplinaDomain,
@@ -11,14 +12,28 @@ data class DisciplinaDetalhe(
     val periodos: List<PeriodoDomain>, // todos os do ano, em ordem
     val regra: RegraAvaliacaoDomain,
     val avaliacoesPorPeriodo: List<AvaliacoesDoPeriodo>, // só os períodos que têm avaliação
+    val finais: List<AvaliacaoDomain>, // a final do ano, no grupo dela; vazia num período
     val faltasPorPeriodo: List<FaltasDoPeriodo>, // só os períodos que têm falta
-    val media: Double?,
+    val media: Double?, // a que vale: com a recuperação (no período) ou a final (no ano), se forem maiores
+    val mediaRegular: Double?, // só das avaliações normais
+    val substituta: Substituta?,
     val status: StatusDisciplina,
     val faltas: Int, // ano inteiro, como no card do Boletim
     val limiteFaltas: Int?,
+    /** Como o ano fecha com as notas de agora, em qualquer filtro. null: nenhum período tem nota, e não dá para finalizar. */
+    val fechamento: Fechamento?,
 ) {
+    /** Finalizada (ativa = 0): as notas e as faltas não podem mais ser lançadas, nem mudadas. */
+    val finalizada: Boolean
+        get() = !disciplina.ativa
+
+    /** Aprovado ou reprovado, depois de finalizada; null enquanto ela está em curso. */
+    val situacao: StatusDisciplina?
+        get() = if (finalizada) fechamento?.situacao else null
+
+    /** As avaliações do filtro, a final junto no ano letivo inteiro. */
     val avaliacoes: List<AvaliacaoDomain>
-        get() = avaliacoesPorPeriodo.flatMap { it.avaliacoes }
+        get() = avaliacoesPorPeriodo.flatMap { it.avaliacoes } + finais
 
     /** As faltas do filtro: cada lançamento é um dia, com quantas faltas teve nele. */
     val diasDeFalta: List<FaltaDomain>

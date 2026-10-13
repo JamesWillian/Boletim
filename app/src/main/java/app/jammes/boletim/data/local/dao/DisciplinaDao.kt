@@ -30,9 +30,14 @@ interface DisciplinaDao {
     @Query("SELECT * FROM disciplina WHERE ano_letivo_id = :anoLetivoId ORDER BY ordem")
     fun observarPorAnoLetivo(anoLetivoId: Long): Flow<List<DisciplinaEntity>>
 
+    // As finalizadas (ativa = 0) também: o boletim mostra a disciplina até o fim do ano
     @Transaction
-    @Query("SELECT * FROM disciplina WHERE ano_letivo_id = :anoLetivoId AND ativa = 1 ORDER BY ordem, nome")
+    @Query("SELECT * FROM disciplina WHERE ano_letivo_id = :anoLetivoId ORDER BY ordem, nome")
     fun observarBoletim(anoLetivoId: Long): Flow<List<DisciplinaComDados>>
+
+    // Só a coluna: finalizar ou reabrir não regrava o resto da linha
+    @Query("UPDATE disciplina SET ativa = :ativa WHERE id = :id")
+    suspend fun definirAtiva(id: Long, ativa: Int)
 
     // Todas as disciplinas do ano, inclusive as inativas: elas também têm dados que não podem sumir
     @Query(

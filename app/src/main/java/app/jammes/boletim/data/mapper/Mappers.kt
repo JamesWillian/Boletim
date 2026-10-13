@@ -198,7 +198,8 @@ fun DisciplinaComDados.toDomain(): DisciplinaDados = DisciplinaDados(
     icone = IconeMateria.fromString(disciplina.icone),
     avaliacoes = avaliacoes.map { it.toDomain() },
     faltas = faltas.map { it.toDomain() },
-    totalAulas = disciplina.totalAulas
+    totalAulas = disciplina.totalAulas,
+    ativa = disciplina.ativa == 1,
 )
 
 fun List<ContagemLancamentos>.toDomain(): Map<Long, Lancamentos> = associate {

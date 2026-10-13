@@ -25,10 +25,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.Check
@@ -64,6 +64,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.jammes.boletim.domain.model.Boletim
 import app.jammes.boletim.domain.model.DisciplinaResumo
 import app.jammes.boletim.domain.model.StatusDisciplina
+import app.jammes.boletim.domain.model.Substituta
 import app.jammes.boletim.domain.model.TipoArredondamento
 import app.jammes.boletim.domain.usecase.arredondarMedia
 import app.jammes.boletim.presentation.ui.components.AnelDaMedia
@@ -118,24 +119,28 @@ fun BoletimScreen(
                 TextButton(onClick = {}) { Text("Adicionar matérias") }
             }
 
-            is BoletimUiState.Sucesso -> LazyVerticalGrid(
+            // Um mural: cada coluna empilha os cards sem alinhar por linha, e um card mais baixo não
+            // deixa vão embaixo dele. Cada card tem a altura do que mostra: a situação e a outra
+            // média só ocupam linha quando existem
+            is BoletimUiState.Sucesso -> LazyVerticalStaggeredGrid(
+                columns = StaggeredGridCells.Fixed(2),
                 contentPadding = PaddingValues(
                     start = Espacos.l,
                     end = Espacos.l,
                     top = Espacos.s,
                     bottom = 96.dp,
                 ),
-                columns = GridCells.Fixed(2),
+                verticalItemSpacing = Espacos.m,
                 horizontalArrangement = Arrangement.spacedBy(Espacos.m),
-                verticalArrangement = Arrangement.spacedBy(Espacos.m),
             ) {
-                item(span = { GridItemSpan(maxLineSpan) }) {
+                item(span = StaggeredGridItemSpan.FullLine) {
                     ResumoGeral(
                         boletim = (state as BoletimUiState.Sucesso).boletim,
                         modifier = Modifier.padding(bottom = Espacos.xs),
                     )
                 }
-                val disciplinas = (state as BoletimUiState.Sucesso).boletim.disciplinas
+                val boletim = (state as BoletimUiState.Sucesso).boletim
+                val disciplinas = boletim.disciplinas
                 items(disciplinas, key = { it.id }) {
                     ComDicaDaPrimeiraNota(
                         mostrar = dica && it.id == disciplinas.first().id,
@@ -146,6 +151,7 @@ fun BoletimScreen(
                     ) {
                         DisciplinaCard(
                             resumo = it,
+                            periodoId = boletim.periodoId,
                             onClick = {
                                 // Abrir uma matéria é fazer o que a dica pede: ela já cumpriu o papel
                                 if (dica) viewModel.dispensarDica()
@@ -301,6 +307,7 @@ private fun ComDicaDaPrimeiraNota(
 @Composable
 private fun DisciplinaCard(
     resumo: DisciplinaResumo,
+    periodoId: Long?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -336,6 +343,15 @@ private fun DisciplinaCard(
                 )
             }
             Spacer(Modifier.height(Espacos.m))
+            // Finalizada, a situação vem logo acima da média, numa linha só dela: ao lado do número
+            // ela não cabia inteira no card estreito. Só o nome, na cor dele, sem a pílula do detalhe
+            resumo.situacao?.let { situacao ->
+                Text(
+                    text = nomeDaSituacao(situacao),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = corDoStatus(situacao),
+                )
+            }
             MediaAnimada(resumo.media) { media ->
                 if (media != null) {
                     Text(
@@ -354,6 +370,9 @@ private fun DisciplinaCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+            }
+            outraMedia(resumo.mediaRegular, resumo.substituta, periodoId)?.let { (rotulo, media) ->
+                LinhaDaOutraMedia(rotulo = rotulo, media = media)
             }
             Spacer(Modifier.height(Espacos.s))
             BarraDaMedia(media = resumo.media, mediaMinima = resumo.mediaMinima, cor = corStatus)
@@ -421,6 +440,10 @@ private fun descricaoDoStatus(status: StatusDisciplina): String = when (status) 
     StatusDisciplina.SEM_NOTA -> "Ainda sem notas"
 }
 
+/** A situação de uma disciplina finalizada: só aprovado ou reprovado. */
+internal fun nomeDaSituacao(situacao: StatusDisciplina): String =
+    if (situacao == StatusDisciplina.REPROVADO) "Reprovado" else "Aprovado"
+
 /** "1 com folga", "4 no limite", "2 abaixo", "5 sem nota": só as situações que aparecem, nessa ordem. */
 private fun contagemPorStatus(disciplinas: List<DisciplinaResumo>): List<Pair<String, StatusDisciplina>> {
     val porStatus = disciplinas.groupingBy {
@@ -442,6 +465,43 @@ internal fun textoFaltas(faltas: Int): String = when (faltas) {
     0 -> "Sem faltas"
     1 -> "1 falta"
     else -> "$faltas faltas"
+}
+
+/**
+ * A outra média, para a linha embaixo do número quando há recuperação (no período) ou final (no
+ * ano) com nota. O número grande é sempre a média que vale; a linha mostra a que ficou de fora: a
+ * do período ou do ano, quando a substituta foi maior ("Média do período" 5,5), ou a nota da
+ * substituta, quando não foi ("Recuperação" 5,0). null sem substituta, ou sem média regular.
+ */
+internal fun outraMedia(regular: Double?, substituta: Substituta?, periodoId: Long?): Pair<String, Double>? = when {
+    substituta == null -> null
+    !substituta.substituiu -> substituta.tipo.displayname to substituta.nota
+    regular == null -> null
+    else -> "Média do ${if (periodoId == null) "ano" else "período"}" to regular
+}
+
+/**
+ * A linha da [outraMedia], menor e apagada embaixo da média. O rótulo pode encurtar com reticências,
+ * o número nunca: no card estreito, o que não pode sumir é justamente o valor.
+ */
+@Composable
+internal fun LinhaDaOutraMedia(rotulo: String, media: Double, modifier: Modifier = Modifier) {
+    Row(modifier) {
+        Text(
+            text = rotulo,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+        Text(
+            text = " ${formatarMedia(media)}",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+        )
+    }
 }
 
 /** O que o seletor de cima está mostrando: um período, ou o ano letivo inteiro (opção "Ano letivo"). */

@@ -250,10 +250,25 @@ class FormularioAvaliacaoTest {
     @Test fun `depois de gravar com Outra, o nome e a nota esvaziam e o resto fica`() {
         val gravada = FormularioAvaliacao(
             nome = "Prova 1", nota = "8", notaMaxima = "5", peso = "2",
-            tipo = TipoAvaliacao.RECUPERACAO, periodoId = 3, data = LocalDate.of(2026, 9, 10),
+            tipo = TipoAvaliacao.NORMAL, periodoId = 3, data = LocalDate.of(2026, 9, 10),
         )
 
-        assertEquals(gravada.copy(nome = "", nota = ""), gravada.paraAProxima())
+        assertEquals(gravada.copy(nome = "", nota = ""), gravada.paraAProxima(PERIODOS))
+    }
+
+    @Test fun `depois de uma recuperacao ou de uma final, a proxima volta a ser normal`() {
+        val recuperacao = FormularioAvaliacao(
+            nome = "Recuperação", nota = "8", notaMaxima = "10", peso = "1",
+            tipo = TipoAvaliacao.RECUPERACAO, periodoId = 3, data = LocalDate.of(2026, 9, 10),
+        )
+        val final = recuperacao.copy(tipo = TipoAvaliacao.FINAL, data = LocalDate.of(2026, 12, 10))
+
+        assertEquals(recuperacao.copy(nome = "", nota = "", tipo = TipoAvaliacao.NORMAL), recuperacao.paraAProxima(PERIODOS))
+        // A final de dezembro passa do 4º bimestre: a data volta para o último dia dele
+        val depoisDaFinal = final.paraAProxima(PERIODOS)
+        assertEquals(TipoAvaliacao.NORMAL, depoisDaFinal.tipo)
+        assertEquals(LocalDate.of(2026, 11, 30), depoisDaFinal.data)
+        assertEquals(4L, depoisDaFinal.periodoId)
     }
 
 
@@ -308,6 +323,94 @@ class FormularioAvaliacaoTest {
             AvisoDaNota("Essa data ainda não chegou: apague a nota ou mude a data.", erro = true),
             avisoDaNota(formulario.copy(nota = "9", data = DIA_26), HOJE, soma = false, doPeriodo = doQuarto),
         )
+    }
+
+    // Recuperação e final ---------------------------------------------------------------------
+
+    @Test fun `a final grava sem periodo, e a recuperacao no dela`() {
+        val formulario = FormularioAvaliacao.de(NOVA).copy(nome = "Prova final", nota = "6", tipo = TipoAvaliacao.FINAL)
+
+        assertNull(formulario.paraGravar(NOVA, comPeso = false, HOJE)!!.periodoId)
+        assertEquals(4L, formulario.copy(tipo = TipoAvaliacao.RECUPERACAO).paraGravar(NOVA, comPeso = false, HOJE)!!.periodoId)
+    }
+
+    @Test fun `com a vaga ocupada nao grava, e o problema vem depois da data`() {
+        val formulario = FormularioAvaliacao.de(NOVA).copy(nome = "Recuperação", tipo = TipoAvaliacao.RECUPERACAO)
+
+        assertEquals(Problema.VAGA_OCUPADA, formulario.problema(comPeso = false, HOJE, vagaOcupada = true))
+        assertEquals(Problema.SEM_DATA, formulario.copy(data = null).problema(comPeso = false, HOJE, vagaOcupada = true))
+        assertEquals(
+            Problema.VAGA_OCUPADA,
+            formulario.copy(notaMaxima = "0").problema(comPeso = false, HOJE, vagaOcupada = true), // antes da máxima
+        )
+        assertNull(formulario.paraGravar(NOVA, comPeso = false, HOJE, vagaOcupada = true))
+    }
+
+    @Test fun `mais opcoes avisa quando a vaga esta ocupada`() {
+        val formulario = FormularioAvaliacao.de(NOVA).copy(tipo = TipoAvaliacao.RECUPERACAO)
+
+        assertEquals("Já tem uma recuperação no período", formulario.avisoDasOpcoes(comPeso = false, vagaOcupada = true))
+        assertEquals(
+            "Já tem uma final no ano",
+            formulario.copy(tipo = TipoAvaliacao.FINAL).avisoDasOpcoes(comPeso = false, vagaOcupada = true),
+        )
+    }
+
+    @Test fun `o aviso da vaga ocupada diz qual avaliacao esta la`() {
+        val recuperacao = NOVA.copy(id = 9, nome = "Prova de recuperação", tipo = TipoAvaliacao.RECUPERACAO)
+        val final = NOVA.copy(id = 10, nome = "Prova final", tipo = TipoAvaliacao.FINAL, periodoId = null)
+
+        assertEquals(
+            "Já tem uma recuperação no 4º Bimestre: “Prova de recuperação”.",
+            textoDaVagaOcupada(recuperacao, noPeriodo(QUARTO_BIMESTRE, TipoPeriodo.BIMESTRE)),
+        )
+        assertEquals("Já tem uma final no ano: “Prova final”.", textoDaVagaOcupada(final, noPeriodo = null))
+    }
+
+    @Test fun `recuperacao e final substituem a media, se forem maiores`() {
+        val doQuarto = doPeriodo(QUARTO_BIMESTRE, TipoPeriodo.BIMESTRE)
+        val recuperacao = FormularioAvaliacao.de(NOVA).copy(nota = "7", tipo = TipoAvaliacao.RECUPERACAO)
+
+        assertEquals(
+            AvisoDaNota("Substitui a média do 4º Bimestre, se for maior.", erro = false),
+            avisoDaNota(recuperacao, HOJE, soma = false, doPeriodo = doQuarto),
+        )
+        assertEquals(
+            AvisoDaNota("Substitui a soma do ano letivo, se for maior.", erro = false),
+            avisoDaNota(recuperacao.copy(tipo = TipoAvaliacao.FINAL), HOJE, soma = true, doPeriodo = doQuarto),
+        )
+        // Agendada, fica fora como qualquer outra
+        assertEquals(
+            AvisoDaNota("Fica fora da média até você lançar a nota.", erro = false),
+            avisoDaNota(recuperacao.copy(nota = ""), HOJE, soma = false, doPeriodo = doQuarto),
+        )
+    }
+
+    @Test fun `deixando de ser final, a data volta para dentro dos periodos e o periodo vai junto`() {
+        val final = FormularioAvaliacao.de(NOVA).copy(tipo = TipoAvaliacao.FINAL, data = LocalDate.of(2026, 12, 10))
+
+        val normal = final.comTipo(TipoAvaliacao.NORMAL, PERIODOS)
+
+        assertEquals(LocalDate.of(2026, 11, 30), normal.data)
+        assertEquals(4L, normal.periodoId)
+        // Virando final, nada muda: a data já cabia
+        assertEquals(normal.copy(tipo = TipoAvaliacao.FINAL), normal.comTipo(TipoAvaliacao.FINAL, PERIODOS))
+    }
+
+    @Test fun `a final pode ir ate o fim do ano, depois do ultimo periodo`() {
+        assertEquals(LocalDate.of(2026, 2, 1)..LocalDate.of(2026, 12, 31), intervaloDaFinal(PERIODOS))
+        assertNull(intervaloDaFinal(emptyList()))
+    }
+
+    @Test fun `na soma a recuperacao e a final tem status, a normal nao`() {
+        val soma = RegraAvaliacaoDomain(
+            anoLetivoId = 1, disciplinaId = null, mediaMinima = 7.0, mediaRecuperacao = null,
+            frequenciaMinima = 75.0, tipoMedia = TipoMedia.SOMA,
+        )
+
+        assertNull(statusDaNota(4.0, 5.0, soma))
+        assertEquals(StatusDisciplina.APROVADO, statusDaNota(4.0, 5.0, soma, TipoAvaliacao.RECUPERACAO)) // 8 de 10
+        assertEquals(StatusDisciplina.ABAIXO, statusDaNota(3.0, 5.0, soma, TipoAvaliacao.FINAL)) // 6 de 10
     }
 
     @Test fun `no periodo feminino o artigo acompanha`() {

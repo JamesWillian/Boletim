@@ -11,6 +11,7 @@ import app.jammes.boletim.domain.model.intervalo
 import app.jammes.boletim.domain.model.periodoDe
 import app.jammes.boletim.domain.repository.AvaliacaoRepository
 import app.jammes.boletim.domain.repository.ContextoRepository
+import app.jammes.boletim.domain.repository.DisciplinaRepository
 import app.jammes.boletim.domain.repository.FaltaRepository
 import app.jammes.boletim.domain.usecase.ObterDisciplinaDetalhe
 import app.jammes.boletim.presentation.navigation.Routes
@@ -38,6 +39,7 @@ class DisciplinaViewModel @Inject constructor(
     obterDisciplinaDetalhe: ObterDisciplinaDetalhe,
     private val avaliacaoRepo: AvaliacaoRepository,
     private val faltaRepo: FaltaRepository,
+    private val disciplinaRepo: DisciplinaRepository,
 ): ViewModel() {
 
     // Argumento da rota que abriu a tela. Cada disciplina aberta ganha seu próprio ViewModel,
@@ -116,6 +118,24 @@ class DisciplinaViewModel @Inject constructor(
     fun excluir(falta: FaltaDomain) {
         viewModelScope.launch {
             faltaRepo.delete(falta)
+        }
+    }
+
+    /**
+     * Fecha o ano da disciplina (ativa = 0): ela continua no boletim, aprovada ou reprovada, mas não
+     * aceita mais notas nem faltas. Sem nota em nenhum período não há o que fechar, e nada é gravado.
+     */
+    fun finalizar(detalhe: DisciplinaDetalhe) {
+        if (detalhe.fechamento == null) return
+        viewModelScope.launch {
+            disciplinaRepo.setAtiva(disciplinaId, ativa = false)
+        }
+    }
+
+    /** Desfaz o [finalizar]: a disciplina volta a aceitar notas e faltas, e fica sem situação. */
+    fun reabrir() {
+        viewModelScope.launch {
+            disciplinaRepo.setAtiva(disciplinaId, ativa = true)
         }
     }
 }
