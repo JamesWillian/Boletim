@@ -134,11 +134,73 @@ class BoletimUseCaseTest {
         assertEquals(8.0, calcularMediaNoFiltro(avaliacoes, regra(), periodoId = 2)!!, 0.001)
         assertEquals(7.0, calcularMediaNoFiltro(avaliacoes, regra(), periodoId = null)!!, 0.001)
     }
+
+    // Nota máxima ---------------------------------------------------------------------------
+
+    @Test fun `nota vai para a escala de 10 pela nota maxima`() {
+        assertEquals(8.0, notaNaEscalaDe10(4.0, notaMaxima = 5.0)!!, 0.0)
+        assertEquals(8.5, notaNaEscalaDe10(85.0, notaMaxima = 100.0)!!, 0.0)
+        assertEquals(5.7, notaNaEscalaDe10(57.0, notaMaxima = 100.0)!!, 0.0) // exata, e não 5,699…
+        assertNull(notaNaEscalaDe10(4.0, notaMaxima = 0.0))
+    }
+
+    @Test fun `media simples usa as notas na escala de 10`() {
+        val avaliacoes = listOf(avaliacao(nota = 8.0), avaliacao(nota = 4.0, notaMaxima = 5.0))
+
+        val media = CalcularMediaDisciplina(avaliacoes, regra(TipoMedia.SIMPLES))
+
+        assertEquals(8.0, media!!, 0.001) // 4 de 5 conta como 8; antes saía 6,0
+    }
+
+    @Test fun `media ponderada converte a nota antes de aplicar o peso`() {
+        val avaliacoes = listOf(
+            avaliacao(nota = 4.0, notaMaxima = 5.0, peso = 1.0), // 8 na escala de 10
+            avaliacao(nota = 6.0, peso = 3.0),
+        )
+
+        val media = CalcularMediaDisciplina(avaliacoes, regra(TipoMedia.PONDERADA))
+
+        assertEquals(6.5, media!!, 0.001) // (8×1 + 6×3) / 4
+    }
+
+    @Test fun `na soma a nota maxima nao muda os pontos`() {
+        val avaliacoes = listOf(avaliacao(nota = 4.0, notaMaxima = 5.0), avaliacao(nota = 3.0, notaMaxima = 5.0))
+
+        val media = CalcularMediaDisciplina(avaliacoes, regra(TipoMedia.SOMA))
+
+        assertEquals(7.0, media!!, 0.001) // 4 + 3, e não 8 + 6
+    }
+
+    @Test fun `nota exatamente na minima pela escala de 10 nao fica ABAIXO`() {
+        val regra = regra(TipoMedia.SIMPLES, mediaMinima = 7.0)
+
+        val media = CalcularMediaDisciplina(listOf(avaliacao(nota = 3.5, notaMaxima = 5.0)), regra)
+
+        assertEquals(StatusDisciplina.ATENCAO, statusDaMedia(media, regra)) // 3,5 de 5 = 7,0
+    }
+
+    @Test fun `avaliacao sem nota maxima valida fica fora da media`() {
+        val avaliacoes = listOf(avaliacao(nota = 8.0), avaliacao(nota = 5.0, notaMaxima = 0.0))
+
+        assertEquals(8.0, CalcularMediaDisciplina(avaliacoes, regra(TipoMedia.SIMPLES))!!, 0.001)
+    }
+
+    @Test fun `media anual usa as notas na escala de 10`() {
+        val avaliacoes = listOf(
+            avaliacao(nota = 4.0, notaMaxima = 5.0, periodoId = 1), // 1º período: 8,0
+            avaliacao(nota = 9.0, periodoId = 2), // 2º período: 9,0
+        )
+
+        val media = CalcularMediaAnual(avaliacoes, regra(TipoMedia.SIMPLES))
+
+        assertEquals(8.5, media!!, 0.001)
+    }
 }
 
 // Preenche os campos que o cálculo não usa, pra cada teste mostrar só o que importa.
 private fun avaliacao(
     nota: Double?,
+    notaMaxima: Double = 10.0,
     peso: Double = 1.0,
     tipo: TipoAvaliacao = TipoAvaliacao.NORMAL,
     periodoId: Long = 1,
@@ -147,7 +209,7 @@ private fun avaliacao(
     periodoId = periodoId,
     nome = "Prova",
     nota = nota,
-    notaMaxima = 10.0,
+    notaMaxima = notaMaxima,
     peso = peso,
     tipo = tipo,
     data = null,

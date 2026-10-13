@@ -28,6 +28,17 @@ import kotlin.collections.filter
 // Cálculos puros — sem repository, sem Flow. É aqui que os testes vão morar.
 // ---------------------------------------------------------------------------
 
+private const val ESCALA_DA_MEDIA = 10.0
+
+/**
+ * Quanto a nota valeria numa avaliação de 10, a escala da média mínima: 4 de 5 vira 8, 85 de 100
+ * vira 8,5. É a conta das médias simples e ponderada, e a que pinta cada nota na lista.
+ * Multiplica antes de dividir para notas redondas saírem exatas (57 de 100 dá 5,7, e não 5,699…).
+ * Sem uma nota máxima válida não há como converter: null.
+ */
+fun notaNaEscalaDe10(nota: Double, notaMaxima: Double): Double? =
+    if (notaMaxima > 0.0) nota * ESCALA_DA_MEDIA / notaMaxima else null
+
 object CalcularMediaDisciplina {
     private class NotaLancada(val nota: Double, val peso: Double)
 
@@ -35,8 +46,16 @@ object CalcularMediaDisciplina {
         // TODO: recuperação e arredondamento entram aqui
         val validas = avaliacoes
             .filter { it.tipo == TipoAvaliacao.NORMAL }
-            // Sem nota = ainda não aconteceu, então fica fora da média
-            .mapNotNull { avaliacao -> avaliacao.nota?.let { NotaLancada(it, avaliacao.peso) } }
+            .mapNotNull { avaliacao ->
+                // Sem nota = ainda não aconteceu, então fica fora da média
+                val nota = avaliacao.nota ?: return@mapNotNull null
+                // Na soma os pontos entram como foram lançados: a máxima é só a fatia de cada avaliação
+                val valor = when (regra.tipoMedia) {
+                    TipoMedia.SOMA -> nota
+                    else -> notaNaEscalaDe10(nota, avaliacao.notaMaxima)
+                }
+                valor?.let { NotaLancada(it, avaliacao.peso) }
+            }
         if (validas.isEmpty()) return null
 
         val mediaRaw = when (regra.tipoMedia) {

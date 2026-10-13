@@ -10,6 +10,7 @@ import app.jammes.boletim.domain.model.TipoMedia
 import app.jammes.boletim.domain.model.TipoPeriodo
 import app.jammes.boletim.domain.model.periodoDe
 import app.jammes.boletim.domain.usecase.arredondarMedia
+import app.jammes.boletim.domain.usecase.notaNaEscalaDe10
 import app.jammes.boletim.domain.usecase.statusDaMedia
 import app.jammes.boletim.presentation.ui.anoletivo.dataCurta
 import app.jammes.boletim.presentation.ui.anoletivo.feminino
@@ -267,15 +268,16 @@ internal fun doPeriodo(periodo: PeriodoDomain, tipo: TipoPeriodo): String =
     "${if (tipo.feminino) "da" else "do"} ${nomeDoPeriodo(periodo.periodo, tipo)}"
 
 /**
- * A situação de uma nota como se fosse uma média: levada para a escala de 10 (a da média mínima)
- * e limpa como a tela limpa as médias. Na soma, cada nota é só uma parte do total e não dá para
- * comparar com a mínima: null.
+ * A situação de uma nota como se fosse uma média: levada para a escala de 10 pela mesma conta do
+ * cálculo ([notaNaEscalaDe10]), então a cor da nota e a média nunca discordam, e limpa como a tela
+ * limpa as médias. Na soma, cada nota é só uma parte do total e não dá para comparar com a mínima: null.
  */
 internal fun statusDaNota(nota: Double, notaMaxima: Double, regra: RegraAvaliacaoDomain): StatusDisciplina? =
-    if (regra.tipoMedia == TipoMedia.SOMA || notaMaxima <= 0.0) {
+    if (regra.tipoMedia == TipoMedia.SOMA) {
         null
     } else {
-        statusDaMedia(arredondarMedia(nota / notaMaxima * 10, TipoArredondamento.NENHUM), regra)
+        notaNaEscalaDe10(nota, notaMaxima)
+            ?.let { statusDaMedia(arredondarMedia(it, TipoArredondamento.NENHUM), regra) }
     }
 
 /** O que a pílula da nota diz: onde ela fica perto da mínima, como no Boletim. */
