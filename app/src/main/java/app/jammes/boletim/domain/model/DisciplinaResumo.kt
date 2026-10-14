@@ -3,12 +3,11 @@ package app.jammes.boletim.domain.model
 data class DisciplinaResumo(
     val id: Long,
     val nome: String,
+    val abreviacao: String?, // a sigla da linha dela no gráfico do Boletim
     val cor: Int,
     val icone: IconeMateria,
     val media: Double?, // a que vale: com a recuperação (no período) ou a final (no ano), se forem maiores
-    val mediaRegular: Double?, // só das avaliações normais: o detalhe embaixo, quando há substituta
-    val substituta: Substituta?,
-    val mediaMinima: Double, // da regra da disciplina: a marca na barra do card
+    val mediaMinima: Double, // da regra da disciplina: a marca no arco do card e o tracejado no gráfico
     val status: StatusDisciplina,
     val faltas: Int,
     val limiteFaltas: Int?,

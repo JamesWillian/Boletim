@@ -112,6 +112,37 @@ class DisciplinaDetalheTest {
         assertEquals(StatusDisciplina.APROVADO, fechamento.situacao)
     }
 
+    // Médias por período (o gráfico do resumo) ----------------------------------------------
+
+    @Test fun `cada periodo tem a sua media, na ordem, mesmo sem nota`() {
+        val medias = mediasDosPeriodos(listOf(avaliacao(id = 1, periodoId = 1, nota = 8.0)), periodos, regra)
+
+        assertEquals(listOf(1L, 2L), medias.map { it.periodo.id })
+        assertEquals(listOf(8.0, null), medias.map { it.media })
+        assertEquals(listOf(StatusDisciplina.APROVADO, StatusDisciplina.SEM_NOTA), medias.map { it.status })
+    }
+
+    @Test fun `a recuperacao maior vale como a media do periodo`() {
+        val avaliacoes = listOf(
+            avaliacao(id = 1, periodoId = 1, nota = 5.0),
+            avaliacao(id = 2, periodoId = 1, tipo = TipoAvaliacao.RECUPERACAO, nota = 7.5),
+        )
+
+        val primeiro = mediasDosPeriodos(avaliacoes, periodos, regra).first()
+
+        assertEquals(7.5, primeiro.media)
+        assertEquals(StatusDisciplina.ATENCAO, primeiro.status)
+    }
+
+    @Test fun `a final fica fora das medias dos periodos, mesmo gravada com um`() {
+        val avaliacoes = listOf(
+            avaliacao(id = 1, periodoId = 2, nota = 6.0),
+            avaliacao(id = 2, periodoId = 2, tipo = TipoAvaliacao.FINAL, nota = 9.0),
+        )
+
+        assertEquals(6.0, mediasDosPeriodos(avaliacoes, periodos, regra)[1].media)
+    }
+
     @Test fun `passar do limite de faltas reprova mesmo com a media boa`() {
         val notas = listOf(avaliacao(id = 1, periodoId = 1, nota = 9.0), avaliacao(id = 2, periodoId = 2, nota = 9.0))
 

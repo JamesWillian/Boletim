@@ -17,6 +17,7 @@ data class DisciplinaDetalhe(
     // final, mesmo com a tela num período só
     val avaliacoesDoAno: List<AvaliacaoDomain>,
     val faltasPorPeriodo: List<FaltasDoPeriodo>, // só os períodos que têm falta
+    val mediasPorPeriodo: List<MediaDoPeriodo>, // todos os do ano, em ordem, mesmo sem nota: o gráfico do resumo
     val media: Double?, // a que vale: com a recuperação (no período) ou a final (no ano), se forem maiores
     val mediaRegular: Double?, // só das avaliações normais
     val substituta: Substituta?,
@@ -58,4 +59,11 @@ data class AvaliacoesDoPeriodo(
 data class FaltasDoPeriodo(
     val periodo: PeriodoDomain,
     val faltas: List<FaltaDomain>,
+)
+
+/** A média que vale num período (com a recuperação, se for maior) e a situação dela contra a mínima. */
+data class MediaDoPeriodo(
+    val periodo: PeriodoDomain,
+    val media: Double?, // null: o período ainda não tem nota
+    val status: StatusDisciplina,
 )

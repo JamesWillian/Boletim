@@ -196,6 +196,7 @@ fun RegraAvaliacaoDomain.toEntity(): RegraAvaliacaoEntity = RegraAvaliacaoEntity
 fun DisciplinaComDados.toDomain(): DisciplinaDados = DisciplinaDados(
     disciplinaId = disciplina.id,
     nome = disciplina.nome,
+    abreviacao = disciplina.abreviacao,
     cor = disciplina.cor,
     icone = IconeMateria.fromString(disciplina.icone),
     avaliacoes = avaliacoes.map { it.toDomain() },

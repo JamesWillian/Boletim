@@ -9,6 +9,7 @@ import app.jammes.boletim.domain.model.DisciplinaDomain
 import app.jammes.boletim.domain.model.FaltaDomain
 import app.jammes.boletim.domain.model.Fechamento
 import app.jammes.boletim.domain.model.FaltasDoPeriodo
+import app.jammes.boletim.domain.model.MediaDoPeriodo
 import app.jammes.boletim.domain.model.PeriodoDomain
 import app.jammes.boletim.domain.model.RegraAvaliacaoDomain
 import app.jammes.boletim.domain.model.TipoAvaliacao
@@ -90,6 +91,7 @@ class ObterDisciplinaDetalhe @Inject constructor(
             finais = finais,
             avaliacoesDoAno = avaliacoes,
             faltasPorPeriodo = faltasPorPeriodo,
+            mediasPorPeriodo = mediasDosPeriodos(avaliacoes, periodos, regra),
             media = calculo.media,
             mediaRegular = calculo.regular,
             substituta = calculo.substituta,
@@ -130,6 +132,21 @@ internal fun fecharAno(
         limiteFaltas = limiteFaltas,
         periodosSemNota = semNota,
     )
+}
+
+/**
+ * A média de cada um dos [periodos], na ordem deles, com a recuperação no lugar quando é maior: a
+ * mesma conta que a tela mostra com o período escolhido no filtro. A final é do ano e fica de fora.
+ * Período sem nota entra com a média nula, para o gráfico mostrar todos os do ano.
+ */
+internal fun mediasDosPeriodos(
+    avaliacoes: List<AvaliacaoDomain>,
+    periodos: List<PeriodoDomain>,
+    regra: RegraAvaliacaoDomain,
+): List<MediaDoPeriodo> = periodos.map { periodo ->
+    val doPeriodo = avaliacoes.filter { it.periodoId == periodo.id && it.tipo != TipoAvaliacao.FINAL }
+    val media = CalcularMediaDoPeriodo(doPeriodo, regra).media
+    MediaDoPeriodo(periodo, media, statusDaMedia(media, regra))
 }
 
 /**

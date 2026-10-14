@@ -26,6 +26,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -142,7 +143,7 @@ fun BarraDaMedia(
 
 /**
  * A média num anel de 0 a 10, aberto embaixo, com um tique na média mínima. O [conteudo] vai no
- * centro (o destaque do Boletim põe ali o ícone do status).
+ * centro (o card da disciplina no Boletim põe ali o ícone do status).
  */
 @Composable
 fun AnelDaMedia(
@@ -231,6 +232,39 @@ fun Pilula(
             } else {
                 MaterialTheme.colorScheme.onSurfaceVariant
             },
+        )
+    }
+}
+
+/** O tracejado das médias mínimas nos gráficos: traço e espaço. */
+internal val TRACO_DO_TRACEJADO = 3.dp
+internal val ESPACO_DO_TRACEJADO = 2.5.dp
+
+/**
+ * A legenda de uma linha tracejada: um pedaço dela na [cor] e o que ela marca ("mínima 8,0"). Em
+ * pé no gráfico de barras deitadas do Boletim, deitada no de colunas do detalhe, como a linha.
+ */
+@Composable
+fun ChaveTracejada(
+    texto: String,
+    cor: Color,
+    modifier: Modifier = Modifier,
+    emPe: Boolean = false,
+) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        Canvas(if (emPe) Modifier.size(width = 4.dp, height = 14.dp) else Modifier.size(width = 16.dp, height = 4.dp)) {
+            val tracejado = PathEffect.dashPathEffect(floatArrayOf(TRACO_DO_TRACEJADO.toPx(), ESPACO_DO_TRACEJADO.toPx()))
+            if (emPe) {
+                drawLine(cor, Offset(size.width / 2f, 0f), Offset(size.width / 2f, size.height), 2.dp.toPx(), pathEffect = tracejado)
+            } else {
+                drawLine(cor, Offset(0f, size.height / 2f), Offset(size.width, size.height / 2f), 1.5.dp.toPx(), pathEffect = tracejado)
+            }
+        }
+        Spacer(Modifier.width(6.dp))
+        Text(
+            text = texto,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

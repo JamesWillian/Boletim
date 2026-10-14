@@ -203,6 +203,14 @@ object CalcularFrequencia {
     /** Faltas permitidas no ano. null enquanto totalAulas não foi informado. */
     fun limiteFaltas(totalAulas: Int?, regra: RegraAvaliacaoDomain): Int? =
         totalAulas?.let { (it * (100 - regra.frequenciaMinima) / 100).toInt() }
+
+    /**
+     * A frequência no ano, em porcentagem inteira: as aulas assistidas sobre o total. Arredonda para
+     * baixo, como o limite de faltas, para nunca mostrar a mínima a quem já passou do limite. null
+     * enquanto o total de aulas não foi informado.
+     */
+    fun percentual(totalAulas: Int?, faltas: Int): Int? =
+        totalAulas?.takeIf { it > 0 }?.let { total -> ((total - faltas).coerceAtLeast(0) * 100) / total }
 }
 
 private const val MARGEM_ATENCAO = 1.0
@@ -280,11 +288,10 @@ class ObterBoletim @Inject constructor(
             DisciplinaResumo(
                 id = d.disciplinaId,
                 nome = d.nome,
+                abreviacao = d.abreviacao,
                 cor = d.cor,
                 icone = d.icone,
                 media = calculo.media,
-                mediaRegular = calculo.regular,
-                substituta = calculo.substituta,
                 mediaMinima = regra.mediaMinima,
                 status = statusDaMedia(calculo.media, regra),
                 faltas = faltas,
@@ -294,21 +301,11 @@ class ObterBoletim @Inject constructor(
             )
         }
 
-        val mediaGeral = resumos.mapNotNull { it.media }.takeIf { it.isNotEmpty() }?.average()
-        val regraDoAno = dados.regras.padraoDoAno()
-
         return Boletim(
             periodoId = periodoId,
             disciplinas = resumos,
-            mediaGeral = mediaGeral,
-            mediaMinima = regraDoAno.mediaMinima,
-            // A média geral chega sem arredondar: o status sai da mesma limpeza que a tela faz
-            // ao mostrar o número, para a cor nunca contradizer o que está escrito
-            status = statusDaMedia(
-                mediaGeral?.let { arredondarMedia(it, TipoArredondamento.NENHUM) },
-                regraDoAno,
-            ),
-            totalFaltas = resumos.sumOf { it.faltas },
+            // A do ano é o tracejado cinza do gráfico; quem tem regra própria ganha o seu
+            mediaMinima = dados.regras.padraoDoAno().mediaMinima,
         )
     }
 }

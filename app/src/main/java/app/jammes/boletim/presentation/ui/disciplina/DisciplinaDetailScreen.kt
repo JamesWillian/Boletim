@@ -61,6 +61,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -82,8 +83,8 @@ import app.jammes.boletim.presentation.ui.boletim.corDoStatus
 import app.jammes.boletim.presentation.ui.boletim.formatarMedia
 import app.jammes.boletim.presentation.ui.boletim.nomeDoFiltro
 import app.jammes.boletim.presentation.ui.boletim.outraMedia
-import app.jammes.boletim.presentation.ui.components.BarraDaMedia
 import app.jammes.boletim.presentation.ui.components.CarregandoDiscreto
+import app.jammes.boletim.presentation.ui.components.ChaveTracejada
 import app.jammes.boletim.presentation.ui.components.ChavesCompartilhadas
 import app.jammes.boletim.presentation.ui.components.EstadoVazio
 import app.jammes.boletim.presentation.ui.components.Pilula
@@ -218,6 +219,8 @@ fun DisciplinaDetailScreen(
                     stickyHeader(key = "abas") {
                         AbasDoDetalhe(
                             aba = aba,
+                            faltas = detalhe.faltas,
+                            emRiscoPorFalta = detalhe.emRiscoPorFalta,
                             onSelecionar = { nova ->
                                 aba = nova
                                 // Com o resumo já fora da tela, a lista nova começa logo abaixo das abas
@@ -357,6 +360,8 @@ private enum class AbaDoDetalhe(val titulo: String, val lancar: String) {
 @Composable
 private fun AbasDoDetalhe(
     aba: AbaDoDetalhe,
+    faltas: Int, // do ano inteiro: vão no contador da aba de faltas
+    emRiscoPorFalta: Boolean,
     onSelecionar: (AbaDoDetalhe) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -377,7 +382,16 @@ private fun AbasDoDetalhe(
                         onSelecionar(opcao)
                     }
                 },
-                text = { Text(opcao.titulo) },
+                text = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(opcao.titulo)
+                        // As faltas saíram do resumo: o número delas fica na própria aba
+                        if (opcao == AbaDoDetalhe.FALTAS && faltas > 0) {
+                            Spacer(Modifier.width(6.dp))
+                            ContadorDeFaltas(faltas = faltas, emRisco = emRiscoPorFalta, selecionada = aba == opcao)
+                        }
+                    }
+                },
                 selectedContentColor = MaterialTheme.colorScheme.primary,
                 unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -446,11 +460,17 @@ private fun LazyListScope.listaDeAvaliacoes(
     }
 }
 
-/** A aba das faltas: os dias de falta agrupados por período, do mesmo jeito que as avaliações. */
+/**
+ * A aba das faltas: o resumo do ano (quantas, o limite e a frequência) e, embaixo, os dias de falta
+ * agrupados por período, do mesmo jeito que as avaliações.
+ */
 private fun LazyListScope.listaDeFaltas(
     detalhe: DisciplinaDetalhe,
     onAbrir: ((faltaId: Long) -> Unit)?, // NOVA lança uma; null: finalizada, nada abre
 ) {
+    item(key = "faltas-resumo") {
+        ResumoDasFaltas(detalhe, Modifier.animateItem().padding(bottom = Espacos.m))
+    }
     if (detalhe.faltasPorPeriodo.isEmpty()) {
         item(key = "faltas-vazio") {
             EstadoVazio(
@@ -543,6 +563,10 @@ private fun BotaoLancar(texto: String, onClick: () -> Unit) {
     }
 }
 
+/**
+ * A capa da disciplina: o nome, a média do filtro e, embaixo dela, a média de cada período no
+ * gráfico, contra a mínima. As faltas ficam na aba delas, com o número na própria aba.
+ */
 @Composable
 private fun ResumoDisciplina(
     detalhe: DisciplinaDetalhe,
@@ -551,15 +575,7 @@ private fun ResumoDisciplina(
     val disciplina = detalhe.disciplina
     val cor = CoresDisciplina.de(disciplina.cor)
     val corStatus by animateColorAsState(corDoStatus(detalhe.status), label = "corDoStatus")
-    val dados = listOfNotNull(
-        disciplina.professor?.takeIf { it.isNotBlank() },
-        disciplina.totalAulas?.let { if (it == 1) "1 aula no ano" else "$it aulas no ano" },
-    ).joinToString(" · ")
-    val calculo = when (detalhe.regra.tipoMedia) {
-        TipoMedia.SIMPLES -> "Média simples"
-        TipoMedia.PONDERADA -> "Média ponderada"
-        TipoMedia.SOMA -> "Soma das notas"
-    }
+    val professor = disciplina.professor?.takeIf { it.isNotBlank() }
 
     // Levemente tingido com a cor da disciplina: a "capa" da folha que a aba abriu
     Card(
@@ -591,97 +607,96 @@ private fun ResumoDisciplina(
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.SemiBold,
                     )
-                    if (dados.isNotEmpty()) {
+                    if (professor != null) {
                         Text(
-                            text = dados,
+                            text = professor,
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
             }
-            Spacer(Modifier.height(20.dp))
-            // Duas colunas, a da média e a das faltas, montadas em linhas: assim cada coisa fica
-            // embaixo do seu número, e os números continuam lado a lado mesmo se um rótulo quebrar
-            // em duas linhas (fonte grande).
-            Row(verticalAlignment = Alignment.Bottom) {
-                Text(
-                    text = tituloDaMedia(detalhe.periodoId, detalhe.substituta),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f),
-                )
-                Spacer(Modifier.width(Espacos.l))
-                // Faltas do ano inteiro, em qualquer filtro: o limite de frequência é anual
-                Text(
-                    text = "Faltas no ano",
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Row {
-                // Finalizada, a situação vem na frente da média. Se não couber na linha (fonte
-                // grande), ela desce para baixo do número em vez de apertar
-                FlowRow(
-                    modifier = Modifier.weight(1f),
-                    horizontalArrangement = Arrangement.spacedBy(Espacos.s),
-                    itemVerticalAlignment = Alignment.CenterVertically,
-                ) {
-                    // Mesma formatação e mesma cor do card no Boletim, para as duas telas não divergirem
-                    MediaAnimada(detalhe.media) { media ->
-                        Text(
-                            text = formatarMedia(media),
-                            style = MaterialTheme.typography.displaySmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = corStatus,
-                        )
-                    }
-                    // Entra e sai abrindo espaço, sem pular
-                    AnimatedContent(
-                        targetState = detalhe.situacao,
-                        transitionSpec = { fadeIn() togetherWith fadeOut() using SizeTransform(clip = false) },
-                        label = "situacao",
-                    ) { situacao ->
-                        if (situacao != null) SeloDaSituacao(situacao)
-                    }
+            Spacer(Modifier.height(Espacos.l))
+            Text(
+                text = tituloDaMedia(detalhe.periodoId, detalhe.substituta),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            // Finalizada, a situação vem na frente da média. Se não couber na linha, ela
+            // desce para baixo do número em vez de apertar
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(Espacos.s),
+                itemVerticalAlignment = Alignment.CenterVertically,
+            ) {
+                // Mesma formatação e mesma cor do card no Boletim, para as duas telas não divergirem
+                MediaAnimada(detalhe.media) { media ->
+                    Text(
+                        text = formatarMedia(media),
+                        style = MaterialTheme.typography.displaySmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = corStatus,
+                    )
                 }
-                Spacer(Modifier.width(Espacos.l))
-                Text(
-                    text = detalhe.faltas.toString(),
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (detalhe.emRiscoPorFalta) {
-                        MaterialTheme.colorScheme.error
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
-                )
+                // Entra e sai abrindo espaço, sem pular
+                AnimatedContent(
+                    targetState = detalhe.situacao,
+                    transitionSpec = { fadeIn() togetherWith fadeOut() using SizeTransform(clip = false) },
+                    label = "situacao",
+                ) { situacao ->
+                    if (situacao != null) SeloDaSituacao(situacao)
+                }
             }
-            // Com recuperação ou final lançada, a média que ficou de fora vem logo embaixo, menor
+            // Abaixo da mínima: quanto falta para chegar nela. Na mínima ou acima, some
+            AnimatedContent(
+                targetState = quantoFalta(detalhe.media, detalhe.regra.mediaMinima),
+                transitionSpec = { fadeIn() togetherWith fadeOut() using SizeTransform(clip = false) },
+                label = "quantoFalta",
+            ) { falta ->
+                if (falta != null) {
+                    Text(
+                        text = falta,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            }
+            // Com recuperação ou final lançada, a média que ficou de fora vem embaixo, menor
             outraMedia(detalhe.mediaRegular, detalhe.substituta, detalhe.periodoId)?.let { (rotulo, media) ->
                 LinhaDaOutraMedia(rotulo = rotulo, media = media)
             }
-            Spacer(Modifier.height(Espacos.s))
-            Row {
-                // A barra é só da média: fica na coluna dela, sem passar por baixo das faltas
-                Column(Modifier.weight(1f)) {
-                    BarraDaMedia(media = detalhe.media, mediaMinima = detalhe.regra.mediaMinima, cor = corStatus)
-                    Spacer(Modifier.height(Espacos.s))
-                    Text(
-                        text = "$calculo · mínima ${formatarMedia(detalhe.regra.mediaMinima)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                detalhe.limiteFaltas?.let { limite ->
-                    Spacer(Modifier.width(Espacos.l))
-                    Text(
-                        text = "de $limite permitidas",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+            // O gráfico vem embaixo, separado por uma linha e com a largura toda: ao lado da média, as
+            // colunas ficavam estreitas, e o valor com duas casas não cabia embaixo delas
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = Espacos.l),
+                color = cor.copy(alpha = 0.25f),
+            )
+            // O leitor de tela pula esta linha: a descrição do gráfico já diz o que ele mostra e a mínima
+            FlowRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clearAndSetSemantics {},
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalArrangement = Arrangement.spacedBy(Espacos.xs),
+                itemVerticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Média por ${detalhe.tipoPeriodo.displayName.lowercase()}",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                // A legenda do tracejado
+                ChaveTracejada(
+                    texto = "mínima ${formatarMedia(detalhe.regra.mediaMinima)}",
+                    cor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+                )
             }
+            Spacer(Modifier.height(Espacos.m))
+            GraficoDosPeriodos(
+                medias = detalhe.mediasPorPeriodo,
+                mediaMinima = detalhe.regra.mediaMinima,
+                periodoEscolhido = detalhe.periodoId,
+                tipoPeriodo = detalhe.tipoPeriodo,
+            )
         }
     }
 }

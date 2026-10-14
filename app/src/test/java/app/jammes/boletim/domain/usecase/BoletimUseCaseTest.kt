@@ -77,6 +77,28 @@ class BoletimUseCaseTest {
         assertEquals(10, CalcularFrequencia.limiteFaltas(totalAulas = 40, regra(frequenciaMinima = 75.0)))
     }
 
+    @Test fun `frequencia e a parte das aulas assistidas, arredondada para baixo`() {
+        assertEquals(96, CalcularFrequencia.percentual(totalAulas = 80, faltas = 3)) // 96,25%
+        assertEquals(98, CalcularFrequencia.percentual(totalAulas = 60, faltas = 1)) // 98,3%
+        assertEquals(100, CalcularFrequencia.percentual(totalAulas = 60, faltas = 0))
+    }
+
+    @Test fun `no limite de faltas a frequencia fica exatamente na minima`() {
+        // 90% de 60 aulas: até 6 faltas. Com 6, 90%; com 7, 88% (88,3), abaixo da mínima
+        assertEquals(6, CalcularFrequencia.limiteFaltas(totalAulas = 60, regra(frequenciaMinima = 90.0)))
+        assertEquals(90, CalcularFrequencia.percentual(totalAulas = 60, faltas = 6))
+        assertEquals(88, CalcularFrequencia.percentual(totalAulas = 60, faltas = 7))
+    }
+
+    @Test fun `sem o total de aulas nao ha frequencia`() {
+        assertNull(CalcularFrequencia.percentual(totalAulas = null, faltas = 3))
+        assertNull(CalcularFrequencia.percentual(totalAulas = 0, faltas = 0))
+    }
+
+    @Test fun `mais faltas que aulas nao deixa a frequencia negativa`() {
+        assertEquals(0, CalcularFrequencia.percentual(totalAulas = 10, faltas = 12))
+    }
+
     // Média anual ---------------------------------------------------------------------------
 
     @Test fun `media anual e a media das medias dos periodos`() {

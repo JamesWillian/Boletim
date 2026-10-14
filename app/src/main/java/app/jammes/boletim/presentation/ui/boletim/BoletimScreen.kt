@@ -1,6 +1,7 @@
 package app.jammes.boletim.presentation.ui.boletim
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.animateColorAsState
@@ -13,8 +14,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,6 +21,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -29,6 +29,7 @@ import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.Check
@@ -38,7 +39,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RichTooltip
@@ -58,21 +58,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import app.jammes.boletim.domain.model.Boletim
 import app.jammes.boletim.domain.model.DisciplinaResumo
 import app.jammes.boletim.domain.model.StatusDisciplina
 import app.jammes.boletim.domain.model.Substituta
 import app.jammes.boletim.domain.model.TipoArredondamento
 import app.jammes.boletim.domain.usecase.arredondarMedia
 import app.jammes.boletim.presentation.ui.components.AnelDaMedia
-import app.jammes.boletim.presentation.ui.components.BarraDaMedia
 import app.jammes.boletim.presentation.ui.components.CarregandoDiscreto
 import app.jammes.boletim.presentation.ui.components.ChavesCompartilhadas
 import app.jammes.boletim.presentation.ui.components.DURACAO_TRANSICAO
-import app.jammes.boletim.presentation.ui.components.Pilula
 import app.jammes.boletim.presentation.ui.components.SeloDisciplina
 import app.jammes.boletim.presentation.ui.components.elementoCompartilhado
 import app.jammes.boletim.presentation.ui.components.limitesCompartilhados
@@ -120,8 +119,8 @@ fun BoletimScreen(
             }
 
             // Um mural: cada coluna empilha os cards sem alinhar por linha, e um card mais baixo não
-            // deixa vão embaixo dele. Cada card tem a altura do que mostra: a situação e a outra
-            // média só ocupam linha quando existem
+            // deixa vão embaixo dele. Cada card tem a altura do que mostra: a situação só ocupa
+            // linha quando existe
             is BoletimUiState.Sucesso -> LazyVerticalStaggeredGrid(
                 columns = StaggeredGridCells.Fixed(2),
                 contentPadding = PaddingValues(
@@ -134,7 +133,7 @@ fun BoletimScreen(
                 horizontalArrangement = Arrangement.spacedBy(Espacos.m),
             ) {
                 item(span = StaggeredGridItemSpan.FullLine) {
-                    ResumoGeral(
+                    MediasPorDisciplina(
                         boletim = (state as BoletimUiState.Sucesso).boletim,
                         modifier = Modifier.padding(bottom = Espacos.xs),
                     )
@@ -151,7 +150,6 @@ fun BoletimScreen(
                     ) {
                         DisciplinaCard(
                             resumo = it,
-                            periodoId = boletim.periodoId,
                             onClick = {
                                 // Abrir uma matéria é fazer o que a dica pede: ela já cumpriu o papel
                                 if (dica) viewModel.dispensarDica()
@@ -160,86 +158,6 @@ fun BoletimScreen(
                         )
                     }
                 }
-            }
-        }
-    }
-}
-
-/**
- * O destaque da tela: a média geral grande, num anel com a marca da mínima, e embaixo quantas
- * disciplinas estão em cada situação.
- */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ResumoGeral(
-    boletim: Boletim,
-    modifier: Modifier = Modifier,
-) {
-    val corStatus by animateColorAsState(corDoStatus(boletim.status), label = "corDoStatusGeral")
-    val algumaEmRisco = boletim.disciplinas.any { it.emRiscoPorFalta }
-
-    Card(
-        modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-    ) {
-        Column(Modifier.padding(20.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = "Média do ${nomeDoFiltro(boletim.periodoId)}",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    MediaAnimada(boletim.mediaGeral) { media ->
-                        Text(
-                            text = formatarMedia(media),
-                            style = MaterialTheme.typography.displayMedium,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                    }
-                    Text(
-                        text = "Mínima ${formatarMedia(boletim.mediaMinima)}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                Spacer(Modifier.width(Espacos.l))
-                AnelDaMedia(
-                    media = boletim.mediaGeral,
-                    mediaMinima = boletim.mediaMinima,
-                    cor = corStatus,
-                    modifier = Modifier.size(88.dp),
-                ) {
-                    Crossfade(boletim.status, label = "iconeDoStatusGeral") { status ->
-                        Icon(
-                            imageVector = iconeDoStatus(status),
-                            contentDescription = descricaoDoStatus(status),
-                            tint = corStatus,
-                            modifier = Modifier.size(28.dp),
-                        )
-                    }
-                }
-            }
-
-            HorizontalDivider(
-                modifier = Modifier.padding(vertical = Espacos.l),
-                color = MaterialTheme.colorScheme.outlineVariant,
-            )
-
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(Espacos.s),
-                verticalArrangement = Arrangement.spacedBy(Espacos.s),
-            ) {
-                contagemPorStatus(boletim.disciplinas).forEach { (texto, status) ->
-                    Pilula(texto = texto, cor = corDoStatus(status))
-                }
-                Pilula(
-                    texto = textoFaltas(boletim.totalFaltas),
-                    // Neutra, a não ser que alguma disciplina já tenha passado do limite
-                    cor = if (algumaEmRisco) MaterialTheme.colorScheme.error else null,
-                )
             }
         }
     }
@@ -307,7 +225,6 @@ private fun ComDicaDaPrimeiraNota(
 @Composable
 private fun DisciplinaCard(
     resumo: DisciplinaResumo,
-    periodoId: Long?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -352,30 +269,60 @@ private fun DisciplinaCard(
                     color = corDoStatus(situacao),
                 )
             }
-            MediaAnimada(resumo.media) { media ->
-                if (media != null) {
-                    Text(
-                        text = formatarMedia(media),
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = corStatus,
-                    )
-                } else {
-                    Text(
-                        text = "Sem notas",
-                        // Mesma altura de linha da média, para o card não encolher
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontSize = MaterialTheme.typography.titleMedium.fontSize,
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+            // A média e, ao lado, o arco com o símbolo da situação, sempre na mesma linha: se os dois
+            // não couberem (fonte grande, tela estreita), o número encolhe um pouco. Sem notas, o arco
+            // sai e a linha guarda a altura dele, para o card não mudar de tamanho ao trocar o período
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = TAMANHO_DO_ARCO),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // Numa linha só: o texto encolhe até caber, em vez de quebrar ou ser cortado
+                MediaAnimada(resumo.media, Modifier.weight(1f)) { media ->
+                    if (media != null) {
+                        Text(
+                            text = formatarMedia(media),
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = corStatus,
+                            maxLines = 1,
+                            softWrap = false,
+                            autoSize = encolherAte(MaterialTheme.typography.headlineMedium.fontSize),
+                        )
+                    } else {
+                        Text(
+                            text = "Sem notas",
+                            // Mesma altura de linha da média, para o card não mudar de tamanho
+                            style = MaterialTheme.typography.headlineMedium.copy(fontSize = 16.sp),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            softWrap = false,
+                            autoSize = encolherAte(16.sp),
+                        )
+                    }
+                }
+                AnimatedVisibility(visible = resumo.media != null) {
+                    AnelDaMedia(
+                        media = resumo.media,
+                        mediaMinima = resumo.mediaMinima,
+                        cor = corStatus,
+                        modifier = Modifier
+                            .padding(start = Espacos.s)
+                            .size(TAMANHO_DO_ARCO),
+                        espessura = 4.5.dp,
+                    ) {
+                        Crossfade(resumo.status, label = "iconeDoStatus") { status ->
+                            Icon(
+                                imageVector = iconeDoStatus(status),
+                                contentDescription = descricaoDoStatus(status),
+                                tint = corStatus,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    }
                 }
             }
-            outraMedia(resumo.mediaRegular, resumo.substituta, periodoId)?.let { (rotulo, media) ->
-                LinhaDaOutraMedia(rotulo = rotulo, media = media)
-            }
-            Spacer(Modifier.height(Espacos.s))
-            BarraDaMedia(media = resumo.media, mediaMinima = resumo.mediaMinima, cor = corStatus)
             Spacer(Modifier.height(Espacos.s))
             Text(
                 text = textoFaltas(resumo.faltas),
@@ -389,6 +336,12 @@ private fun DisciplinaCard(
         }
     }
 }
+
+private val TAMANHO_DO_ARCO = 44.dp
+
+// Do tamanho do estilo para baixo, de 1 em 1sp. O piso de 12sp só chega com tela estreita e fonte
+// grande juntas, e mesmo assim o número aparece inteiro
+private fun encolherAte(tamanho: TextUnit) = TextAutoSize.StepBased(minFontSize = 12.sp, maxFontSize = tamanho, stepSize = 1.sp)
 
 /**
  * Troca a média rolando, como um contador: o número novo entra por baixo empurrando o antigo para
@@ -444,22 +397,6 @@ private fun descricaoDoStatus(status: StatusDisciplina): String = when (status) 
 internal fun nomeDaSituacao(situacao: StatusDisciplina): String =
     if (situacao == StatusDisciplina.REPROVADO) "Reprovado" else "Aprovado"
 
-/** "1 com folga", "4 no limite", "2 abaixo", "5 sem nota": só as situações que aparecem, nessa ordem. */
-private fun contagemPorStatus(disciplinas: List<DisciplinaResumo>): List<Pair<String, StatusDisciplina>> {
-    val porStatus = disciplinas.groupingBy {
-        // Reprovado entra junto com abaixo: no boletim do período os dois pedem a mesma atenção
-        if (it.status == StatusDisciplina.REPROVADO) StatusDisciplina.ABAIXO else it.status
-    }.eachCount()
-    return listOf(
-        StatusDisciplina.APROVADO to "com folga",
-        StatusDisciplina.ATENCAO to "no limite",
-        StatusDisciplina.ABAIXO to "abaixo",
-        StatusDisciplina.SEM_NOTA to "sem nota",
-    ).mapNotNull { (status, rotulo) ->
-        porStatus[status]?.let { quantidade -> "$quantidade $rotulo" to status }
-    }
-}
-
 /** "Sem faltas", "1 falta", "3 faltas". */
 internal fun textoFaltas(faltas: Int): String = when (faltas) {
     0 -> "Sem faltas"
@@ -482,7 +419,7 @@ internal fun outraMedia(regular: Double?, substituta: Substituta?, periodoId: Lo
 
 /**
  * A linha da [outraMedia], menor e apagada embaixo da média. O rótulo pode encurtar com reticências,
- * o número nunca: no card estreito, o que não pode sumir é justamente o valor.
+ * o número nunca: se faltar largura, o que não pode sumir é justamente o valor.
  */
 @Composable
 internal fun LinhaDaOutraMedia(rotulo: String, media: Double, modifier: Modifier = Modifier) {
