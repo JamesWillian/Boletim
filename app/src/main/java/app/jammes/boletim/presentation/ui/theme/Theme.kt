@@ -13,6 +13,7 @@ import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import app.jammes.boletim.domain.model.Tema
 
 // Todos os papéis do Material a partir da marca: o azul é o primary e o dourado, o container do
 // tertiary. As superfícies são neutras (off-white e cinza frio), sem puxar para o lilás, para as
@@ -98,6 +99,18 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 private val LocalCoresExtras = staticCompositionLocalOf { CoresExtrasClaras }
+private val LocalEscuro = staticCompositionLocalOf { false }
+
+/**
+ * Se o app fica escuro: o [tema] escolhido nas configurações, ou o do aparelho em [Tema.SISTEMA]
+ * (e enquanto as configurações não carregaram).
+ */
+@Composable
+fun temaEscuro(tema: Tema?): Boolean = when (tema) {
+    Tema.CLARO -> false
+    Tema.ESCURO -> true
+    Tema.SISTEMA, null -> isSystemInDarkTheme()
+}
 
 @Composable
 fun BoletimTheme(
@@ -118,7 +131,8 @@ fun BoletimTheme(
     }
 
     CompositionLocalProvider(
-        LocalCoresExtras provides if (darkTheme) CoresExtrasEscuras else CoresExtrasClaras
+        LocalCoresExtras provides if (darkTheme) CoresExtrasEscuras else CoresExtrasClaras,
+        LocalEscuro provides darkTheme,
     ) {
         MaterialTheme(
             colorScheme = colorScheme,
@@ -135,4 +149,13 @@ object BoletimTheme {
         @Composable
         @ReadOnlyComposable
         get() = LocalCoresExtras.current
+
+    /**
+     * Se o tema aberto é o escuro. É o que as telas devem perguntar, e não o isSystemInDarkTheme:
+     * nas configurações, o app pode estar no escuro com o aparelho no claro, e o contrário.
+     */
+    val escuro: Boolean
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalEscuro.current
 }

@@ -98,6 +98,7 @@ fun AppNavGraph() {
                     onContextoTrocado = { navController.popBackStack() },
                     onAnoLetivoCriado = { navController.navigate(Routes.AnoLetivo) },
                     onNovoAluno = { navController.navigate(Routes.NovoAluno) },
+                    onConfiguracoes = { navController.navigate(Routes.Configuracoes) },
                 )
             }
         }

@@ -123,7 +123,7 @@ class EditarDisciplinaScreenTest {
     }
 
     @Test fun `titulo diz de onde vem a regra`() {
-        assertEquals("As do ano letivo", tituloDasRegras(proprias = false))
+        assertEquals("Geral do ano letivo", tituloDasRegras(proprias = false))
         assertEquals("Próprias desta disciplina", tituloDasRegras(proprias = true))
     }
 

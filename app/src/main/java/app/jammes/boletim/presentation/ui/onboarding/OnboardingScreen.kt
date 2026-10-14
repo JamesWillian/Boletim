@@ -12,7 +12,6 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -272,7 +271,7 @@ private fun BoasVindas(onComecar: () -> Unit, onCarregarDadosDeTeste: (() -> Uni
 /** O topo das boas-vindas: pedaços do próprio boletim sobre o azul do ícone. */
 @Composable
 private fun Destaque(modifier: Modifier = Modifier) {
-    val gradiente = if (isSystemInDarkTheme()) GradienteEscuro else GradienteClaro
+    val gradiente = if (BoletimTheme.escuro) GradienteEscuro else GradienteClaro
     BoxWithConstraints(
         modifier = modifier
             .clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp))
@@ -323,7 +322,7 @@ private val ALTURA_DOS_CARTOES = 350.dp
 // Brancos no claro; no escuro, um degrau acima do fundo, como os cards do app
 @Composable
 private fun corDosCartoes(): Color =
-    if (isSystemInDarkTheme()) MaterialTheme.colorScheme.surfaceContainer else MaterialTheme.colorScheme.surfaceContainerLowest
+    if (BoletimTheme.escuro) MaterialTheme.colorScheme.surfaceContainer else MaterialTheme.colorScheme.surfaceContainerLowest
 
 @Composable
 private fun CartaoDaMedia(modifier: Modifier = Modifier) {

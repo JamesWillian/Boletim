@@ -1,6 +1,7 @@
 package app.jammes.boletim.presentation.ui.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Arrangement
@@ -35,9 +36,13 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import app.jammes.boletim.domain.model.DisciplinaDomain
+import app.jammes.boletim.domain.model.EstiloDasAbas
+import app.jammes.boletim.domain.model.MateriaDomain
 import app.jammes.boletim.presentation.ui.theme.CoresDisciplina
 import app.jammes.boletim.presentation.ui.theme.IconesDisciplina
 
@@ -49,6 +54,9 @@ import app.jammes.boletim.presentation.ui.theme.IconesDisciplina
  * desce pela borda da página, como se a folha da frente fosse dela. As outras ficam recolhidas
  * e tingidas, só com o ícone na cor da disciplina.
  *
+ * O [estilo], escolhido nas configurações, diz o que vai embaixo do ícone: nada, a sigla
+ * ([siglas], pelo id da disciplina) ou o nome inteiro, na vertical.
+ *
  * @param disciplinaAbertaId disciplina aberta no centro; null quando é o Boletim Geral.
  */
 @Composable
@@ -58,6 +66,8 @@ fun AbasDisciplinas(
     onAbrirBoletimGeral: () -> Unit,
     onAbrirDisciplina: (disciplinaId: Long) -> Unit,
     modifier: Modifier = Modifier,
+    estilo: EstiloDasAbas = EstiloDasAbas.ICONES_E_DESCRICAO,
+    siglas: Map<Long, String> = emptyMap(),
 ) {
     val corGeral = MaterialTheme.colorScheme.primary
     val corAberta by animateColorAsState(
@@ -102,6 +112,8 @@ fun AbasDisciplinas(
                 cor = corGeral,
                 icone = Icons.Filled.GridView,
                 nome = "Boletim Geral",
+                sigla = SIGLA_DO_BOLETIM_GERAL,
+                estilo = estilo,
                 isSelected = disciplinaAbertaId == null,
                 onClick = onAbrirBoletimGeral
             )
@@ -111,6 +123,8 @@ fun AbasDisciplinas(
                 cor = CoresDisciplina.de(disciplina.cor),
                 icone = IconesDisciplina.de(disciplina.icone),
                 nome = disciplina.nome,
+                sigla = siglas[disciplina.id] ?: siglaDoNome(disciplina.nome),
+                estilo = estilo,
                 isSelected = disciplina.id == disciplinaAbertaId,
                 onClick = { onAbrirDisciplina(disciplina.id) }
             )
@@ -125,7 +139,9 @@ fun AbaDisciplina(
     icone: ImageVector,
     nome: String,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    estilo: EstiloDasAbas = EstiloDasAbas.ICONES_E_DESCRICAO,
+    sigla: String = siglaDoNome(nome),
 ) {
     val largura by animateDpAsState(
         targetValue = if (isSelected) LARGURA_ABERTA else LARGURA_FECHADA,
@@ -158,29 +174,76 @@ fun AbaDisciplina(
         color = fundo,
         contentColor = conteudo,
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        // Trocando o estilo, a aba cresce ou encolhe até a altura nova, sem pular
+        Column(
+            modifier = Modifier.animateContentSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            val soIcone = estilo == EstiloDasAbas.APENAS_ICONES
             // O ícone fica em pé, só o nome gira
             Icon(
                 imageVector = icone,
-                contentDescription = null, // o nome logo abaixo já diz qual é a aba
+                // Com texto embaixo, ele já diz qual é a aba; sozinho, quem diz é o ícone
+                contentDescription = if (soIcone) nome else null,
                 tint = if (isSelected) conteudo else cor,
-                modifier = Modifier.padding(top = 12.dp).size(20.dp),
+                modifier = Modifier
+                    .padding(top = 12.dp, bottom = if (soIcone) 12.dp else 0.dp)
+                    .size(20.dp),
             )
-            Text(
-                nome,
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                maxLines = 1,
-                modifier = Modifier.vertical().rotate(90f)
-                    .padding(vertical = 8.dp, horizontal = 12.dp),
-            )
+            when (estilo) {
+                EstiloDasAbas.APENAS_ICONES -> Unit
+                // A sigla é curta: cabe deitada, embaixo do ícone, sem precisar virar a cabeça
+                EstiloDasAbas.ICONES_E_SIGLA -> Text(
+                    sigla,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                    maxLines = 1,
+                    softWrap = false,
+                    modifier = Modifier
+                        .padding(top = 4.dp, bottom = 10.dp)
+                        // O leitor de tela fala o nome inteiro, e não "M A T"
+                        .semantics { contentDescription = nome },
+                )
+                EstiloDasAbas.ICONES_E_DESCRICAO -> Text(
+                    nome,
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                    maxLines = 1,
+                    modifier = Modifier.vertical().rotate(90f)
+                        .padding(vertical = 8.dp, horizontal = 12.dp),
+                )
+            }
         }
     }
 }
 
-private val LARGURA_ABERTA = 44.dp
+internal val LARGURA_ABERTA = 44.dp
 private val LARGURA_FECHADA = 38.dp
-private val BORDA = 3.dp
+internal val BORDA = 3.dp
+
+// A aba do Boletim Geral no estilo "Ícones + sigla". É uma palavra, e não uma sigla: em
+// maiúsculas, "GERAL" encostava nas bordas da aba fechada
+internal const val SIGLA_DO_BOLETIM_GERAL = "Geral"
+
+/**
+ * A sigla de cada disciplina, pelo id, para as abas no estilo "Ícones + sigla". É a da matéria
+ * ("MAT") enquanto a disciplina tem o nome dela; renomeada, ou com a matéria sem sigla, sai do nome.
+ */
+internal fun siglasDasDisciplinas(
+    disciplinas: List<DisciplinaDomain>,
+    materias: List<MateriaDomain>,
+): Map<Long, String> {
+    val porId = materias.associateBy { it.id }
+    return disciplinas.associate { disciplina ->
+        val materia = porId[disciplina.materiaId]
+        val daMateria = materia?.abreviacao?.trim()?.takeIf { it.isNotEmpty() && materia.nome.trim() == disciplina.nome.trim() }
+        disciplina.id to (daMateria?.uppercase() ?: siglaDoNome(disciplina.nome))
+    }
+}
+
+/** As três primeiras letras do nome, em maiúsculas: "Redação" vira "RED". */
+internal fun siglaDoNome(nome: String): String =
+    nome.filter { it.isLetterOrDigit() }.take(3).uppercase()
 
 // Texto escuro ou branco, o que tiver mais contraste com a cor cheia da aba (o limite de 0,179 é
 // o ponto em que preto e branco empatam no contraste do WCAG)

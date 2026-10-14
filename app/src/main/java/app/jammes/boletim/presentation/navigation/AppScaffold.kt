@@ -24,6 +24,7 @@ import app.jammes.boletim.domain.model.AlunoDomain
 import app.jammes.boletim.domain.model.AnoLetivoDomain
 import app.jammes.boletim.domain.model.Contexto
 import app.jammes.boletim.domain.model.DisciplinaDomain
+import app.jammes.boletim.domain.model.EstiloDasAbas
 import app.jammes.boletim.domain.model.PeriodoDomain
 import app.jammes.boletim.presentation.ui.components.AbasDisciplinas
 import app.jammes.boletim.presentation.ui.components.IdentificacaoCard
@@ -33,7 +34,7 @@ import app.jammes.boletim.presentation.ui.components.IdentificacaoCard
  *
  * ```
  * ┌─────────────────────────────────┐
- * │ IdentificacaoCard               │ ◄── some nos ajustes do ano e na edição da disciplina; o aluno abre o perfil
+ * │ IdentificacaoCard               │ ◄── some nos ajustes do ano, na edição da disciplina e nas configurações; o aluno abre o perfil
  * ├────────────────────────────┬────┤
  * │                            │    │
  * │ AppNavHost                 │ ◄──── AbasDisciplinas, só nas telas
@@ -50,6 +51,8 @@ fun AppScaffold(
     aluno: AlunoDomain?,
     anosLetivos: List<AnoLetivoDomain>,
     disciplinas: List<DisciplinaDomain>,
+    siglas: Map<Long, String>, // pelo id da disciplina, para as abas no estilo "Ícones + sigla"
+    estiloDasAbas: EstiloDasAbas,
     onSelecionarPeriodo: (PeriodoDomain?) -> Unit, // null: o ano letivo inteiro
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
@@ -113,7 +116,9 @@ fun AppScaffold(
                     disciplinas = disciplinas,
                     disciplinaAbertaId = entradaDasAbas?.disciplinaAbertaId,
                     onAbrirBoletimGeral = { navController.abrirBoletimGeral() },
-                    onAbrirDisciplina = { id -> navController.abrirDisciplina(id) }
+                    onAbrirDisciplina = { id -> navController.abrirDisciplina(id) },
+                    estilo = estiloDasAbas,
+                    siglas = siglas,
                 )
             }
         }

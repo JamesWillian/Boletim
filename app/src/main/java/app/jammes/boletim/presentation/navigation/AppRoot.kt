@@ -8,9 +8,11 @@ import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.jammes.boletim.domain.model.Configuracoes
 import app.jammes.boletim.presentation.contexto.ContextoUiState
 import app.jammes.boletim.presentation.contexto.ContextoViewModel
 import app.jammes.boletim.presentation.ui.components.CarregandoDiscreto
+import app.jammes.boletim.presentation.ui.configuracoes.ConfiguracoesViewModel
 import app.jammes.boletim.presentation.ui.onboarding.OnboardingScreen
 
 /**
@@ -28,6 +30,9 @@ fun AppRoot() {
     val owner = LocalActivity.current as ViewModelStoreOwner
     val contextoVm: ContextoViewModel = hiltViewModel(owner)
     val state by contextoVm.state.collectAsStateWithLifecycle()
+    // O mesmo da MainActivity, que já tirou dele o tema
+    val configuracoesVm: ConfiguracoesViewModel = hiltViewModel(owner)
+    val configuracoes by configuracoesVm.configuracoes.collectAsStateWithLifecycle()
 
     when (val s = state) {
         ContextoUiState.Carregando -> CarregandoDiscreto(Modifier.fillMaxSize()) //TelaCarregando()
@@ -38,12 +43,15 @@ fun AppRoot() {
             val alunos by contextoVm.alunos.collectAsStateWithLifecycle()
             val anosLetivos by contextoVm.anosLetivos.collectAsStateWithLifecycle()
             val disciplinas by contextoVm.disciplinas.collectAsStateWithLifecycle()
+            val siglas by contextoVm.siglas.collectAsStateWithLifecycle()
 
             AppScaffold(
                 contexto = s.contexto,
                 aluno = alunos.find { it.id == s.contexto.alunoId },
                 anosLetivos = anosLetivos,
                 disciplinas = disciplinas,
+                siglas = siglas,
+                estiloDasAbas = (configuracoes ?: Configuracoes()).estiloDasAbas,
                 onSelecionarPeriodo = { periodo -> contextoVm.trocarPeriodo(periodo?.id) }
             )
         }

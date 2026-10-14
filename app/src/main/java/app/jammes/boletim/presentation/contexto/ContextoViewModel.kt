@@ -6,10 +6,13 @@ import app.jammes.boletim.domain.repository.AlunoRepository
 import app.jammes.boletim.domain.repository.AnoLetivoRepository
 import app.jammes.boletim.domain.repository.ContextoRepository
 import app.jammes.boletim.domain.repository.DisciplinaRepository
+import app.jammes.boletim.domain.repository.MateriaRepository
+import app.jammes.boletim.presentation.ui.components.siglasDasDisciplinas
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
@@ -25,6 +28,7 @@ class ContextoViewModel @Inject constructor(
     anoLetivoRepo: AnoLetivoRepository,
     alunoRepo: AlunoRepository,
     disciplinaRepo: DisciplinaRepository,
+    materiaRepo: MateriaRepository,
 ): ViewModel() {
 
     val state: StateFlow<ContextoUiState> = contextRepo.contexto
@@ -62,6 +66,14 @@ class ContextoViewModel @Inject constructor(
             viewModelScope,
             SharingStarted.WhileSubscribed(5_000),
             emptyList()
+        )
+
+    /** A sigla de cada disciplina do ano aberto, pelo id: o que as abas mostram no estilo "Ícones + sigla". */
+    val siglas = combine(disciplinas, materiaRepo.observeMaterias(), ::siglasDasDisciplinas)
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            emptyMap()
         )
 
     fun trocarAluno(alunoId: Long, anoLetivoId: Long, periodoId: Long) {

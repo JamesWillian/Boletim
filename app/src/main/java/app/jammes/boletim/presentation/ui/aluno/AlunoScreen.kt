@@ -33,12 +33,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.Backup
+import androidx.compose.material.icons.outlined.AddToDrive
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.EditCalendar
 import androidx.compose.material.icons.outlined.EventRepeat
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.PersonOff
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.SwitchAccount
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -112,6 +113,7 @@ fun AlunoScreen(
     onContextoTrocado: () -> Unit, // aluno ou ano trocado: o que estava aberto era do anterior
     onAnoLetivoCriado: () -> Unit, // o ano novo já está aberto: falta conferir os ajustes dele
     onNovoAluno: () -> Unit, // abre o cadastro, que é o onboarding a partir do passo do aluno
+    onConfiguracoes: () -> Unit, // fecha o perfil e abre as configurações do app
     modifier: Modifier = Modifier,
     viewModel: AlunoViewModel = hiltViewModel(),
 ) {
@@ -207,8 +209,9 @@ fun AlunoScreen(
                         },
                         onCriarAnoLetivo = viewModel::criarAnoLetivo,
                         onNovoAluno = onNovoAluno,
-                        // TODO: abrir as configurações de backup, quando existirem
-                        onBackup = { avisar("As configurações de backup ainda não estão disponíveis") },
+                        // TODO: abrir o backup no Google Drive, quando existir
+                        onBackup = { avisar("O backup no Google Drive ainda não está disponível") },
+                        onConfiguracoes = onConfiguracoes,
                     )
                 }
             }
@@ -247,6 +250,7 @@ private fun PaginasDoPerfil(
     onCriarAnoLetivo: (ano: Int, serie: String) -> Unit,
     onNovoAluno: () -> Unit,
     onBackup: () -> Unit,
+    onConfiguracoes: () -> Unit,
 ) {
     AnimatedContent(
         targetState = pagina,
@@ -271,6 +275,7 @@ private fun PaginasDoPerfil(
                 onAbrir = onAbrir,
                 onNovoAluno = onNovoAluno,
                 onBackup = onBackup,
+                onConfiguracoes = onConfiguracoes,
             )
             Pagina.TrocarAluno -> PaginaTrocarAluno(
                 perfil = perfil,
@@ -304,6 +309,7 @@ private fun PaginaInicio(
     onAbrir: (Pagina) -> Unit,
     onNovoAluno: () -> Unit,
     onBackup: () -> Unit,
+    onConfiguracoes: () -> Unit,
 ) {
     Column(Modifier.padding(bottom = Espacos.m)) {
         // A mesma linha do card de identificação, com o fechar no lugar do calendário
@@ -371,10 +377,16 @@ private fun PaginaInicio(
             }
             Cartao {
                 LinhaQueAbre(
-                    titulo = "Configurações de backup",
-                    rotuloDoClique = "Abrir as configurações de backup",
+                    titulo = "Backup no Google Drive",
+                    rotuloDoClique = "Abrir o backup no Google Drive",
                     onClick = onBackup,
-                ) { Selo(Icons.Outlined.Backup) }
+                ) { Selo(Icons.Outlined.AddToDrive) }
+                Divisoria()
+                LinhaQueAbre(
+                    titulo = "Configurações",
+                    rotuloDoClique = "Abrir as configurações do app",
+                    onClick = onConfiguracoes,
+                ) { Selo(Icons.Outlined.Settings) }
             }
         }
     }
@@ -568,15 +580,16 @@ private fun CorpoDaPagina(
 
 /**
  * Uma opção de uma lista de escolha única: o [inicio] (avatar ou selo), o nome e o [resumo], e o
- * visto na escolhida. [disponivel] falso apaga a linha e não deixa escolher.
+ * visto na escolhida. [disponivel] falso apaga a linha e não deixa escolher. As configurações do app
+ * usam a mesma.
  */
 @Composable
-private fun LinhaDeEscolha(
+internal fun LinhaDeEscolha(
     titulo: String,
     resumo: String,
     escolhida: Boolean,
-    mudando: Boolean,
     onClick: () -> Unit,
+    mudando: Boolean = false,
     disponivel: Boolean = true,
     inicio: @Composable () -> Unit,
 ) {
@@ -620,7 +633,7 @@ private fun LinhaDeEscolha(
 
 /** O ícone da opção num quadrado tingido de azul, como as linhas dos ajustes do ano. */
 @Composable
-private fun Selo(icone: ImageVector) {
+internal fun Selo(icone: ImageVector) {
     SeloDisciplina(cor = MaterialTheme.colorScheme.primary, icone = icone)
 }
 

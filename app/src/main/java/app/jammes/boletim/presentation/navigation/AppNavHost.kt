@@ -27,6 +27,7 @@ import androidx.navigation.toRoute
 import app.jammes.boletim.presentation.ui.aluno.AlunoScreen
 import app.jammes.boletim.presentation.ui.anoletivo.AnoLetivoScreen
 import app.jammes.boletim.presentation.ui.boletim.BoletimScreen
+import app.jammes.boletim.presentation.ui.configuracoes.ConfiguracoesScreen
 import app.jammes.boletim.presentation.ui.components.DURACAO_SAIDA
 import app.jammes.boletim.presentation.ui.components.DURACAO_TRANSICAO
 import app.jammes.boletim.presentation.ui.components.LocalEscopoCompartilhado
@@ -109,6 +110,13 @@ fun AppNavHost(
                         onConcluido = { navController.abrirBoletimGeral() },
                     )
                 }
+                // As configurações sobem como os ajustes
+                composable<Routes.Configuracoes>(
+                    enterTransition = { subindo },
+                    popExitTransition = { descendo },
+                ) {
+                    ConfiguracoesScreen(onVoltar = { navController.fecharConfiguracoes() })
+                }
                 // O perfil abre como dialog, por cima da tela atual. A janela dele ocupa a tela toda,
                 // e o AlunoScreen põe o card no alto
                 dialog<Routes.Aluno>(
@@ -126,6 +134,7 @@ fun AppNavHost(
                             navController.abrirAjustesAnoLetivo()
                         },
                         onNovoAluno = { navController.abrirNovoAluno() },
+                        onConfiguracoes = { navController.abrirConfiguracoes() },
                     )
                 }
             }
@@ -214,6 +223,19 @@ fun NavController.fecharNovoAluno() {
     popBackStack<Routes.NovoAluno>(inclusive = true)
 }
 
+/** Fecha o perfil e abre no lugar dele as configurações, como o cadastro de outro aluno. */
+fun NavController.abrirConfiguracoes() {
+    navigate(Routes.Configuracoes) {
+        popUpTo<Routes.Aluno> { inclusive = true }
+        launchSingleTop = true
+    }
+}
+
+/** Fecha as configurações. Como nos ajustes, só tira elas da pilha, mesmo se for chamado duas vezes. */
+fun NavController.fecharConfiguracoes() {
+    popBackStack<Routes.Configuracoes>(inclusive = true)
+}
+
 /**
  * Abre a disciplina no lugar da que estiver aberta: trocar de aba não empilha telas,
  * então o voltar de qualquer disciplina leva ao Boletim Geral.
@@ -230,13 +252,14 @@ fun NavController.abrirDisciplina(disciplinaId: Long) {
 
 /**
  * O card de identificação some nos ajustes do ano letivo e na edição da disciplina, que têm barra
- * própria (e o card mostraria o ano como está gravado enquanto ele é editado), e no cadastro de outro
- * aluno, que ainda não existe.
+ * própria (e o card mostraria o ano como está gravado enquanto ele é editado), no cadastro de outro
+ * aluno, que ainda não existe, e nas configurações, que não são de nenhum aluno.
  */
 val NavBackStackEntry.mostraIdentificacao: Boolean
     get() = !destination.hasRoute<Routes.AnoLetivo>() &&
         !destination.hasRoute<Routes.EditarDisciplina>() &&
-        !destination.hasRoute<Routes.NovoAluno>()
+        !destination.hasRoute<Routes.NovoAluno>() &&
+        !destination.hasRoute<Routes.Configuracoes>()
 
 /** As abas aparecem em toda tela que está dentro do grafo [Routes.Boletim]. */
 val NavBackStackEntry.mostraAbasDisciplinas: Boolean
