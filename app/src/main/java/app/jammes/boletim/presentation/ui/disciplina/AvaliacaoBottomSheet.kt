@@ -99,9 +99,11 @@ import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -122,7 +124,7 @@ import app.jammes.boletim.domain.model.TipoAvaliacao
 import app.jammes.boletim.domain.model.TipoMedia
 import app.jammes.boletim.domain.model.TipoPeriodo
 import app.jammes.boletim.domain.model.intervalo
-import app.jammes.boletim.domain.model.ocupandoAVaga
+import app.jammes.boletim.domain.usecase.impedimentoDoTipo
 import app.jammes.boletim.presentation.ui.anoletivo.LinhaQueAbre
 import app.jammes.boletim.presentation.ui.anoletivo.nomeDoPeriodo
 import app.jammes.boletim.presentation.ui.boletim.corDoStatus
@@ -158,9 +160,10 @@ import kotlin.math.roundToInt
  * "Mais opções" tem o tipo, quanto a avaliação vale, o peso (só na média ponderada) e o período
  * (só com [escolherPeriodo], no ano letivo inteiro, onde o período também acompanha a data).
  *
- * A recuperação e a final tomam o lugar da média (do período e do ano), então não têm peso. Só
- * cabe uma recuperação por período e uma final no ano: [lancadas] diz se a vaga já está ocupada.
- * A final é do ano e não tem período, então só aparece como opção no ano letivo inteiro.
+ * A recuperação e a final tomam o lugar da média (do período e do ano), então não têm peso. Elas só
+ * cabem com essa média abaixo da mínima, e uma de cada: [lancadas] dizem se cabem. O tipo que não
+ * cabe fica apagado, e tocar nele mostra o motivo embaixo. A final é do ano e não tem período; dá
+ * para lançar de um período também, e quem grava leva a tela para o ano letivo.
  *
  * Numa avaliação nova, "Outra" grava e deixa o formulário pronto para a próxima, com a mesma
  * data, período, tipo, valor e peso: é o caminho para lançar as notas de várias provas seguidas.
@@ -172,7 +175,7 @@ fun AvaliacaoBottomSheet(
     disciplina: DisciplinaDomain,
     regra: RegraAvaliacaoDomain,
     periodos: List<PeriodoDomain>, // todos os do ano: o cabeçalho diz em qual a avaliação fica
-    lancadas: List<AvaliacaoDomain>, // as da disciplina na tela, para a vaga da recuperação e da final
+    lancadas: List<AvaliacaoDomain>, // todas as da disciplina no ano: dizem se cabe recuperação ou final
     escolherPeriodo: Boolean,
     tipoPeriodo: TipoPeriodo,
     onDismiss: () -> Unit,
@@ -190,14 +193,20 @@ fun AvaliacaoBottomSheet(
     var formulario by rememberSaveable { mutableStateOf(FormularioAvaliacao.de(avaliacao)) }
     // O peso só muda a conta da normal na média ponderada; fora dela ele fica escondido e não muda
     val comPeso = regra.tipoMedia == TipoMedia.PONDERADA && formulario.tipo == TipoAvaliacao.NORMAL
-    // A final é do ano: num período ela não é opção (a não ser que seja a que está sendo editada)
-    val tipos = remember(escolherPeriodo) {
-        if (escolherPeriodo || avaliacao.tipo == TipoAvaliacao.FINAL) TipoAvaliacao.entries
-        else TipoAvaliacao.entries - TipoAvaliacao.FINAL
+    // O período da avaliação. Num período, é o da tela: a data e a troca de tipo ficam dentro dele.
+    val periodo = periodos.find { it.id == formulario.periodoId }
+    val periodosDaData = if (escolherPeriodo) periodos else listOfNotNull(periodo)
+    // Por que a recuperação ou a final não cabe agora (a vaga, ou a média que não pede), só as que
+    // não cabem. Não muda enquanto se digita, só com o período ou com as avaliações.
+    val impedimentos = remember(lancadas, formulario.periodoId, regra) {
+        TipoAvaliacao.entries
+            .mapNotNull { tipo -> lancadas.impedimentoDoTipo(tipo, formulario.periodoId, avaliacao, regra)?.let { tipo to it } }
+            .toMap()
     }
-    // A recuperação que já está no período, ou a final que já está no ano, se houver
-    val ocupante = lancadas.ocupandoAVaga(formulario.tipo, formulario.periodoId, alemDe = avaliacao.id)
-    val periodosDaData = if (escolherPeriodo) periodos else emptyList()
+    // O escolhido pode deixar de caber depois: no ano letivo, trocando o período ou a data
+    val impedimentoAtual = impedimentos[formulario.tipo]
+    // O tipo apagado que acabou de ser tocado: o motivo dele aparece embaixo do seletor
+    var tipoTocado by remember { mutableStateOf<TipoAvaliacao?>(null) }
     var secaoAberta by rememberSaveable { mutableStateOf<Secao?>(null) }
     // Quanto a avaliação vale: "Outro" fica escolhido quando a nota máxima não é uma das prontas
     var outraMaxima by rememberSaveable { mutableStateOf(!formulario.notaMaximaComum) }
@@ -248,16 +257,16 @@ fun AvaliacaoBottomSheet(
      * [eOutra], grava e recomeça o formulário para a próxima avaliação, sem fechar.
      */
     fun gravar(eOutra: Boolean = false) {
-        val pronta = formulario.paraGravar(avaliacao, comPeso, hoje, vagaOcupada = ocupante != null)
+        val pronta = formulario.paraGravar(avaliacao, comPeso, hoje, tipoIndisponivel = impedimentoAtual != null)
         if (pronta == null) {
             tentouGravar = true
             haptico.performHapticFeedback(HapticFeedbackType.Reject)
-            when (formulario.problema(comPeso, hoje, vagaOcupada = ocupante != null)) {
+            when (formulario.problema(comPeso, hoje, tipoIndisponivel = impedimentoAtual != null)) {
                 FormularioAvaliacao.Problema.SEM_NOME -> focoNome.requestFocus()
                 FormularioAvaliacao.Problema.NOTA_FORA_DA_ESCALA,
                 FormularioAvaliacao.Problema.NOTA_NO_FUTURO -> focoNota.requestFocus()
                 FormularioAvaliacao.Problema.SEM_DATA -> abrir(Secao.DATA)
-                FormularioAvaliacao.Problema.VAGA_OCUPADA,
+                FormularioAvaliacao.Problema.TIPO_INDISPONIVEL,
                 FormularioAvaliacao.Problema.NOTA_MAXIMA,
                 FormularioAvaliacao.Problema.PESO -> abrir(Secao.OPCOES)
                 null -> Unit
@@ -277,7 +286,6 @@ fun AvaliacaoBottomSheet(
         focoNome.requestFocus()
     }
 
-    val periodo = periodos.find { it.id == formulario.periodoId }
     // No ano letivo inteiro dá para escolher qualquer dia dos períodos, e o período vai junto com a
     // data; num período, só os dias dele. A final pode cair depois do último período.
     val intervalo = when {
@@ -397,15 +405,20 @@ fun AvaliacaoBottomSheet(
                     onClick = { abrir(if (opcoesAbertas) null else Secao.OPCOES) },
                     resumo = formulario.resumoDasOpcoes(comPeso),
                     // Aberta, o erro já aparece no campo; fechada, a linha avisa
-                    aviso = if (opcoesAbertas) null else formulario.avisoDasOpcoes(comPeso, vagaOcupada = ocupante != null),
+                    aviso = if (opcoesAbertas) null else formulario.avisoDasOpcoes(
+                        comPeso = comPeso,
+                        avisoDoTipo = impedimentoAtual?.let { resumoDoImpedimento(formulario.tipo, it) },
+                    ),
                     fim = { SetaDaSecao(aberta = opcoesAbertas) },
                 ) { SeloDoIcone(Icons.Outlined.Tune) }
                 AnimatedVisibility(visible = opcoesAbertas) {
                     MaisOpcoes(
                         tipo = formulario.tipo,
-                        tipos = tipos,
-                        erroDoTipo = ocupante?.let { textoDaVagaOcupada(it, periodo?.let { p -> noPeriodo(p, tipoPeriodo) }) },
-                        dicaDoTipo = if (TipoAvaliacao.FINAL in tipos) null else "Para lançar a final, escolha Ano letivo no topo.",
+                        indisponiveis = impedimentos.keys - formulario.tipo,
+                        // O do escolhido, se ele deixou de caber; senão, o do apagado que foi tocado
+                        alertaDoTipo = (formulario.tipo.takeIf { impedimentoAtual != null } ?: tipoTocado)
+                            ?.let { tipo -> impedimentos[tipo]?.let { tipo to it } }
+                            ?.let { (tipo, motivo) -> textoDoImpedimento(tipo, motivo, periodo?.let { noPeriodo(it, tipoPeriodo) }) },
                         notaMaxima = formulario.notaMaxima,
                         notaMaximaValor = formulario.notaMaximaValor,
                         outraMaxima = outraMaxima,
@@ -417,7 +430,11 @@ fun AvaliacaoBottomSheet(
                         } else {
                             emptyList()
                         },
-                        onTipo = { formulario = formulario.comTipo(it, periodosDaData) },
+                        onTipo = {
+                            tipoTocado = null
+                            formulario = formulario.comTipo(it, periodosDaData)
+                        },
+                        onTipoIndisponivel = { tipoTocado = it },
                         onMaximaPronta = { valor ->
                             outraMaxima = false
                             formulario = formulario.copy(notaMaxima = formatarNumero(valor))
@@ -871,18 +888,17 @@ private class DiasQuePodem(private val dias: DiasDoCalendario) : SelectableDates
 }
 
 /**
- * O que quase sempre fica como está: o tipo (só os [tipos] que cabem na tela), quanto a avaliação
- * vale (10, 5, 100 ou outro valor), o peso, com − e + (só com [peso], na média ponderada) e o
- * período (só com [opcoesDePeriodo], no ano letivo inteiro). O tipo e o período usam o mesmo
- * seletor do topo do app. Embaixo do tipo vem o [erroDoTipo] (a vaga já está ocupada) ou a
- * [dicaDoTipo] (onde fica a final).
+ * O que quase sempre fica como está: o tipo, quanto a avaliação vale (10, 5, 100 ou outro valor),
+ * o peso, com − e + (só com [peso], na média ponderada) e o período (só com [opcoesDePeriodo], no
+ * ano letivo inteiro). O tipo e o período usam o mesmo seletor do topo do app. Os tipos
+ * [indisponiveis] ficam apagados, e tocar num deles chama [onTipoIndisponivel]; o [alertaDoTipo]
+ * vem embaixo do seletor.
  */
 @Composable
 private fun MaisOpcoes(
     tipo: TipoAvaliacao,
-    tipos: List<TipoAvaliacao>,
-    erroDoTipo: String?,
-    dicaDoTipo: String?,
+    indisponiveis: Set<TipoAvaliacao>,
+    alertaDoTipo: String?,
     notaMaxima: String,
     notaMaximaValor: Double?,
     outraMaxima: Boolean,
@@ -890,6 +906,7 @@ private fun MaisOpcoes(
     periodoSelecionado: Int,
     opcoesDePeriodo: List<OpcaoDoSeletor>,
     onTipo: (TipoAvaliacao) -> Unit,
+    onTipoIndisponivel: (TipoAvaliacao) -> Unit,
     onMaximaPronta: (Double) -> Unit,
     onOutraMaxima: () -> Unit,
     onNotaMaxima: (String) -> Unit,
@@ -897,7 +914,9 @@ private fun MaisOpcoes(
     onPeriodo: (Int) -> Unit,
 ) {
     val haptico = LocalHapticFeedback.current
-    val opcoesDeTipo = remember(tipos) { tipos.map { OpcaoDoSeletor(it.displayname) } }
+    val opcoesDeTipo = remember(indisponiveis) {
+        TipoAvaliacao.entries.map { OpcaoDoSeletor(it.displayname, habilitada = it !in indisponiveis) }
+    }
     val focoOutra = remember { FocusRequester() }
     // Tocar em "Outro" leva o cursor para o campo, que só existe depois de aparecer
     var pedidosDeFoco by remember { mutableIntStateOf(0) }
@@ -910,19 +929,18 @@ private fun MaisOpcoes(
             Rotulo("Tipo")
             SeletorEmPilula(
                 opcoes = opcoesDeTipo,
-                selecionada = tipos.indexOf(tipo),
-                onSelecionar = { onTipo(tipos[it]) },
+                selecionada = tipo.ordinal,
+                onSelecionar = { onTipo(TipoAvaliacao.entries[it]) },
                 papel = Role.RadioButton,
+                onTocarIndisponivel = { onTipoIndisponivel(TipoAvaliacao.entries[it]) },
             )
-            (erroDoTipo ?: dicaDoTipo)?.let { texto ->
+            alertaDoTipo?.let { texto ->
                 Text(
                     text = texto,
                     style = MaterialTheme.typography.bodySmall,
-                    color = if (erroDoTipo != null) {
-                        MaterialTheme.colorScheme.error
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
+                    color = MaterialTheme.colorScheme.error,
+                    // O leitor de tela fala o motivo assim que ele aparece
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                 )
             }
         }

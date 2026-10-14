@@ -1,6 +1,7 @@
 package app.jammes.boletim.presentation.ui.disciplina
 
 import app.jammes.boletim.domain.model.AvaliacaoDomain
+import app.jammes.boletim.domain.model.Impedimento
 import app.jammes.boletim.domain.model.PeriodoDomain
 import app.jammes.boletim.domain.model.RegraAvaliacaoDomain
 import app.jammes.boletim.domain.model.StatusDisciplina
@@ -17,6 +18,7 @@ import app.jammes.boletim.presentation.ui.anoletivo.dataCurta
 import app.jammes.boletim.presentation.ui.anoletivo.feminino
 import app.jammes.boletim.presentation.ui.anoletivo.nomeDoPeriodo
 import app.jammes.boletim.presentation.ui.anoletivo.passo
+import app.jammes.boletim.presentation.ui.boletim.formatarMedia
 import java.io.Serializable
 import java.math.RoundingMode
 import java.text.NumberFormat
@@ -34,7 +36,8 @@ import java.util.Locale
  * numa avaliação gravada antes disso, e aí precisa ser escolhida para gravar de novo.
  *
  * A recuperação é de um período e a final é do ano: a final grava sem período, e o [periodoId] do
- * formulário só fica guardado para o caso de ela voltar a ser normal ou recuperação.
+ * formulário só fica guardado para o caso de ela voltar a ser normal ou recuperação. As duas só
+ * cabem com a média abaixo da mínima, uma de cada (ver impedimentoDoTipo); quem sabe é a tela.
  */
 data class FormularioAvaliacao(
     val nome: String,
@@ -84,15 +87,15 @@ data class FormularioAvaliacao(
     /**
      * O que impede de gravar, ou null quando dá para gravar. Vem o primeiro na ordem da tela:
      * nome, nota, data e, por último, o que fica em "Mais opções". O peso só conta [comPeso].
-     * [vagaOcupada]: já existe outra recuperação no período, ou outra final no ano (quem sabe é a
-     * tela, que tem as avaliações da disciplina).
+     * [tipoIndisponivel]: a recuperação ou a final não cabe (a vaga já está ocupada, ou a média não
+     * está abaixo da mínima). Quem sabe é a tela, que tem as avaliações da disciplina.
      */
-    fun problema(comPeso: Boolean, hoje: LocalDate, vagaOcupada: Boolean = false): Problema? = when {
+    fun problema(comPeso: Boolean, hoje: LocalDate, tipoIndisponivel: Boolean = false): Problema? = when {
         nome.isBlank() -> Problema.SEM_NOME
         notaInvalida -> Problema.NOTA_FORA_DA_ESCALA
         !agendada && noFuturo(hoje) -> Problema.NOTA_NO_FUTURO
         data == null -> Problema.SEM_DATA
-        vagaOcupada -> Problema.VAGA_OCUPADA
+        tipoIndisponivel -> Problema.TIPO_INDISPONIVEL
         notaMaximaValor == null -> Problema.NOTA_MAXIMA
         comPeso && pesoValor == null -> Problema.PESO
         else -> null
@@ -103,9 +106,9 @@ data class FormularioAvaliacao(
         original: AvaliacaoDomain,
         comPeso: Boolean,
         hoje: LocalDate,
-        vagaOcupada: Boolean = false,
+        tipoIndisponivel: Boolean = false,
     ): AvaliacaoDomain? {
-        if (problema(comPeso, hoje, vagaOcupada) != null) return null
+        if (problema(comPeso, hoje, tipoIndisponivel) != null) return null
         return original.copy(
             nome = nome.trim(),
             nota = notaValor, // vazia fica null
@@ -192,10 +195,12 @@ data class FormularioAvaliacao(
         if (comPeso) "peso ${pesoValor?.let(::formatarNumero) ?: peso.trim().ifEmpty { "?" }}" else null,
     ).joinToString(" · ")
 
-    /** O que está errado em "Mais opções", para a linha avisar com a seção fechada; null quando nada. */
-    fun avisoDasOpcoes(comPeso: Boolean, vagaOcupada: Boolean = false): String? = when {
-        vagaOcupada && tipo == TipoAvaliacao.FINAL -> "Já tem uma final no ano"
-        vagaOcupada -> "Já tem uma recuperação no período"
+    /**
+     * O que está errado em "Mais opções", para a linha avisar com a seção fechada; null quando nada.
+     * [avisoDoTipo] é o resumo de por que o tipo escolhido não cabe (ver resumoDoImpedimento).
+     */
+    fun avisoDasOpcoes(comPeso: Boolean, avisoDoTipo: String? = null): String? = when {
+        avisoDoTipo != null -> avisoDoTipo
         notaMaximaValor == null -> "Confira a nota máxima"
         comPeso && pesoValor == null -> "Confira o peso"
         else -> null
@@ -206,7 +211,7 @@ data class FormularioAvaliacao(
         NOTA_FORA_DA_ESCALA,
         NOTA_NO_FUTURO,
         SEM_DATA,
-        VAGA_OCUPADA, // já tem outra recuperação no período, ou outra final no ano
+        TIPO_INDISPONIVEL, // a recuperação ou a final não cabe: a vaga, ou a média que não pede
         NOTA_MAXIMA,
         PESO,
     }
@@ -333,6 +338,38 @@ internal fun textoDaVagaOcupada(ocupante: AvaliacaoDomain, noPeriodo: String?): 
     } else {
         "Já tem uma recuperação ${noPeriodo ?: "neste período"}: “${ocupante.nome}”."
     }
+
+/**
+ * O alerta embaixo do seletor de tipo: por que a recuperação (no [noPeriodo], como "no 4º Bimestre")
+ * ou a final não cabe agora.
+ */
+internal fun textoDoImpedimento(tipo: TipoAvaliacao, impedimento: Impedimento, noPeriodo: String?): String {
+    val final = tipo == TipoAvaliacao.FINAL
+    val onde = noPeriodo ?: "no período"
+    return when (impedimento) {
+        is Impedimento.VagaOcupada -> textoDaVagaOcupada(impedimento.ocupante, noPeriodo)
+        Impedimento.SemMedia ->
+            if (final) "O ano ainda não tem média: a final vem depois das notas."
+            else "Ainda não há média $onde: a recuperação vem depois das notas."
+        is Impedimento.MediaSuficiente -> {
+            val minima = formatarMedia(impedimento.minima)
+            val media = formatarMedia(impedimento.media)
+            if (final) "Final só com média do ano abaixo de $minima. Ela está em $media."
+            else "Recuperação só com média abaixo de $minima. ${onde.replaceFirstChar { it.uppercase() }}, ela está em $media."
+        }
+    }
+}
+
+/** O mesmo motivo, curto, para a linha de "Mais opções" fechada. */
+internal fun resumoDoImpedimento(tipo: TipoAvaliacao, impedimento: Impedimento): String {
+    val final = tipo == TipoAvaliacao.FINAL
+    return when (impedimento) {
+        is Impedimento.VagaOcupada -> if (final) "Já tem uma final no ano" else "Já tem uma recuperação no período"
+        Impedimento.SemMedia -> if (final) "O ano ainda não tem média" else "O período ainda não tem média"
+        is Impedimento.MediaSuficiente ->
+            if (final) "A média do ano já alcança a mínima" else "A média do período já alcança a mínima"
+    }
+}
 
 /**
  * A situação de uma nota como se fosse uma média: levada para a escala de 10 pela mesma conta do

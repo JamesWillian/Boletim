@@ -7,6 +7,7 @@ import androidx.navigation.toRoute
 import app.jammes.boletim.domain.model.AvaliacaoDomain
 import app.jammes.boletim.domain.model.DisciplinaDetalhe
 import app.jammes.boletim.domain.model.FaltaDomain
+import app.jammes.boletim.domain.model.TipoAvaliacao
 import app.jammes.boletim.domain.model.intervalo
 import app.jammes.boletim.domain.model.periodoDe
 import app.jammes.boletim.domain.repository.AvaliacaoRepository
@@ -35,7 +36,7 @@ sealed interface DisciplinaUiState {
 @HiltViewModel
 class DisciplinaViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    contextoRepo: ContextoRepository,
+    private val contextoRepo: ContextoRepository,
     obterDisciplinaDetalhe: ObterDisciplinaDetalhe,
     private val avaliacaoRepo: AvaliacaoRepository,
     private val faltaRepo: FaltaRepository,
@@ -80,9 +81,15 @@ class DisciplinaViewModel @Inject constructor(
         )
     }
 
+    /**
+     * Grava a avaliação. A final é do ano: gravada com a tela num período, a tela passa para o ano
+     * letivo inteiro, que é onde ela aparece (no grupo dela) e muda a média.
+     */
     fun salvar(avaliacao: AvaliacaoDomain) {
+        val numPeriodo = (state.value as? DisciplinaUiState.Sucesso)?.detalhe?.periodoId != null
         viewModelScope.launch {
             avaliacaoRepo.upsert(avaliacao)
+            if (avaliacao.tipo == TipoAvaliacao.FINAL && numPeriodo) contextoRepo.selecionarPeriodo(null)
         }
     }
 

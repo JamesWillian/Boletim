@@ -44,8 +44,12 @@ import app.jammes.boletim.presentation.ui.anoletivo.nomeDoPeriodo
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-/** Uma opção do [SeletorEmPilula]: o nome inteiro e o curto, para quando os inteiros não cabem. */
-data class OpcaoDoSeletor(val completo: String, val curto: String = completo)
+/**
+ * Uma opção do [SeletorEmPilula]: o nome inteiro e o curto, para quando os inteiros não cabem. Sem
+ * [habilitada], ela aparece apagada e não é escolhida: o toque só serve para quem usa o seletor
+ * explicar por quê.
+ */
+data class OpcaoDoSeletor(val completo: String, val curto: String = completo, val habilitada: Boolean = true)
 
 /** "1º Bimestre", que encurta para "1º". */
 internal fun opcaoDoPeriodo(numero: Int, tipo: TipoPeriodo): OpcaoDoSeletor {
@@ -60,7 +64,8 @@ internal fun opcaoDoPeriodo(numero: Int, tipo: TipoPeriodo): OpcaoDoSeletor {
  * Se os nomes inteiros ("1ª Unidade") não cabem todos na largura, só o escolhido fica inteiro e
  * os outros encurtam ("1ª"); se nem assim couber, todos encurtam. As opções dividem a largura na
  * proporção do texto. [selecionada] -1 deixa nenhuma marcada. [trilho] é a cor do fundo: a padrão
- * combina com o fundo da tela.
+ * combina com o fundo da tela. Uma opção não [OpcaoDoSeletor.habilitada] continua tocável, mas o
+ * toque vibra "não" e chama [onTocarIndisponivel] em vez de [onSelecionar].
  */
 @Composable
 internal fun SeletorEmPilula(
@@ -70,6 +75,7 @@ internal fun SeletorEmPilula(
     modifier: Modifier = Modifier,
     trilho: Color = MaterialTheme.colorScheme.surfaceContainerHigh,
     papel: Role = Role.Tab, // num formulário, RadioButton: o leitor de tela diz que é uma escolha
+    onTocarIndisponivel: (Int) -> Unit = {},
 ) {
     val estilo = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold)
     val medidor = rememberTextMeasurer()
@@ -123,11 +129,13 @@ internal fun SeletorEmPilula(
             Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.Start) {
                 textos.forEachIndexed { i, texto ->
                     val escolhida = i == selecionada
+                    val habilitada = opcoes[i].habilitada || escolhida
                     val cor by animateColorAsState(
-                        targetValue = if (escolhida) {
-                            MaterialTheme.colorScheme.onPrimary
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                        targetValue = when {
+                            escolhida -> MaterialTheme.colorScheme.onPrimary
+                            // O mesmo apagado de um controle desligado do Material
+                            !habilitada -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                            else -> MaterialTheme.colorScheme.onSurfaceVariant
                         },
                         label = "corDaOpcao",
                     )
@@ -140,9 +148,14 @@ internal fun SeletorEmPilula(
                                 selected = escolhida,
                                 role = papel,
                                 onClick = {
-                                    // Um "tique" a cada troca, como um seletor de verdade
-                                    if (!escolhida) haptico.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                                    onSelecionar(i)
+                                    if (!habilitada) {
+                                        haptico.performHapticFeedback(HapticFeedbackType.Reject)
+                                        onTocarIndisponivel(i)
+                                    } else {
+                                        // Um "tique" a cada troca, como um seletor de verdade
+                                        if (!escolhida) haptico.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                        onSelecionar(i)
+                                    }
                                 },
                             )
                             .padding(horizontal = PADDING_OPCAO, vertical = 8.dp),
@@ -156,7 +169,9 @@ internal fun SeletorEmPilula(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             // O leitor de tela fala o nome inteiro mesmo quando aparece só "1ª"
-                            modifier = Modifier.semantics { contentDescription = opcoes[i].completo },
+                            modifier = Modifier.semantics {
+                                contentDescription = opcoes[i].completo + if (habilitada) "" else ", indisponível"
+                            },
                         )
                     }
                 }

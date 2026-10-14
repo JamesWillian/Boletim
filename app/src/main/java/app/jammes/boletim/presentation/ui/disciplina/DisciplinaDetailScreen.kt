@@ -254,9 +254,9 @@ fun DisciplinaDetailScreen(
                         disciplina = detalhe.disciplina,
                         regra = detalhe.regra,
                         periodos = detalhe.periodos,
-                        // Para saber se já tem recuperação no período ou final no ano: num período, a
-                        // lista tem só as dele, e a final nem aparece como opção
-                        lancadas = detalhe.avaliacoes,
+                        // As do ano inteiro: a final pode ser lançada de um período, e a média do ano
+                        // decide se ela cabe
+                        lancadas = detalhe.avaliacoesDoAno,
                         // Num período, a avaliação fica nele; no ano inteiro, o formulário pergunta
                         escolherPeriodo = detalhe.periodoId == null,
                         tipoPeriodo = detalhe.tipoPeriodo,

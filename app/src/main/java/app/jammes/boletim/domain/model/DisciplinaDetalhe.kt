@@ -13,6 +13,9 @@ data class DisciplinaDetalhe(
     val regra: RegraAvaliacaoDomain,
     val avaliacoesPorPeriodo: List<AvaliacoesDoPeriodo>, // só os períodos que têm avaliação
     val finais: List<AvaliacaoDomain>, // a final do ano, no grupo dela; vazia num período
+    // Todas, de qualquer período, e a final: o formulário decide por elas se cabe recuperação ou
+    // final, mesmo com a tela num período só
+    val avaliacoesDoAno: List<AvaliacaoDomain>,
     val faltasPorPeriodo: List<FaltasDoPeriodo>, // só os períodos que têm falta
     val media: Double?, // a que vale: com a recuperação (no período) ou a final (no ano), se forem maiores
     val mediaRegular: Double?, // só das avaliações normais

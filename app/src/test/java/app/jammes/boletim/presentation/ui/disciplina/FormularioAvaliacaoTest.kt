@@ -1,6 +1,7 @@
 package app.jammes.boletim.presentation.ui.disciplina
 
 import app.jammes.boletim.domain.model.AvaliacaoDomain
+import app.jammes.boletim.domain.model.Impedimento
 import app.jammes.boletim.domain.model.PeriodoDomain
 import app.jammes.boletim.domain.model.RegraAvaliacaoDomain
 import app.jammes.boletim.domain.model.StatusDisciplina
@@ -334,25 +335,54 @@ class FormularioAvaliacaoTest {
         assertEquals(4L, formulario.copy(tipo = TipoAvaliacao.RECUPERACAO).paraGravar(NOVA, comPeso = false, HOJE)!!.periodoId)
     }
 
-    @Test fun `com a vaga ocupada nao grava, e o problema vem depois da data`() {
+    @Test fun `com o tipo indisponivel nao grava, e o problema vem depois da data`() {
         val formulario = FormularioAvaliacao.de(NOVA).copy(nome = "Recuperação", tipo = TipoAvaliacao.RECUPERACAO)
 
-        assertEquals(Problema.VAGA_OCUPADA, formulario.problema(comPeso = false, HOJE, vagaOcupada = true))
-        assertEquals(Problema.SEM_DATA, formulario.copy(data = null).problema(comPeso = false, HOJE, vagaOcupada = true))
+        assertEquals(Problema.TIPO_INDISPONIVEL, formulario.problema(comPeso = false, HOJE, tipoIndisponivel = true))
+        assertEquals(Problema.SEM_DATA, formulario.copy(data = null).problema(comPeso = false, HOJE, tipoIndisponivel = true))
         assertEquals(
-            Problema.VAGA_OCUPADA,
-            formulario.copy(notaMaxima = "0").problema(comPeso = false, HOJE, vagaOcupada = true), // antes da máxima
+            Problema.TIPO_INDISPONIVEL,
+            formulario.copy(notaMaxima = "0").problema(comPeso = false, HOJE, tipoIndisponivel = true), // antes da máxima
         )
-        assertNull(formulario.paraGravar(NOVA, comPeso = false, HOJE, vagaOcupada = true))
+        assertNull(formulario.paraGravar(NOVA, comPeso = false, HOJE, tipoIndisponivel = true))
     }
 
-    @Test fun `mais opcoes avisa quando a vaga esta ocupada`() {
-        val formulario = FormularioAvaliacao.de(NOVA).copy(tipo = TipoAvaliacao.RECUPERACAO)
+    @Test fun `mais opcoes fechada avisa por que o tipo nao cabe`() {
+        val formulario = FormularioAvaliacao.de(NOVA).copy(tipo = TipoAvaliacao.RECUPERACAO, notaMaxima = "0")
+        val vaga = Impedimento.VagaOcupada(NOVA.copy(id = 9, tipo = TipoAvaliacao.RECUPERACAO))
 
-        assertEquals("Já tem uma recuperação no período", formulario.avisoDasOpcoes(comPeso = false, vagaOcupada = true))
+        // O tipo vem antes da nota máxima, que também está errada aqui
         assertEquals(
-            "Já tem uma final no ano",
-            formulario.copy(tipo = TipoAvaliacao.FINAL).avisoDasOpcoes(comPeso = false, vagaOcupada = true),
+            "Já tem uma recuperação no período",
+            formulario.avisoDasOpcoes(comPeso = false, avisoDoTipo = resumoDoImpedimento(formulario.tipo, vaga)),
+        )
+        assertEquals("Já tem uma final no ano", resumoDoImpedimento(TipoAvaliacao.FINAL, vaga))
+        assertEquals("O período ainda não tem média", resumoDoImpedimento(TipoAvaliacao.RECUPERACAO, Impedimento.SemMedia))
+        assertEquals(
+            "A média do ano já alcança a mínima",
+            resumoDoImpedimento(TipoAvaliacao.FINAL, Impedimento.MediaSuficiente(media = 8.9, minima = 8.0)),
+        )
+    }
+
+    @Test fun `o alerta do tipo diz o motivo, com a media e a minima`() {
+        val noQuarto = noPeriodo(QUARTO_BIMESTRE, TipoPeriodo.BIMESTRE)
+        val suficiente = Impedimento.MediaSuficiente(media = 8.8, minima = 8.0)
+
+        assertEquals(
+            "Recuperação só com média abaixo de 8,0. No 4º Bimestre, ela está em 8,8.",
+            textoDoImpedimento(TipoAvaliacao.RECUPERACAO, suficiente, noQuarto),
+        )
+        assertEquals(
+            "Final só com média do ano abaixo de 8,0. Ela está em 8,8.",
+            textoDoImpedimento(TipoAvaliacao.FINAL, suficiente, noQuarto),
+        )
+        assertEquals(
+            "Ainda não há média no 4º Bimestre: a recuperação vem depois das notas.",
+            textoDoImpedimento(TipoAvaliacao.RECUPERACAO, Impedimento.SemMedia, noQuarto),
+        )
+        assertEquals(
+            "O ano ainda não tem média: a final vem depois das notas.",
+            textoDoImpedimento(TipoAvaliacao.FINAL, Impedimento.SemMedia, noQuarto),
         )
     }
 

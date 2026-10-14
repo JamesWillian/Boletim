@@ -34,3 +34,18 @@ fun List<AvaliacaoDomain>.ocupandoAVaga(tipo: TipoAvaliacao, periodoId: Long?, a
  */
 fun AvaliacaoDomain.lancouAFinal(antes: AvaliacaoDomain): Boolean =
     tipo == TipoAvaliacao.FINAL && nota != null && !(antes.tipo == TipoAvaliacao.FINAL && antes.nota != null)
+
+/**
+ * Por que uma recuperação ou uma final não cabe agora. Elas existem para quem ficou abaixo da
+ * mínima: a recuperação, no período; a final, no ano. Também só cabe uma de cada.
+ */
+sealed interface Impedimento {
+    /** Já tem a recuperação do período, ou a final do ano: a [ocupante]. */
+    data class VagaOcupada(val ocupante: AvaliacaoDomain) : Impedimento
+
+    /** O período (ou o ano) ainda não tem média: não dá para saber se ficou abaixo. */
+    data object SemMedia : Impedimento
+
+    /** A [media] do período (ou do ano) já alcança a [minima]: não há o que recuperar. */
+    data class MediaSuficiente(val media: Double, val minima: Double) : Impedimento
+}

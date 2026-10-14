@@ -5,6 +5,7 @@ import app.jammes.boletim.domain.model.Boletim
 import app.jammes.boletim.domain.model.Contexto
 import app.jammes.boletim.domain.model.DisciplinaDados
 import app.jammes.boletim.domain.model.DisciplinaResumo
+import app.jammes.boletim.domain.model.Impedimento
 import app.jammes.boletim.domain.model.MediaNoFiltro
 import app.jammes.boletim.domain.model.PeriodoDomain
 import app.jammes.boletim.domain.model.RegraAvaliacaoDomain
@@ -13,6 +14,7 @@ import app.jammes.boletim.domain.model.Substituta
 import app.jammes.boletim.domain.model.TipoArredondamento
 import app.jammes.boletim.domain.model.TipoAvaliacao
 import app.jammes.boletim.domain.model.TipoMedia
+import app.jammes.boletim.domain.model.ocupandoAVaga
 import app.jammes.boletim.domain.repository.AnoLetivoRepository
 import app.jammes.boletim.domain.repository.DisciplinaRepository
 import app.jammes.boletim.domain.repository.RegraAvaliacaoRepository
@@ -144,6 +146,39 @@ fun calcularMediaNoFiltro(
 ): MediaNoFiltro =
     if (periodoId == null) CalcularMediaAnual(avaliacoes, regra)
     else CalcularMediaDoPeriodo(avaliacoes.filter { it.periodoId == periodoId }, regra)
+
+/**
+ * Por que a avaliação não pode ser do [tipo] no [periodoId], ou null quando pode. A recuperação é
+ * para o período com média abaixo da mínima, e a final para o ano com média abaixo da mínima: acima
+ * dela não há o que recuperar, e sem média ainda não dá para saber. Só cabe uma de cada.
+ *
+ * A média é a que ela viria substituir, sem contar a própria [original] (uma normal pode estar virando
+ * recuperação). A [original] que já está gravada desse tipo, nesse lugar, continua podendo ser
+ * editada, mesmo que a média tenha mudado depois. Normal sempre pode.
+ */
+fun List<AvaliacaoDomain>.impedimentoDoTipo(
+    tipo: TipoAvaliacao,
+    periodoId: Long?,
+    original: AvaliacaoDomain,
+    regra: RegraAvaliacaoDomain,
+): Impedimento? {
+    if (tipo == TipoAvaliacao.NORMAL) return null
+    val jaEraAssim = original.tipo == tipo && (tipo == TipoAvaliacao.FINAL || original.periodoId == periodoId)
+    if (jaEraAssim) return null
+    ocupandoAVaga(tipo, periodoId, alemDe = original.id)?.let { return Impedimento.VagaOcupada(it) }
+
+    val outras = filter { it.id != original.id }
+    val media = if (tipo == TipoAvaliacao.RECUPERACAO) {
+        CalcularMediaDisciplina(outras.filter { it.periodoId == periodoId }, regra)
+    } else {
+        CalcularMediaAnual(outras, regra).regular
+    }
+    return when {
+        media == null -> Impedimento.SemMedia
+        media >= regra.mediaMinima -> Impedimento.MediaSuficiente(media, regra.mediaMinima)
+        else -> null
+    }
+}
 
 val DOIS = BigDecimal(2)
 

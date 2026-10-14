@@ -88,6 +88,7 @@ class ObterDisciplinaDetalhe @Inject constructor(
             regra = regra,
             avaliacoesPorPeriodo = avaliacoesPorPeriodo,
             finais = finais,
+            avaliacoesDoAno = avaliacoes,
             faltasPorPeriodo = faltasPorPeriodo,
             media = calculo.media,
             mediaRegular = calculo.regular,
