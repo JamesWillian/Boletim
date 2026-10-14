@@ -30,6 +30,7 @@ import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.foundation.text.modifiers.TextAutoSizeLayoutScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.Check
@@ -56,8 +57,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -242,15 +246,29 @@ private fun DisciplinaCard(
     ) {
         Column(Modifier.padding(Espacos.l)) {
             Row {
-                Text(
-                    text = resumo.nome,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 2,
-                    minLines = 2, // mantém os cards alinhados na grade
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
+                Box(Modifier.weight(1f)) {
+                    // Duas linhas no tamanho normal, vazias, mantêm os cards alinhados na grade. O
+                    // minLines no próprio nome não serve: quando a fonte encolhe, a linha encolhe junto
+                    // (com a fonte do sistema aumentada), e 2px a menos já mudam a coluna dos seguintes
+                    Text(
+                        text = "",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        minLines = 2,
+                    )
+                    Text(
+                        text = resumo.nome,
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        // "Educação / Física" pode quebrar; "Matemáti / ca", não: aí a fonte encolhe
+                        autoSize = EncolherSemPartirPalavra(
+                            minimo = 11.sp,
+                            maximo = MaterialTheme.typography.titleSmall.fontSize,
+                        ),
+                    )
+                }
                 Spacer(Modifier.width(Espacos.s))
                 SeloDisciplina(
                     cor = CoresDisciplina.de(resumo.cor),
@@ -342,6 +360,39 @@ private val TAMANHO_DO_ARCO = 44.dp
 // Do tamanho do estilo para baixo, de 1 em 1sp. O piso de 12sp só chega com tela estreita e fonte
 // grande juntas, e mesmo assim o número aparece inteiro
 private fun encolherAte(tamanho: TextUnit) = TextAutoSize.StepBased(minFontSize = 12.sp, maxFontSize = tamanho, stepSize = 1.sp)
+
+/**
+ * Como o [TextAutoSize.StepBased], mas também encolhe quando a quebra de linha parte uma palavra no
+ * meio: só vale quebrar entre palavras. Desce de meio em meio sp a partir do [maximo]; no [minimo],
+ * fica com o que der (uma palavra enorme ainda pode partir ou ganhar reticências).
+ */
+private data class EncolherSemPartirPalavra(
+    private val minimo: TextUnit,
+    private val maximo: TextUnit,
+) : TextAutoSize {
+    override fun TextAutoSizeLayoutScope.getFontSize(constraints: Constraints, text: AnnotatedString): TextUnit {
+        var tamanho = maximo.value
+        while (tamanho > minimo.value) {
+            val layout = performLayout(constraints, text, tamanho.sp)
+            if (!layout.passouDoEspaco() && !layout.partiuPalavra()) return tamanho.sp
+            tamanho -= 0.5f
+        }
+        return minimo
+    }
+
+    // Linhas a mais que o maxLines viram reticências na última
+    private fun TextLayoutResult.passouDoEspaco() =
+        hasVisualOverflow || (lineCount > 0 && isLineEllipsized(lineCount - 1))
+
+    // Letra dos dois lados de uma quebra: a palavra foi partida. Espaço, hífen ou barra, não
+    private fun TextLayoutResult.partiuPalavra(): Boolean {
+        val texto = layoutInput.text.text
+        return (0 until lineCount - 1).any { linha ->
+            val fim = getLineEnd(linha)
+            fim in 1 until texto.length && texto[fim - 1].isLetterOrDigit() && texto[fim].isLetterOrDigit()
+        }
+    }
+}
 
 /**
  * Troca a média rolando, como um contador: o número novo entra por baixo empurrando o antigo para
