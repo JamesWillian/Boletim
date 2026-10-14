@@ -7,6 +7,7 @@ import androidx.room.ForeignKey
 import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Relation
+import java.time.LocalDate
 
 @Entity(
     tableName = "disciplina",
@@ -36,8 +37,8 @@ data class DisciplinaEntity(
     @ColumnInfo(name = "icone") val icone: String,
     @ColumnInfo(name = "total_aulas") val totalAulas: Int?,
     @ColumnInfo(name = "professor") val professor: String?,
-    @ColumnInfo(name = "periodo_inicio") val periodoInicio: Long?,
-    @ColumnInfo(name = "periodo_fim") val periodoFim: Long?,
+    @ColumnInfo(name = "periodo_inicio") val periodoInicio: LocalDate?,
+    @ColumnInfo(name = "periodo_fim") val periodoFim: LocalDate?,
     @ColumnInfo(name = "ativa") val ativa: Int = 1,
     @ColumnInfo(name = "ordem") val ordem: Int = 0
 )

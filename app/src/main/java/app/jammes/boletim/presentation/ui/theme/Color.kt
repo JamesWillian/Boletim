@@ -80,4 +80,12 @@ object CoresDisciplina {
         Color(0xFF708B97)  // azul acinzentado
     )
     fun de(indice: Int) = paleta[indice % paleta.size]
+
+    // O nome de cada cor, na mesma ordem da paleta: é o que o leitor de tela diz no seletor de cor
+    private val nomes = listOf(
+        "Vermelho", "Azul", "Verde", "Laranja", "Roxo", "Azul ciano", "Rosa", "Roxo escuro", "Índigo",
+        "Azul claro", "Verde-azulado", "Verde claro", "Lima", "Amarelo", "Âmbar", "Laranja escuro",
+        "Marrom", "Azul acinzentado",
+    )
+    fun nomeDe(indice: Int) = nomes[indice % nomes.size]
 }

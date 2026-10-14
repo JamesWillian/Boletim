@@ -56,7 +56,6 @@ internal fun <T> EscolhaBottomSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
-    val haptico = LocalHapticFeedback.current
 
     // Esconde com a animação e só então avisa a tela, que tira o sheet da composição
     fun fechar() {
@@ -89,53 +88,82 @@ internal fun <T> EscolhaBottomSheet(
                 modifier = Modifier.padding(top = Espacos.xs, bottom = Espacos.m),
             )
 
-            Column(
-                modifier = Modifier.selectableGroup(),
-                verticalArrangement = Arrangement.spacedBy(Espacos.xs),
+            OpcoesDeEscolha(
+                opcoes = opcoes,
+                selecionada = selecionada,
+                nome = nome,
+                detalhe = detalhe,
+                exemplo = exemplo,
+                onEscolher = { opcao ->
+                    // Já marca a nova antes de descer: dá para ver o que foi escolhido
+                    onEscolher(opcao)
+                    fechar()
+                },
+            )
+        }
+    }
+}
+
+/**
+ * As opções em linhas com rádio: o nome, o que ela faz e, se houver, o [exemplo] à direita. A
+ * escolhida fica tingida. É a lista do [EscolhaBottomSheet], e as regras da disciplina abrem a
+ * mesma ali no sheet delas.
+ */
+@Composable
+internal fun <T> OpcoesDeEscolha(
+    opcoes: List<T>,
+    selecionada: T,
+    nome: (T) -> String,
+    detalhe: (T) -> String,
+    onEscolher: (T) -> Unit,
+    modifier: Modifier = Modifier,
+    exemplo: ((T) -> String)? = null,
+) {
+    val haptico = LocalHapticFeedback.current
+
+    Column(
+        modifier = modifier.selectableGroup(),
+        verticalArrangement = Arrangement.spacedBy(Espacos.xs),
+    ) {
+        opcoes.forEach { opcao ->
+            val escolhida = opcao == selecionada
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp)
+                    .clip(MaterialTheme.shapes.medium)
+                    .background(
+                        if (escolhida) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color.Transparent
+                    )
+                    .selectable(
+                        selected = escolhida,
+                        role = Role.RadioButton,
+                        onClick = {
+                            if (!escolhida) haptico.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                            onEscolher(opcao)
+                        },
+                    )
+                    .padding(horizontal = Espacos.s, vertical = Espacos.s),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                opcoes.forEach { opcao ->
-                    val escolhida = opcao == selecionada
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(min = 56.dp)
-                            .clip(MaterialTheme.shapes.medium)
-                            .background(
-                                if (escolhida) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) else Color.Transparent
-                            )
-                            .selectable(
-                                selected = escolhida,
-                                role = Role.RadioButton,
-                                onClick = {
-                                    if (!escolhida) haptico.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                                    // Já marca a nova antes de descer: dá para ver o que foi escolhido
-                                    onEscolher(opcao)
-                                    fechar()
-                                },
-                            )
-                            .padding(horizontal = Espacos.s, vertical = Espacos.s),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        // O clique é da linha inteira; o rádio só mostra
-                        RadioButton(selected = escolhida, onClick = null)
-                        Spacer(Modifier.width(Espacos.m))
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                text = nome(opcao),
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = if (escolhida) FontWeight.SemiBold else null,
-                            )
-                            Text(
-                                text = detalhe(opcao),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        if (exemplo != null) {
-                            Spacer(Modifier.width(Espacos.s))
-                            Pilula(texto = exemplo(opcao))
-                        }
-                    }
+                // O clique é da linha inteira; o rádio só mostra
+                RadioButton(selected = escolhida, onClick = null)
+                Spacer(Modifier.width(Espacos.m))
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = nome(opcao),
+                        style = MaterialTheme.typography.bodyLarge,
+                        fontWeight = if (escolhida) FontWeight.SemiBold else null,
+                    )
+                    Text(
+                        text = detalhe(opcao),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                if (exemplo != null) {
+                    Spacer(Modifier.width(Espacos.s))
+                    Pilula(texto = exemplo(opcao))
                 }
             }
         }

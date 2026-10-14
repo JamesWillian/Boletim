@@ -32,6 +32,7 @@ import app.jammes.boletim.presentation.ui.components.DURACAO_TRANSICAO
 import app.jammes.boletim.presentation.ui.components.LocalEscopoCompartilhado
 import app.jammes.boletim.presentation.ui.components.LocalEscopoDaTela
 import app.jammes.boletim.presentation.ui.disciplina.DisciplinaDetailScreen
+import app.jammes.boletim.presentation.ui.disciplina.EditarDisciplinaScreen
 import app.jammes.boletim.presentation.ui.materia.MateriaScreen
 import app.jammes.boletim.presentation.ui.onboarding.OnboardingScreen
 
@@ -72,8 +73,7 @@ fun AppNavHost(
                     composable<Routes.Boletim.Disciplina> {
                         CompositionLocalProvider(LocalEscopoDaTela provides this) {
                             DisciplinaDetailScreen( // o id chega no ViewModel pelo SavedStateHandle
-                                // A tela de edição da disciplina chega na próxima fase: é daqui que ela abre
-                                onEditar = {},
+                                onEditar = { id -> navController.abrirEdicaoDaDisciplina(id) },
                             )
                         }
                     }
@@ -87,6 +87,15 @@ fun AppNavHost(
                     popExitTransition = { descendo },
                 ) {
                     AnoLetivoScreen(onVoltar = { navController.fecharAjustesAnoLetivo() })
+                }
+                // A edição da disciplina sobe por cima do detalhe, como os ajustes
+                composable<Routes.EditarDisciplina>(
+                    enterTransition = { subindo },
+                    popExitTransition = { descendo },
+                ) {
+                    EditarDisciplinaScreen( // o id chega no ViewModel pelo SavedStateHandle
+                        onVoltar = { navController.fecharEdicaoDaDisciplina() },
+                    )
                 }
                 // O cadastro de outro aluno é o onboarding a partir do passo do aluno; sobe como os ajustes
                 composable<Routes.NovoAluno>(
@@ -157,6 +166,18 @@ fun NavController.fecharAjustesAnoLetivo() {
     popBackStack<Routes.AnoLetivo>(inclusive = true)
 }
 
+/** Abre a edição da disciplina por cima do detalhe; tocar de novo no Editar não empilha outra. */
+fun NavController.abrirEdicaoDaDisciplina(disciplinaId: Long) {
+    navigate(Routes.EditarDisciplina(disciplinaId)) {
+        launchSingleTop = true
+    }
+}
+
+/** Fecha a edição. Como nos ajustes do ano, só tira ela da pilha, mesmo se for chamado duas vezes. */
+fun NavController.fecharEdicaoDaDisciplina() {
+    popBackStack<Routes.EditarDisciplina>(inclusive = true)
+}
+
 /** Abre o perfil do aluno por cima da tela atual; tocar de novo na identificação não empilha outro. */
 fun NavController.abrirPerfilDoAluno() {
     navigate(Routes.Aluno) {
@@ -208,11 +229,14 @@ fun NavController.abrirDisciplina(disciplinaId: Long) {
 // O que a moldura (AppScaffold) precisa saber da tela atual ---------------------------------
 
 /**
- * O card de identificação some nos ajustes do ano letivo, que têm barra própria (e o card mostraria
- * o ano como está gravado enquanto ele é editado), e no cadastro de outro aluno, que ainda não existe.
+ * O card de identificação some nos ajustes do ano letivo e na edição da disciplina, que têm barra
+ * própria (e o card mostraria o ano como está gravado enquanto ele é editado), e no cadastro de outro
+ * aluno, que ainda não existe.
  */
 val NavBackStackEntry.mostraIdentificacao: Boolean
-    get() = !destination.hasRoute<Routes.AnoLetivo>() && !destination.hasRoute<Routes.NovoAluno>()
+    get() = !destination.hasRoute<Routes.AnoLetivo>() &&
+        !destination.hasRoute<Routes.EditarDisciplina>() &&
+        !destination.hasRoute<Routes.NovoAluno>()
 
 /** As abas aparecem em toda tela que está dentro do grafo [Routes.Boletim]. */
 val NavBackStackEntry.mostraAbasDisciplinas: Boolean

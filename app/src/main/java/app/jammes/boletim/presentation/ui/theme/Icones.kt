@@ -56,4 +56,30 @@ object IconesDisciplina {
         IconeMateria.TEATRO -> Icons.Filled.TheaterComedy
         IconeMateria.REGUA -> Icons.Filled.SquareFoot
     }
+
+    /** O que o ícone mostra, para o leitor de tela no seletor de ícone. */
+    fun nomeDe(icone: IconeMateria): String = when (icone) {
+        IconeMateria.LIVRO -> "Livro"
+        IconeMateria.CALCULADORA -> "Calculadora"
+        IconeMateria.PERGAMINHO -> "Pergaminho"
+        IconeMateria.GLOBO -> "Globo"
+        IconeMateria.MICROSCOPIO -> "Microscópio"
+        IconeMateria.IDIOMA -> "Idiomas"
+        IconeMateria.PALETA -> "Paleta"
+        IconeMateria.BOLA -> "Bola"
+        IconeMateria.RAIO -> "Raio"
+        IconeMateria.FRASCO -> "Frasco"
+        IconeMateria.FOLHA -> "Folha"
+        IconeMateria.MENTE -> "Mente"
+        IconeMateria.PESSOAS -> "Pessoas"
+        IconeMateria.ESCOLA -> "Escola"
+        IconeMateria.NOTA_MUSICAL -> "Nota musical"
+        IconeMateria.COMPUTADOR -> "Computador"
+        IconeMateria.CODIGO -> "Código"
+        IconeMateria.REDACAO -> "Redação"
+        IconeMateria.DINHEIRO -> "Dinheiro"
+        IconeMateria.ROBO -> "Robô"
+        IconeMateria.TEATRO -> "Teatro"
+        IconeMateria.REGUA -> "Régua"
+    }
 }

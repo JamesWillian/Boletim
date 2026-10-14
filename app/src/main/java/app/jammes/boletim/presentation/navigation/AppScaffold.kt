@@ -33,7 +33,7 @@ import app.jammes.boletim.presentation.ui.components.IdentificacaoCard
  *
  * ```
  * ┌─────────────────────────────────┐
- * │ IdentificacaoCard               │ ◄── some nos ajustes do ano letivo; o aluno abre o perfil
+ * │ IdentificacaoCard               │ ◄── some nos ajustes do ano e na edição da disciplina; o aluno abre o perfil
  * ├────────────────────────────┬────┤
  * │                            │    │
  * │ AppNavHost                 │ ◄──── AbasDisciplinas, só nas telas
@@ -102,8 +102,8 @@ fun AppScaffold(
                 enter = slideInHorizontally { largura -> largura } + expandHorizontally(),
                 exit = slideOutHorizontally { largura -> largura } + shrinkHorizontally(),
             ) {
-                // Nos ajustes do ano, que abrem por cima, a aba marcada continua a da tela de baixo:
-                // assim ela não pula para o Boletim Geral enquanto as abas saem
+                // Nos ajustes do ano e na edição da disciplina, que abrem por cima, a aba marcada
+                // continua a da tela de baixo: assim ela não pula para o Boletim Geral enquanto as abas saem
                 val entradaDasAbas = if (entradaAtual?.mostraAbasDisciplinas == true) {
                     entradaAtual
                 } else {

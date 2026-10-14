@@ -7,13 +7,14 @@ import kotlinx.serialization.Serializable
  *
  * ```
  * Routes
- * ├── Boletim               grafo: telas COM as abas de disciplinas
- * │   ├── Geral             BoletimScreen
- * │   └── Disciplina(id)    DisciplinaDetailScreen
- * ├── Materia               MateriaScreen     ┐ telas SEM as abas
- * ├── AnoLetivo             AnoLetivoScreen   │
- * ├── NovoAluno             OnboardingScreen  ┘ o cadastro de outro aluno, sem as boas-vindas
- * └── Aluno                 AlunoScreen         dialog: o perfil, por cima da tela atual
+ * ├── Boletim                  grafo: telas COM as abas de disciplinas
+ * │   ├── Geral                BoletimScreen
+ * │   └── Disciplina(id)       DisciplinaDetailScreen
+ * ├── Materia                  MateriaScreen           ┐ telas SEM as abas
+ * ├── AnoLetivo                AnoLetivoScreen         │
+ * ├── EditarDisciplina(id)     EditarDisciplinaScreen  │ aberta pelo Editar do detalhe
+ * ├── NovoAluno                OnboardingScreen        ┘ o cadastro de outro aluno, sem as boas-vindas
+ * └── Aluno                    AlunoScreen               dialog: o perfil, por cima da tela atual
  * ```
  *
  * São @Serializable para a navegação type-safe: `navigate(Routes.Boletim.Disciplina(id))`
@@ -29,6 +30,7 @@ object Routes {
 
     @Serializable data object Materia
     @Serializable data object AnoLetivo
+    @Serializable data class EditarDisciplina(val disciplinaId: Long)
     @Serializable data object NovoAluno
     @Serializable data object Aluno
 }

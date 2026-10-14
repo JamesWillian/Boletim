@@ -357,29 +357,45 @@ private fun EditorAjustes(
     }
 
     if (confirmandoDescarte) {
-        AlertDialog(
-            onDismissRequest = { confirmandoDescarte = false },
-            title = { Text("Descartar alterações?") },
-            text = { Text("O que foi mudado aqui ainda não foi salvo.") },
-            confirmButton = {
-                TextButton(onClick = {
-                    confirmandoDescarte = false
-                    onVoltar()
-                }) { Text("Descartar") }
+        ConfirmarDescarte(
+            onDescartar = {
+                confirmandoDescarte = false
+                onVoltar()
             },
-            dismissButton = {
-                TextButton(onClick = { confirmandoDescarte = false }) { Text("Continuar editando") }
-            }
+            onContinuar = { confirmandoDescarte = false },
         )
     }
 }
 
-/** Barra com voltar e título em cima, e a de salvar embaixo; a mesma moldura enquanto carrega e depois. */
+/** A pergunta antes de sair com alterações ainda não salvas. */
+@Composable
+internal fun ConfirmarDescarte(
+    onDescartar: () -> Unit,
+    onContinuar: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onContinuar,
+        title = { Text("Descartar alterações?") },
+        text = { Text("O que foi mudado aqui ainda não foi salvo.") },
+        confirmButton = {
+            TextButton(onClick = onDescartar) { Text("Descartar") }
+        },
+        dismissButton = {
+            TextButton(onClick = onContinuar) { Text("Continuar editando") }
+        }
+    )
+}
+
+/**
+ * Barra com voltar e título em cima, e a de salvar embaixo; a mesma moldura enquanto carrega e depois.
+ * A edição da disciplina usa a mesma, com o título dela.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MolduraAjustes(
+internal fun MolduraAjustes(
     onVoltar: () -> Unit,
     modifier: Modifier = Modifier,
+    titulo: String = "Ajustes do ano letivo",
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     barraDeBaixo: @Composable () -> Unit = {},
     conteudo: @Composable (PaddingValues) -> Unit,
@@ -395,7 +411,7 @@ private fun MolduraAjustes(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Ajustes do ano letivo",
+                        text = titulo,
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -425,7 +441,7 @@ private fun MolduraAjustes(
  * ao alcance do polegar. Quando algo impede de gravar, ela diz o quê no lugar de "Ainda não salvas".
  */
 @Composable
-private fun BarraDeSalvar(
+internal fun BarraDeSalvar(
     alteracoes: Int,
     problema: String?, // o que impede de salvar; null quando dá
     salvando: Boolean,
@@ -700,13 +716,15 @@ private fun SecaoMaterias(
 
 /**
  * O nome da seção em cima do card, em maiúsculas e na cor primária, como os períodos no detalhe
- * da disciplina. Um ponto ao lado avisa que há mudança ainda não salva ali.
+ * da disciplina. Um ponto ao lado avisa que há mudança ainda não salva ali. A [acao], quando há,
+ * fica na outra ponta da linha (o "Redefinir" da edição da disciplina).
  */
 @Composable
-private fun TituloDaSecao(
+internal fun TituloDaSecao(
     titulo: String,
     alterada: Boolean,
     modifier: Modifier = Modifier,
+    acao: (@Composable RowScope.() -> Unit)? = null,
 ) {
     Row(
         modifier = modifier
@@ -729,6 +747,10 @@ private fun TituloDaSecao(
                     .background(MaterialTheme.colorScheme.primary)
                     .semantics { contentDescription = "com alterações não salvas" }
             )
+        }
+        if (acao != null) {
+            Spacer(Modifier.weight(1f))
+            acao()
         }
     }
 }
@@ -998,10 +1020,10 @@ private fun LinhaDaQuantidade(
 
 /**
  * Um número que se ajusta no lugar: o nome, o valor grande, o que ele quer dizer e, embaixo, o −
- * e o +. Sem teclado, o valor nunca fica inválido.
+ * e o +. Sem teclado, o valor nunca fica inválido. As regras próprias da disciplina usam o mesmo.
  */
 @Composable
-private fun BlocoNumerico(
+internal fun BlocoNumerico(
     rotulo: String,
     oQue: String, // para o leitor de tela: "Diminuir a média mínima"
     valor: Double,
@@ -1197,7 +1219,7 @@ internal fun resumoDoCalculo(tipo: TipoMedia): String = "${tipo.displayName} · 
 }
 
 // O que cada cálculo faz, inteiro, para o sheet. Segue o CalcularMediaDisciplina.
-private fun detalheDoCalculo(tipo: TipoMedia): String = when (tipo) {
+internal fun detalheDoCalculo(tipo: TipoMedia): String = when (tipo) {
     TipoMedia.PONDERADA -> "Cada avaliação conta pelo seu peso."
     TipoMedia.SIMPLES -> "Todas as avaliações contam igual; o peso fica de fora."
     TipoMedia.SOMA -> "Soma as notas, sem dividir: para quando os pontos do período são " +
