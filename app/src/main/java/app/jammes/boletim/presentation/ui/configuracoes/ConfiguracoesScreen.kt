@@ -192,7 +192,8 @@ private fun PreviaDasAbas(
             .width(LARGURA_DA_PREVIA)
             .clipToBounds()
             .background(MaterialTheme.colorScheme.background)
-            .drawBehind { drawRect(corDaBorda, size = Size(BORDA.toPx(), size.height)) }
+            // Em pixels inteiros, como nas abas do app: a linha emenda na aba sem costura
+            .drawBehind { drawRect(corDaBorda, size = Size(BORDA.roundToPx().toFloat(), size.height)) }
             .clearAndSetSemantics { }
     ) {
         Column(

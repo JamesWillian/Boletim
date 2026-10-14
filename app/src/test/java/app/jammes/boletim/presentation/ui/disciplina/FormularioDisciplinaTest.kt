@@ -25,6 +25,7 @@ class FormularioDisciplinaTest {
         assertEquals(
             FormularioDisciplina(
                 nome = "Português",
+                abreviacao = "POR",
                 professor = "Prof. Maria",
                 cor = 3,
                 icone = IconeMateria.LIVRO,
@@ -40,6 +41,10 @@ class FormularioDisciplinaTest {
 
         assertEquals("", form.professor)
         assertNull(form.periodo)
+    }
+
+    @Test fun `sem abreviacao o campo fica vazio`() {
+        assertEquals("", FormularioDisciplina.de(PORTUGUES.copy(abreviacao = null)).abreviacao)
     }
 
     @Test fun `uma data sozinha nao forma um periodo`() {
@@ -59,7 +64,7 @@ class FormularioDisciplinaTest {
     @Test fun `espaco sobrando nas pontas nao conta como alteracao`() {
         val gravado = FormularioDisciplina.de(PORTUGUES)
 
-        val form = gravado.copy(nome = " Português ", professor = "Prof. Maria  ")
+        val form = gravado.copy(nome = " Português ", abreviacao = "POR ", professor = "Prof. Maria  ")
 
         assertEquals(0, form.alteracoes(gravado, REGRAS_DO_ANO).total) // então a barra de salvar não aparece
     }
@@ -69,6 +74,7 @@ class FormularioDisciplinaTest {
 
         val form = gravado.copy(
             nome = "Língua Portuguesa",
+            abreviacao = "LPO",
             professor = "Prof. Ana",
             cor = 0,
             icone = IconeMateria.REDACAO,
@@ -76,8 +82,8 @@ class FormularioDisciplinaTest {
             periodo = null,
         )
 
-        assertEquals(AlteracoesDaDisciplina(disciplina = 2, cor = 1, icone = 1, aulas = 2), form.alteracoes(gravado, REGRAS_DO_ANO))
-        assertEquals(6, form.alteracoes(gravado, REGRAS_DO_ANO).total)
+        assertEquals(AlteracoesDaDisciplina(disciplina = 3, cor = 1, icone = 1, aulas = 2), form.alteracoes(gravado, REGRAS_DO_ANO))
+        assertEquals(7, form.alteracoes(gravado, REGRAS_DO_ANO).total)
     }
 
     @Test fun `redefinir para o valor gravado desfaz a alteracao`() {
@@ -95,6 +101,7 @@ class FormularioDisciplinaTest {
         val original = PORTUGUES.copy(ativa = false, ordem = 4)
         val form = FormularioDisciplina.de(original).copy(
             nome = "  Língua Portuguesa ",
+            abreviacao = "LP",
             professor = " Prof. Ana ",
             cor = 0,
             icone = IconeMateria.REDACAO,
@@ -109,6 +116,7 @@ class FormularioDisciplinaTest {
         assertEquals(
             original.copy(
                 nome = "Língua Portuguesa",
+                abreviacao = "LP",
                 professor = "Prof. Ana",
                 cor = 0,
                 icone = IconeMateria.REDACAO,
@@ -120,11 +128,12 @@ class FormularioDisciplinaTest {
         )
     }
 
-    @Test fun `professor em branco e periodo do ano inteiro gravam null`() {
-        val form = FormularioDisciplina.de(PORTUGUES).copy(professor = "   ", periodo = null, totalAulas = null)
+    @Test fun `professor e abreviacao em branco e periodo do ano inteiro gravam null`() {
+        val form = FormularioDisciplina.de(PORTUGUES).copy(abreviacao = "", professor = "   ", periodo = null, totalAulas = null)
 
         val gravada = form.paraGravar(PORTUGUES)!!
 
+        assertNull(gravada.abreviacao) // então as abas tiram a sigla do nome
         assertNull(gravada.professor)
         assertNull(gravada.periodoInicio)
         assertNull(gravada.periodoFim)
@@ -136,6 +145,22 @@ class FormularioDisciplinaTest {
 
         assertEquals("A disciplina precisa de um nome", form.problema())
         assertNull(form.paraGravar(PORTUGUES))
+    }
+
+    // Abreviação digitada ----------------------------------------------------------------------
+
+    @Test fun `abreviacao digitada fica em maiusculas, como nas abas`() {
+        assertEquals("POR", lerAbreviacao("por"))
+        assertEquals("CIÊ", lerAbreviacao("Ciê"))
+    }
+
+    @Test fun `o que passa de 3 caracteres nao entra`() {
+        assertEquals("POR", lerAbreviacao("PORT"))
+    }
+
+    @Test fun `espaco nao entra na abreviacao`() {
+        assertEquals("EF", lerAbreviacao(" E F "))
+        assertEquals("", lerAbreviacao("   "))
     }
 
     // Período escolhido no calendário ---------------------------------------------------------
@@ -301,6 +326,7 @@ private val ANO = DatasPeriodo(dia(2, 1), dia(11, 30))
 private val PORTUGUES = DisciplinaDomain(
     id = 1,
     nome = "Português",
+    abreviacao = "POR",
     cor = 3,
     icone = IconeMateria.LIVRO,
     totalAulas = 80,

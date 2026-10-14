@@ -13,14 +13,15 @@ import java.time.LocalDate
  * Os campos da edição da disciplina, do jeito que estão na tela. É Serializable para o
  * rememberSaveable guardar: o que já foi editado sobrevive a girar a tela.
  *
- * O nome, o professor e o total de aulas chegam já conferidos pelos sheets, e o período pelo
- * calendário; o formulário guarda e compara com o que está gravado.
+ * O nome, a abreviação, o professor e o total de aulas chegam já conferidos pelos sheets, e o
+ * período pelo calendário; o formulário guarda e compara com o que está gravado.
  *
  * As [regras] são as próprias da disciplina, que valem no lugar das do ano letivo. As regras usam
  * as mesmas partes e os mesmos passos dos ajustes do ano.
  */
 data class FormularioDisciplina(
     val nome: String,
+    val abreviacao: String, // vazio: a sigla das abas sai do nome
     val professor: String, // vazio: sem professor
     val cor: Int, // o índice na paleta
     val icone: IconeMateria,
@@ -38,6 +39,7 @@ data class FormularioDisciplina(
         // Espaço sobrando nas pontas não muda o que é gravado, então não conta
         disciplina = listOf(
             nome.trim() != gravado.nome.trim(),
+            abreviacao.trim() != gravado.abreviacao.trim(),
             professor.trim() != gravado.professor.trim(),
         ).count { it },
         cor = if (cor != gravado.cor) 1 else 0,
@@ -59,6 +61,7 @@ data class FormularioDisciplina(
         if (problema() != null) return null
         return original.copy(
             nome = nome.trim(),
+            abreviacao = abreviacao.trim().ifEmpty { null },
             professor = professor.trim().ifEmpty { null },
             cor = cor,
             icone = icone,
@@ -96,6 +99,7 @@ data class FormularioDisciplina(
             val fim = disciplina.periodoFim
             return FormularioDisciplina(
                 nome = disciplina.nome,
+                abreviacao = disciplina.abreviacao.orEmpty(),
                 professor = disciplina.professor.orEmpty(),
                 cor = disciplina.cor,
                 icone = disciplina.icone,
@@ -110,7 +114,7 @@ data class FormularioDisciplina(
 
 /** Quantas alterações cada seção tem. A barra de baixo mostra o [total]; cada seção, um ponto. */
 data class AlteracoesDaDisciplina(
-    val disciplina: Int, // o nome e o professor
+    val disciplina: Int, // o nome, a abreviação e o professor
     val cor: Int,
     val icone: Int,
     val aulas: Int, // o total de aulas e o período
@@ -160,3 +164,13 @@ internal fun lerTotalDeAulas(texto: String): TotalDigitado {
 
 /** O máximo de algarismos do total: 999 aulas já sobram para um ano. */
 internal const val DIGITOS_DO_TOTAL = 3
+
+/**
+ * A abreviação como fica no campo: em maiúsculas, como as abas mostram, sem espaços e com até
+ * [TAMANHO_DA_ABREVIACAO] caracteres.
+ */
+internal fun lerAbreviacao(texto: String): String =
+    texto.filterNot(Char::isWhitespace).uppercase().take(TAMANHO_DA_ABREVIACAO)
+
+/** O máximo de caracteres da abreviação, que vai embaixo do ícone, na aba fechada. */
+internal const val TAMANHO_DA_ABREVIACAO = 3

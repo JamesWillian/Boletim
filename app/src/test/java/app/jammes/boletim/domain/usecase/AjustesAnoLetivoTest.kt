@@ -12,7 +12,7 @@ import org.junit.Test
 
 class AjustesAnoLetivoTest {
 
-    @Test fun `materia que entra no ano vira disciplina com o nome, a cor e o icone dela`() {
+    @Test fun `materia que entra no ano vira disciplina com o nome, a abreviacao, a cor e o icone dela`() {
         // prepara
         val original = ajustes(disciplinas = emptyList())
 
@@ -22,6 +22,7 @@ class AjustesAnoLetivoTest {
         // confere
         val ingles = novas.single()
         assertEquals("Inglês", ingles.nome)
+        assertEquals("ING", ingles.abreviacao)
         assertEquals(INGLES.cor, ingles.cor)
         assertEquals(IconeMateria.IDIOMA, ingles.icone)
         assertEquals(INGLES.id, ingles.materiaId)
@@ -53,7 +54,7 @@ private const val ANO_LETIVO_ID = 7L
 
 private val PORTUGUES = MateriaDomain(id = 1, nome = "Português", cor = 0)
 private val MATEMATICA = MateriaDomain(id = 2, nome = "Matemática", cor = 1)
-private val INGLES = MateriaDomain(id = 6, nome = "Inglês", cor = 8, icone = IconeMateria.IDIOMA)
+private val INGLES = MateriaDomain(id = 6, nome = "Inglês", abreviacao = "ING", cor = 8, icone = IconeMateria.IDIOMA)
 private val ARTE = MateriaDomain(id = 7, nome = "Arte", cor = 6)
 
 private fun disciplina(materia: MateriaDomain, ordem: Int) = DisciplinaDomain(

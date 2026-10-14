@@ -20,8 +20,8 @@ import kotlinx.coroutines.flow.first
 // ---------------------------------------------------------------------------
 
 /**
- * As disciplinas das matérias que entram no ano agora. Copiam nome, cor e ícone da matéria, como
- * no cadastro, e vão para o fim das abas, na ordem das matérias.
+ * As disciplinas das matérias que entram no ano agora. Copiam nome, abreviação, cor e ícone da
+ * matéria, como no cadastro, e vão para o fim das abas, na ordem das matérias.
  */
 internal fun disciplinasNovas(original: AjustesAnoLetivo, materiaIds: Set<Long>): List<DisciplinaDomain> {
     val jaNoAno = original.disciplinas.map { it.materiaId }.toSet()
@@ -32,9 +32,13 @@ internal fun disciplinasNovas(original: AjustesAnoLetivo, materiaIds: Set<Long>)
         .mapIndexed { i, materia -> novaDisciplina(materia, original.anoLetivo.id, ordem = ultimaOrdem + 1 + i) }
 }
 
-/** A disciplina de uma matéria que entra no ano: copia nome, cor e ícone dela, como no cadastro. */
+/**
+ * A disciplina de uma matéria que entra no ano: copia nome, abreviação, cor e ícone dela, como no
+ * cadastro. Daí em diante cada uma tem os seus: editar a disciplina não muda a matéria.
+ */
 internal fun novaDisciplina(materia: MateriaDomain, anoLetivoId: Long, ordem: Int) = DisciplinaDomain(
     nome = materia.nome,
+    abreviacao = materia.abreviacao,
     cor = materia.cor,
     icone = materia.icone,
     ordem = ordem,

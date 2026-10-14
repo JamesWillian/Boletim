@@ -28,18 +28,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import app.jammes.boletim.presentation.ui.components.siglaDoNome
+import app.jammes.boletim.presentation.ui.theme.Espacos
 import kotlinx.coroutines.launch
 
 /**
- * O nome e o professor da disciplina. Aplicar leva os dois para o formulário da tela, e quem grava é
- * o Salvar dela. Sem nome não dá para aplicar, então o formulário nunca recebe um nome vazio.
+ * O nome, a sigla e o professor da disciplina. Aplicar leva os três para o formulário da tela, e
+ * quem grava é o Salvar dela. Sem nome não dá para aplicar, então o formulário nunca recebe um nome
+ * vazio. A sigla, gravada como a abreviação da disciplina, é a das abas, com até 3 caracteres;
+ * vazia, ela sai do nome, e o campo mostra qual seria.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun NomeDaDisciplinaBottomSheet(
     nome: String,
+    abreviacao: String,
     professor: String,
-    onAplicar: (nome: String, professor: String) -> Unit,
+    onAplicar: (nome: String, abreviacao: String, professor: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -47,6 +52,7 @@ internal fun NomeDaDisciplinaBottomSheet(
 
     // rememberSaveable: o que já foi digitado sobrevive a girar a tela
     var nomeDigitado by rememberSaveable { mutableStateOf(nome) }
+    var abreviacaoDigitada by rememberSaveable { mutableStateOf(abreviacao) }
     var professorDigitado by rememberSaveable { mutableStateOf(professor) }
     val semNome = nomeDigitado.isBlank()
 
@@ -59,7 +65,7 @@ internal fun NomeDaDisciplinaBottomSheet(
 
     fun aplicar() {
         if (semNome) return
-        onAplicar(nomeDigitado, professorDigitado)
+        onAplicar(nomeDigitado, abreviacaoDigitada, professorDigitado)
         fechar()
     }
 
@@ -94,6 +100,29 @@ internal fun NomeDaDisciplinaBottomSheet(
                 shape = RoundedCornerShape(12.dp),
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.Sentences,
+                    imeAction = ImeAction.Next,
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedTextField(
+                value = abreviacaoDigitada,
+                // Já em maiúsculas, como nas abas, e o que passar de 3 caracteres não entra
+                onValueChange = { abreviacaoDigitada = lerAbreviacao(it) },
+                label = { Text("Sigla") },
+                // Vazia, as abas tiram a sigla do nome: ela aparece de exemplo
+                placeholder = { Text(siglaDoNome(nomeDigitado)) },
+                supportingText = {
+                    Row(horizontalArrangement = Arrangement.spacedBy(Espacos.s)) {
+                        Text("Aparece nas abas no estilo “Ícones + sigla”", Modifier.weight(1f))
+                        Text("${abreviacaoDigitada.length}/$TAMANHO_DA_ABREVIACAO")
+                    }
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                keyboardOptions = KeyboardOptions(
+                    capitalization = KeyboardCapitalization.Characters,
+                    // Uma sigla não é palavra: o corretor só atrapalharia
+                    autoCorrectEnabled = false,
                     imeAction = ImeAction.Next,
                 ),
                 modifier = Modifier.fillMaxWidth()

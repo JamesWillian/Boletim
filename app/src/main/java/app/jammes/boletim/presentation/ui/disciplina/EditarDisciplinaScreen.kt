@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.DateRange
 import androidx.compose.material.icons.outlined.Edit
@@ -50,6 +51,8 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -81,6 +84,7 @@ import app.jammes.boletim.presentation.ui.components.EstadoVazio
 import app.jammes.boletim.presentation.ui.components.SeloDisciplina
 import app.jammes.boletim.presentation.ui.components.SeletorDeCor
 import app.jammes.boletim.presentation.ui.components.SeletorDeIcone
+import app.jammes.boletim.presentation.ui.components.siglaDaDisciplina
 import app.jammes.boletim.presentation.ui.theme.CoresDisciplina
 import app.jammes.boletim.presentation.ui.theme.Espacos
 import app.jammes.boletim.presentation.ui.theme.IconesDisciplina
@@ -89,10 +93,10 @@ import java.time.LocalDate
 
 /**
  * A edição da disciplina, aberta pelo Editar do detalhe, no mesmo painel dos ajustes do ano: a capa
- * com o nome e o professor (editados num sheet), a cor e o ícone (escolhidos ali mesmo, com
- * "Redefinir" para voltar aos da matéria), o total de aulas e o período, e as regras de média
- * próprias da disciplina, que valem no lugar das do ano (cada um no seu sheet). Tudo vai para uma
- * cópia, e a barra de baixo, que só aparece quando algo mudou, grava tudo junto.
+ * com o nome, a sigla e o professor (editados num sheet), a cor e o ícone (escolhidos ali
+ * mesmo, com "Redefinir" para voltar aos da matéria), o total de aulas e o período, e as regras de
+ * média próprias da disciplina, que valem no lugar das do ano (cada um no seu sheet). Tudo vai para
+ * uma cópia, e a barra de baixo, que só aparece quando algo mudou, grava tudo junto.
  */
 @Composable
 fun EditarDisciplinaScreen(
@@ -223,6 +227,7 @@ private fun EditorDaDisciplina(
             item(key = "disciplina") {
                 SecaoDisciplina(
                     nome = form.nome,
+                    abreviacao = form.abreviacao,
                     professor = form.professor,
                     cor = form.cor,
                     icone = form.icone,
@@ -275,8 +280,11 @@ private fun EditorDaDisciplina(
     when (editor) {
         Editor.NOME -> NomeDaDisciplinaBottomSheet(
             nome = form.nome,
+            abreviacao = form.abreviacao,
             professor = form.professor,
-            onAplicar = { nome, professor -> form = form.copy(nome = nome, professor = professor) },
+            onAplicar = { nome, abreviacao, professor ->
+                form = form.copy(nome = nome, abreviacao = abreviacao, professor = professor)
+            },
             onDismiss = { editor = null },
         )
         Editor.TOTAL_DE_AULAS -> TotalDeAulasBottomSheet(
@@ -318,12 +326,13 @@ private fun EditorDaDisciplina(
 // Seções ------------------------------------------------------------------------------------
 
 /**
- * A capa da disciplina, tingida como no detalhe: o selo, o nome e o professor, já com a cor e o
- * ícone escolhidos embaixo. Tocar abre o sheet do nome e do professor.
+ * A capa da disciplina, tingida como no detalhe: o selo, o nome, a sigla das abas e o professor, já
+ * com a cor e o ícone escolhidos embaixo. Tocar abre o sheet do nome, da sigla e do professor.
  */
 @Composable
 private fun SecaoDisciplina(
     nome: String,
+    abreviacao: String,
     professor: String,
     cor: Int,
     icone: IconeMateria,
@@ -348,7 +357,7 @@ private fun SecaoDisciplina(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(onClickLabel = "Editar o nome e o professor", onClick = onEditar)
+                    .clickable(onClickLabel = "Editar o nome, a sigla e o professor", onClick = onEditar)
                     .padding(start = 20.dp, end = Espacos.m, top = 20.dp, bottom = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -367,11 +376,29 @@ private fun SecaoDisciplina(
                         style = MaterialTheme.typography.headlineSmall,
                         fontWeight = FontWeight.SemiBold,
                     )
-                    Text(
-                        text = professor.trim().ifEmpty { "Sem professor" },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // A sigla como nas abas, num rótulo tingido como a aba fechada; vazia, a do nome
+                        val sigla = siglaDaDisciplina(abreviacao, nome)
+                        Text(
+                            text = sigla,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(corDaDisciplina.copy(alpha = 0.18f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                                // O leitor de tela diz o que é, em vez de ler "MAT" como palavra
+                                .semantics { contentDescription = "Sigla $sigla" },
+                        )
+                        Spacer(Modifier.width(Espacos.s))
+                        Text(
+                            text = professor.trim().ifEmpty { "Sem professor" },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
                 Spacer(Modifier.width(Espacos.s))
                 // Parece um botão, mas quem recebe o toque é a linha inteira, como no ano dos ajustes
