@@ -102,6 +102,7 @@ import androidx.core.view.WindowCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.jammes.boletim.BuildConfig
+import app.jammes.boletim.presentation.ui.backup.RestaurarBackup
 import app.jammes.boletim.R
 import app.jammes.boletim.domain.model.IconeMateria
 import app.jammes.boletim.domain.usecase.materiasDoPrimeiroAno
@@ -218,9 +219,15 @@ fun OnboardingScreen(
 
 @Composable
 private fun BoasVindas(onComecar: () -> Unit, onCarregarDadosDeTeste: (() -> Unit)?) {
+    // Os avisos do Restaurar backup. Ficam sobre a ilustração: no rodapé, como nos passos, cobririam
+    // o Começar e o próprio Restaurar
+    val avisos = remember { SnackbarHostState() }
     IconesClarosNaBarraDeStatus()
     Column(Modifier.fillMaxSize()) {
-        Destaque(Modifier.weight(1f).fillMaxWidth())
+        Box(Modifier.weight(1f).fillMaxWidth()) {
+            Destaque(Modifier.fillMaxSize())
+            SnackbarHost(avisos, Modifier.align(Alignment.BottomCenter).padding(bottom = Espacos.s))
+        }
         Column(Modifier.padding(start = Espacos.xl, end = Espacos.xl, top = Espacos.xl)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconeDoApp(tamanho = 34.dp)
@@ -256,6 +263,8 @@ private fun BoasVindas(onComecar: () -> Unit, onCarregarDadosDeTeste: (() -> Uni
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
+            // Quem já usava o app, em outro aparelho ou antes de reinstalar, traz tudo de um arquivo
+            RestaurarBackup(avisos)
             // Temporário, só em debug: entra direto com os dados de teste, sem passar pelo onboarding
             if (onCarregarDadosDeTeste != null) {
                 TextButton(onClick = onCarregarDadosDeTeste) {

@@ -33,13 +33,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.AddToDrive
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.EditCalendar
 import androidx.compose.material.icons.outlined.EventRepeat
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.PersonOff
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.SettingsBackupRestore
 import androidx.compose.material.icons.outlined.SwitchAccount
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -56,7 +56,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -94,7 +93,6 @@ import app.jammes.boletim.presentation.ui.components.EstadoVazio
 import app.jammes.boletim.presentation.ui.components.SeloDisciplina
 import app.jammes.boletim.presentation.ui.components.descricaoDoAno
 import app.jammes.boletim.presentation.ui.theme.Espacos
-import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 /**
@@ -113,6 +111,7 @@ fun AlunoScreen(
     onContextoTrocado: () -> Unit, // aluno ou ano trocado: o que estava aberto era do anterior
     onAnoLetivoCriado: () -> Unit, // o ano novo já está aberto: falta conferir os ajustes dele
     onNovoAluno: () -> Unit, // abre o cadastro, que é o onboarding a partir do passo do aluno
+    onBackup: () -> Unit, // fecha o perfil e abre o backup e a restauração
     onConfiguracoes: () -> Unit, // fecha o perfil e abre as configurações do app
     modifier: Modifier = Modifier,
     viewModel: AlunoViewModel = hiltViewModel(),
@@ -122,20 +121,11 @@ fun AlunoScreen(
     // rememberSaveable: a página aberta sobrevive a girar a tela
     var pagina by rememberSaveable { mutableStateOf(Pagina.Inicio) }
     val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
     val haptico = LocalHapticFeedback.current
     // O detector de toque do fundo não reinicia: assim ele chama sempre o onFechar atual
     val fechar by rememberUpdatedState(onFechar)
 
     BackHandler(enabled = pagina != Pagina.Inicio) { pagina = Pagina.Inicio }
-
-    // Um aviso de cada vez: o novo toma o lugar do que estiver na tela
-    fun avisar(mensagem: String) {
-        scope.launch {
-            snackbarHostState.currentSnackbarData?.dismiss()
-            snackbarHostState.showSnackbar(mensagem)
-        }
-    }
 
     LaunchedEffect(mudanca) {
         when (val m = mudanca) {
@@ -209,8 +199,7 @@ fun AlunoScreen(
                         },
                         onCriarAnoLetivo = viewModel::criarAnoLetivo,
                         onNovoAluno = onNovoAluno,
-                        // TODO: abrir o backup no Google Drive, quando existir
-                        onBackup = { avisar("O backup no Google Drive ainda não está disponível") },
+                        onBackup = onBackup,
                         onConfiguracoes = onConfiguracoes,
                     )
                 }
@@ -377,10 +366,10 @@ private fun PaginaInicio(
             }
             Cartao {
                 LinhaQueAbre(
-                    titulo = "Backup no Google Drive",
-                    rotuloDoClique = "Abrir o backup no Google Drive",
+                    titulo = "Backup e Restauração",
+                    rotuloDoClique = "Abrir o backup e a restauração",
                     onClick = onBackup,
-                ) { Selo(Icons.Outlined.AddToDrive) }
+                ) { Selo(Icons.Outlined.SettingsBackupRestore) }
                 Divisoria()
                 LinhaQueAbre(
                     titulo = "Configurações",

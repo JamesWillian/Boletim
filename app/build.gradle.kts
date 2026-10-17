@@ -60,6 +60,7 @@ dependencies {
     implementation(libs.vico.compose.m3)
 
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.kotlinx.serialization.json)
 
     implementation(libs.androidx.room.runtime)
     ksp(libs.androidx.room.compiler)

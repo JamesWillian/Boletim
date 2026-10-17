@@ -3,6 +3,7 @@ agp = "9.2.1"
 coreKtx = "1.19.0"
 coreSplashscreen = "1.0.1"
 datastorePreferences = "1.2.1"
+kotlinxSerializationJson = "1.7.3" # A mesma que o DataStore já traz. As mais novas vêm com Kotlin mais novo, como a 3.3 do Vico
 junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
@@ -22,6 +23,7 @@ androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = 
 androidx-core-splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "coreSplashscreen" } # Splash igual do Android 6 ao 16
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycleRuntimeKtx" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" } # O arquivo de backup
 
 # Compose #
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }

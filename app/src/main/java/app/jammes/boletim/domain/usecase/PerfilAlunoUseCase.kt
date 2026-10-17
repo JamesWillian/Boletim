@@ -31,7 +31,7 @@ import java.time.LocalDate
 const val MATERIAS_DO_ANO_NOVO = 5
 
 /** Do mais recente ao mais antigo; no mesmo ano, o criado por último primeiro. */
-private val MAIS_RECENTE_PRIMEIRO = compareByDescending<AnoLetivoDomain> { it.ano }.thenByDescending { it.id }
+internal val MAIS_RECENTE_PRIMEIRO = compareByDescending<AnoLetivoDomain> { it.ano }.thenByDescending { it.id }
 
 /** O perfil com o aluno do [contexto]; null quando ele não existe mais no banco. */
 internal fun montarPerfil(
