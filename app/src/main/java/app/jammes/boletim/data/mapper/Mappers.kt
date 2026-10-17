@@ -8,6 +8,7 @@ import app.jammes.boletim.data.local.entity.DisciplinaComDados
 import app.jammes.boletim.data.local.entity.DisciplinaEntity
 import app.jammes.boletim.data.local.entity.FaltaEntity
 import app.jammes.boletim.data.local.entity.MateriaEntity
+import app.jammes.boletim.data.local.entity.NotificacaoEntity
 import app.jammes.boletim.data.local.entity.PeriodoEntity
 import app.jammes.boletim.data.local.entity.RegraAvaliacaoEntity
 import app.jammes.boletim.domain.model.AlunoDomain
@@ -20,6 +21,7 @@ import app.jammes.boletim.domain.model.FaltaDomain
 import app.jammes.boletim.domain.model.IconeMateria
 import app.jammes.boletim.domain.model.Lancamentos
 import app.jammes.boletim.domain.model.MateriaDomain
+import app.jammes.boletim.domain.model.NotificacaoDomain
 import app.jammes.boletim.domain.model.PeriodoDomain
 import app.jammes.boletim.domain.model.RegraAvaliacaoDomain
 import app.jammes.boletim.domain.model.TipoArredondamento
@@ -208,3 +210,19 @@ fun DisciplinaComDados.toDomain(): DisciplinaDados = DisciplinaDados(
 fun List<ContagemLancamentos>.toDomain(): Map<Long, Lancamentos> = associate {
     it.id to Lancamentos(avaliacoes = it.avaliacoes, faltas = it.faltas)
 }
+
+fun NotificacaoEntity.toDomain(): NotificacaoDomain = NotificacaoDomain(
+    id = id,
+    titulo = titulo,
+    texto = texto,
+    criadaEm = criadaEm,
+    lida = lida
+)
+
+fun NotificacaoDomain.toEntity(): NotificacaoEntity = NotificacaoEntity(
+    id = id,
+    titulo = titulo,
+    texto = texto,
+    criadaEm = criadaEm,
+    lida = lida
+)

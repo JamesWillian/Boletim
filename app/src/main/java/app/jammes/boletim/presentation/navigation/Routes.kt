@@ -14,7 +14,11 @@ import kotlinx.serialization.Serializable
  * ├── AnoLetivo                AnoLetivoScreen         │
  * ├── EditarDisciplina(id)     EditarDisciplinaScreen  │ aberta pelo Editar do detalhe
  * ├── NovoAluno                OnboardingScreen        │ o cadastro de outro aluno, sem as boas-vindas
- * ├── Configuracoes            ConfiguracoesScreen     ┘ o tema e o estilo das abas, aberta pelo perfil
+ * ├── Configuracoes            ConfiguracoesScreen     │ o tema e o estilo das abas, aberta pelo perfil
+ * ├── Backup                   BackupScreen            │ backup e restauração, aberta pelo perfil
+ * ├── Notificacoes             NotificacoesScreen      │ a lista, aberta pelo sino do topo
+ * ├── ConfiguracoesDasNotificacoes  ConfiguracoesDasNotificacoesScreen
+ * │                                                    ┘ a chave e os horários, aberta pela lista
  * └── Aluno                    AlunoScreen               dialog: o perfil, por cima da tela atual
  * ```
  *
@@ -34,5 +38,8 @@ object Routes {
     @Serializable data class EditarDisciplina(val disciplinaId: Long)
     @Serializable data object NovoAluno
     @Serializable data object Configuracoes
+    @Serializable data object Backup
+    @Serializable data object Notificacoes
+    @Serializable data object ConfiguracoesDasNotificacoes
     @Serializable data object Aluno
 }

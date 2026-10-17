@@ -26,6 +26,7 @@ import androidx.navigation.compose.navigation
 import androidx.navigation.toRoute
 import app.jammes.boletim.presentation.ui.aluno.AlunoScreen
 import app.jammes.boletim.presentation.ui.anoletivo.AnoLetivoScreen
+import app.jammes.boletim.presentation.ui.backup.BackupScreen
 import app.jammes.boletim.presentation.ui.boletim.BoletimScreen
 import app.jammes.boletim.presentation.ui.configuracoes.ConfiguracoesScreen
 import app.jammes.boletim.presentation.ui.components.DURACAO_SAIDA
@@ -35,6 +36,8 @@ import app.jammes.boletim.presentation.ui.components.LocalEscopoDaTela
 import app.jammes.boletim.presentation.ui.disciplina.DisciplinaDetailScreen
 import app.jammes.boletim.presentation.ui.disciplina.EditarDisciplinaScreen
 import app.jammes.boletim.presentation.ui.materia.MateriaScreen
+import app.jammes.boletim.presentation.ui.notificacoes.ConfiguracoesDasNotificacoesScreen
+import app.jammes.boletim.presentation.ui.notificacoes.NotificacoesScreen
 import app.jammes.boletim.presentation.ui.onboarding.OnboardingScreen
 
 /**
@@ -117,6 +120,35 @@ fun AppNavHost(
                 ) {
                     ConfiguracoesScreen(onVoltar = { navController.fecharConfiguracoes() })
                 }
+                // O backup e a restauração também
+                composable<Routes.Backup>(
+                    enterTransition = { subindo },
+                    popExitTransition = { descendo },
+                ) {
+                    BackupScreen(
+                        onVoltar = { navController.fecharBackup() },
+                        // As telas abertas eram dos dados de antes: o boletim importado toma o lugar de tudo
+                        onImportado = { navController.abrirBoletimGeral() },
+                    )
+                }
+                // As notificações sobem como os ajustes, e as configurações delas sobem por cima da lista
+                composable<Routes.Notificacoes>(
+                    enterTransition = { subindo },
+                    popExitTransition = { descendo },
+                ) {
+                    NotificacoesScreen(
+                        onVoltar = { navController.fecharNotificacoes() },
+                        onConfigurar = { navController.abrirConfiguracoesDasNotificacoes() },
+                    )
+                }
+                composable<Routes.ConfiguracoesDasNotificacoes>(
+                    enterTransition = { subindo },
+                    popExitTransition = { descendo },
+                ) {
+                    ConfiguracoesDasNotificacoesScreen(
+                        onVoltar = { navController.fecharConfiguracoesDasNotificacoes() },
+                    )
+                }
                 // O perfil abre como dialog, por cima da tela atual. A janela dele ocupa a tela toda,
                 // e o AlunoScreen põe o card no alto
                 dialog<Routes.Aluno>(
@@ -134,6 +166,7 @@ fun AppNavHost(
                             navController.abrirAjustesAnoLetivo()
                         },
                         onNovoAluno = { navController.abrirNovoAluno() },
+                        onBackup = { navController.abrirBackup() },
                         onConfiguracoes = { navController.abrirConfiguracoes() },
                     )
                 }
@@ -236,6 +269,43 @@ fun NavController.fecharConfiguracoes() {
     popBackStack<Routes.Configuracoes>(inclusive = true)
 }
 
+/** Fecha o perfil e abre no lugar dele o backup e a restauração, como as configurações. */
+fun NavController.abrirBackup() {
+    navigate(Routes.Backup) {
+        popUpTo<Routes.Aluno> { inclusive = true }
+        launchSingleTop = true
+    }
+}
+
+/** Fecha o backup. Como nos ajustes, só tira ele da pilha, mesmo se for chamado duas vezes. */
+fun NavController.fecharBackup() {
+    popBackStack<Routes.Backup>(inclusive = true)
+}
+
+/** Abre as notificações por cima da tela atual; tocar de novo no sino não empilha outra. */
+fun NavController.abrirNotificacoes() {
+    navigate(Routes.Notificacoes) {
+        launchSingleTop = true
+    }
+}
+
+/** Fecha as notificações. Como nos ajustes, só tira elas da pilha, mesmo se for chamado duas vezes. */
+fun NavController.fecharNotificacoes() {
+    popBackStack<Routes.Notificacoes>(inclusive = true)
+}
+
+/** Abre as configurações das notificações por cima da lista; o voltar leva de novo a ela. */
+fun NavController.abrirConfiguracoesDasNotificacoes() {
+    navigate(Routes.ConfiguracoesDasNotificacoes) {
+        launchSingleTop = true
+    }
+}
+
+/** Fecha as configurações das notificações, só elas, mesmo se for chamado duas vezes. */
+fun NavController.fecharConfiguracoesDasNotificacoes() {
+    popBackStack<Routes.ConfiguracoesDasNotificacoes>(inclusive = true)
+}
+
 /**
  * Abre a disciplina no lugar da que estiver aberta: trocar de aba não empilha telas,
  * então o voltar de qualquer disciplina leva ao Boletim Geral.
@@ -253,13 +323,17 @@ fun NavController.abrirDisciplina(disciplinaId: Long) {
 /**
  * O card de identificação some nos ajustes do ano letivo e na edição da disciplina, que têm barra
  * própria (e o card mostraria o ano como está gravado enquanto ele é editado), no cadastro de outro
- * aluno, que ainda não existe, e nas configurações, que não são de nenhum aluno.
+ * aluno, que ainda não existe, e nas configurações, no backup e nas notificações, que não são de
+ * nenhum aluno.
  */
 val NavBackStackEntry.mostraIdentificacao: Boolean
     get() = !destination.hasRoute<Routes.AnoLetivo>() &&
         !destination.hasRoute<Routes.EditarDisciplina>() &&
         !destination.hasRoute<Routes.NovoAluno>() &&
-        !destination.hasRoute<Routes.Configuracoes>()
+        !destination.hasRoute<Routes.Configuracoes>() &&
+        !destination.hasRoute<Routes.Backup>() &&
+        !destination.hasRoute<Routes.Notificacoes>() &&
+        !destination.hasRoute<Routes.ConfiguracoesDasNotificacoes>()
 
 /** As abas aparecem em toda tela que está dentro do grafo [Routes.Boletim]. */
 val NavBackStackEntry.mostraAbasDisciplinas: Boolean

@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import app.jammes.boletim.domain.model.Configuracoes
 import app.jammes.boletim.domain.model.EstiloDasAbas
 import app.jammes.boletim.domain.model.Tema
+import app.jammes.boletim.domain.model.comHorario
+import app.jammes.boletim.domain.model.semHorario
 import app.jammes.boletim.domain.repository.ConfiguracoesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jakarta.inject.Inject
@@ -12,6 +14,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.LocalTime
 
 /**
  * As configurações gravadas e as escolhas da tela. Um só, preso à Activity: a MainActivity tira dele
@@ -34,5 +37,24 @@ class ConfiguracoesViewModel @Inject constructor(
 
     fun escolherEstiloDasAbas(estilo: EstiloDasAbas) {
         viewModelScope.launch { repo.salvarEstiloDasAbas(estilo) }
+    }
+
+    /** A chave do backup e restauração; o BoletimBackupAgent lê ela na hora do backup. */
+    fun escolherBackupAutomatico(ligado: Boolean) {
+        viewModelScope.launch { repo.salvarBackupAutomatico(ligado) }
+    }
+
+    /** A chave das notificações. Desligadas, os horários continuam gravados para quando voltarem. */
+    fun ativarNotificacoes(ativas: Boolean) {
+        viewModelScope.launch { repo.salvarNotificacoesAtivas(ativas) }
+    }
+
+    /** Grava [novo] no lugar de [antigo], ou a mais quando [antigo] é null. */
+    fun salvarHorario(novo: LocalTime, antigo: LocalTime?) {
+        viewModelScope.launch { repo.editarHorariosDasNotificacoes { it.comHorario(novo, antigo) } }
+    }
+
+    fun removerHorario(horario: LocalTime) {
+        viewModelScope.launch { repo.editarHorariosDasNotificacoes { it.semHorario(horario) } }
     }
 }

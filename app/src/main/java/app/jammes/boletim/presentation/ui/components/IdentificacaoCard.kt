@@ -1,5 +1,8 @@
 package app.jammes.boletim.presentation.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -13,6 +16,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -32,8 +38,9 @@ import app.jammes.boletim.domain.model.PeriodoDomain
 import app.jammes.boletim.presentation.ui.theme.Espacos
 
 /**
- * Topo do app: aluno, ano letivo, o botão dos ajustes do ano e o seletor de período.
- * Tocar no aluno chama [onAbrirPerfil], onde dá para trocar de aluno e de ano.
+ * Topo do app: aluno, ano letivo, o sino das notificações, o botão dos ajustes do ano e o seletor de
+ * período. Tocar no aluno chama [onAbrirPerfil], onde dá para trocar de aluno e de ano. Com
+ * [temNotificacoesNovas], o sino ganha um ponto azul.
  * A opção "Ano letivo" chama [onSelectPeriodo] com null: o boletim passa a ser o do ano inteiro.
  */
 @Composable
@@ -42,7 +49,9 @@ fun IdentificacaoCard(
     contexto: Contexto,
     aluno: AlunoDomain?,
     anosLetivos: List<AnoLetivoDomain> = emptyList(),
+    temNotificacoesNovas: Boolean = false,
     onSelectPeriodo: (PeriodoDomain?) -> Unit = {},
+    onAbrirNotificacoes: () -> Unit = {},
     onAbrirAjustesAnoLetivo: () -> Unit = {},
     onAbrirPerfil: () -> Unit = {},
 ) {
@@ -99,6 +108,15 @@ fun IdentificacaoCard(
                         }
                     }
                 }
+                IconButton(onClick = onAbrirNotificacoes) {
+                    BadgedBox(badge = { PontoDoSino(visivel = temNotificacoesNovas) }) {
+                        Icon(
+                            Icons.Outlined.Notifications,
+                            contentDescription = if (temNotificacoesNovas) "Notificações: há novas" else "Notificações",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
                 IconButton(onClick = onAbrirAjustesAnoLetivo) {
                     Icon(
                         Icons.Outlined.CalendarMonth,
@@ -123,6 +141,17 @@ fun IdentificacaoCard(
                 )
             }
         }
+    }
+}
+
+/**
+ * O ponto azul do sino, quando há notificações novas. Entra e sai crescendo, em vez de piscar. Fora
+ * do card, porque lá dentro o AnimatedVisibility da Row seria o escolhido, e ele não serve no badge.
+ */
+@Composable
+private fun PontoDoSino(visivel: Boolean) {
+    AnimatedVisibility(visible = visivel, enter = scaleIn(), exit = scaleOut()) {
+        Badge(containerColor = MaterialTheme.colorScheme.primary)
     }
 }
 

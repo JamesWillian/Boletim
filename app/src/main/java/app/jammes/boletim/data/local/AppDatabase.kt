@@ -6,9 +6,11 @@ import androidx.room.TypeConverters
 import app.jammes.boletim.data.local.dao.AlunoDao
 import app.jammes.boletim.data.local.dao.AnoLetivoDao
 import app.jammes.boletim.data.local.dao.AvaliacaoDao
+import app.jammes.boletim.data.local.dao.BackupDao
 import app.jammes.boletim.data.local.dao.DisciplinaDao
 import app.jammes.boletim.data.local.dao.FaltaDao
 import app.jammes.boletim.data.local.dao.MateriaDao
+import app.jammes.boletim.data.local.dao.NotificacaoDao
 import app.jammes.boletim.data.local.dao.PeriodoDao
 import app.jammes.boletim.data.local.dao.RegraAvaliacaoDao
 import app.jammes.boletim.data.local.entity.AlunoEntity
@@ -17,6 +19,7 @@ import app.jammes.boletim.data.local.entity.AvaliacaoEntity
 import app.jammes.boletim.data.local.entity.DisciplinaEntity
 import app.jammes.boletim.data.local.entity.FaltaEntity
 import app.jammes.boletim.data.local.entity.MateriaEntity
+import app.jammes.boletim.data.local.entity.NotificacaoEntity
 import app.jammes.boletim.data.local.entity.PeriodoEntity
 import app.jammes.boletim.data.local.entity.RegraAvaliacaoEntity
 import app.jammes.boletim.data.mapper.Converters
@@ -30,7 +33,8 @@ import app.jammes.boletim.data.mapper.Converters
         FaltaEntity::class,
         MateriaEntity::class,
         PeriodoEntity::class,
-        RegraAvaliacaoEntity::class
+        RegraAvaliacaoEntity::class,
+        NotificacaoEntity::class
     ],
     version = 1,
     exportSchema = true
@@ -46,6 +50,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun materiaDao() : MateriaDao
     abstract fun periodoDao() : PeriodoDao
     abstract fun regraAvaliacaoDao() : RegraAvaliacaoDao
+    abstract fun backupDao() : BackupDao
+    abstract fun notificacaoDao() : NotificacaoDao
 
     companion object {
 

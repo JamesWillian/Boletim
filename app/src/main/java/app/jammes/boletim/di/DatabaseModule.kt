@@ -7,9 +7,11 @@ import app.jammes.boletim.data.local.MateriasPadraoCallback
 import app.jammes.boletim.data.local.dao.AlunoDao
 import app.jammes.boletim.data.local.dao.AnoLetivoDao
 import app.jammes.boletim.data.local.dao.AvaliacaoDao
+import app.jammes.boletim.data.local.dao.BackupDao
 import app.jammes.boletim.data.local.dao.DisciplinaDao
 import app.jammes.boletim.data.local.dao.FaltaDao
 import app.jammes.boletim.data.local.dao.MateriaDao
+import app.jammes.boletim.data.local.dao.NotificacaoDao
 import app.jammes.boletim.data.local.dao.PeriodoDao
 import app.jammes.boletim.data.local.dao.RegraAvaliacaoDao
 import dagger.Module
@@ -57,4 +59,10 @@ object DatabaseModule {
 
     @Provides
     fun provideRegraAvaliacaoDao(db: AppDatabase): RegraAvaliacaoDao = db.regraAvaliacaoDao()
+
+    @Provides
+    fun provideBackupDao(db: AppDatabase): BackupDao = db.backupDao()
+
+    @Provides
+    fun provideNotificacaoDao(db: AppDatabase): NotificacaoDao = db.notificacaoDao()
 }

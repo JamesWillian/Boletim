@@ -34,7 +34,7 @@ import app.jammes.boletim.presentation.ui.components.IdentificacaoCard
  *
  * ```
  * ┌─────────────────────────────────┐
- * │ IdentificacaoCard               │ ◄── some nos ajustes do ano, na edição da disciplina e nas configurações; o aluno abre o perfil
+ * │ IdentificacaoCard               │ ◄── some nos ajustes do ano, na edição da disciplina, nas configurações e nas notificações; o aluno abre o perfil, o sino as notificações
  * ├────────────────────────────┬────┤
  * │                            │    │
  * │ AppNavHost                 │ ◄──── AbasDisciplinas, só nas telas
@@ -53,6 +53,7 @@ fun AppScaffold(
     disciplinas: List<DisciplinaDomain>,
     siglas: Map<Long, String>, // pelo id da disciplina, para as abas no estilo "Ícones + sigla"
     estiloDasAbas: EstiloDasAbas,
+    temNotificacoesNovas: Boolean, // o ponto azul no sino
     onSelecionarPeriodo: (PeriodoDomain?) -> Unit, // null: o ano letivo inteiro
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
@@ -77,7 +78,9 @@ fun AppScaffold(
                         contexto = contexto,
                         aluno = aluno,
                         anosLetivos = anosLetivos,
+                        temNotificacoesNovas = temNotificacoesNovas,
                         onSelectPeriodo = onSelecionarPeriodo,
+                        onAbrirNotificacoes = { navController.abrirNotificacoes() },
                         onAbrirAjustesAnoLetivo = { navController.abrirAjustesAnoLetivo() },
                         onAbrirPerfil = { navController.abrirPerfilDoAluno() },
                     )

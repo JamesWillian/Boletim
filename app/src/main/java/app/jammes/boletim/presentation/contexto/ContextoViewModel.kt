@@ -6,6 +6,7 @@ import app.jammes.boletim.domain.repository.AlunoRepository
 import app.jammes.boletim.domain.repository.AnoLetivoRepository
 import app.jammes.boletim.domain.repository.ContextoRepository
 import app.jammes.boletim.domain.repository.DisciplinaRepository
+import app.jammes.boletim.domain.repository.NotificacaoRepository
 import app.jammes.boletim.presentation.ui.components.siglasDasDisciplinas
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -26,6 +27,7 @@ class ContextoViewModel @Inject constructor(
     anoLetivoRepo: AnoLetivoRepository,
     alunoRepo: AlunoRepository,
     disciplinaRepo: DisciplinaRepository,
+    notificacaoRepo: NotificacaoRepository,
 ): ViewModel() {
 
     val state: StateFlow<ContextoUiState> = contextRepo.contexto
@@ -74,6 +76,16 @@ class ContextoViewModel @Inject constructor(
             viewModelScope,
             SharingStarted.WhileSubscribed(5_000),
             emptyMap()
+        )
+
+    /** Se há notificação que ainda não apareceu na tela delas: acende o ponto azul do sino, no topo. */
+    val temNotificacoesNovas = notificacaoRepo.naoLidas
+        .map { it > 0 }
+        .distinctUntilChanged()
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            false
         )
 
     fun trocarAluno(alunoId: Long, anoLetivoId: Long, periodoId: Long) {

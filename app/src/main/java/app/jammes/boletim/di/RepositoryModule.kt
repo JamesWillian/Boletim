@@ -3,23 +3,27 @@ package app.jammes.boletim.di
 import app.jammes.boletim.data.repository.AlunoRepositoryImpl
 import app.jammes.boletim.data.repository.AnoLetivoRepositoryImpl
 import app.jammes.boletim.data.repository.AvaliacaoRepositoryImpl
+import app.jammes.boletim.data.repository.BackupRepositoryImpl
 import app.jammes.boletim.data.repository.ConfiguracoesRepositoryImpl
 import app.jammes.boletim.data.repository.ContextoRepositoryImpl
 import app.jammes.boletim.data.repository.DicasRepositoryImpl
 import app.jammes.boletim.data.repository.DisciplinaRepositoryImpl
 import app.jammes.boletim.data.repository.FaltaRepositoryImpl
 import app.jammes.boletim.data.repository.MateriaRepositoryImpl
+import app.jammes.boletim.data.repository.NotificacaoRepositoryImpl
 import app.jammes.boletim.data.repository.RegraAvaliacaoRepositoryImpl
 import app.jammes.boletim.data.repository.TransacaoImpl
 import app.jammes.boletim.domain.repository.AlunoRepository
 import app.jammes.boletim.domain.repository.AnoLetivoRepository
 import app.jammes.boletim.domain.repository.AvaliacaoRepository
+import app.jammes.boletim.domain.repository.BackupRepository
 import app.jammes.boletim.domain.repository.ConfiguracoesRepository
 import app.jammes.boletim.domain.repository.ContextoRepository
 import app.jammes.boletim.domain.repository.DicasRepository
 import app.jammes.boletim.domain.repository.DisciplinaRepository
 import app.jammes.boletim.domain.repository.FaltaRepository
 import app.jammes.boletim.domain.repository.MateriaRepository
+import app.jammes.boletim.domain.repository.NotificacaoRepository
 import app.jammes.boletim.domain.repository.RegraAvaliacaoRepository
 import app.jammes.boletim.domain.repository.Transacao
 import dagger.Binds
@@ -75,4 +79,12 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindTransacao(impl: TransacaoImpl): Transacao
+
+    @Binds
+    @Singleton
+    abstract fun bindBackupRepository(impl: BackupRepositoryImpl): BackupRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindNotificacaoRepository(impl: NotificacaoRepositoryImpl): NotificacaoRepository
 }

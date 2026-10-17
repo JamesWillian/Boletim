@@ -388,7 +388,8 @@ internal fun ConfirmarDescarte(
 
 /**
  * Barra com voltar e título em cima, e a de salvar embaixo; a mesma moldura enquanto carrega e depois.
- * A edição da disciplina usa a mesma, com o título dela.
+ * A edição da disciplina usa a mesma, com o título dela. As [acoes] ficam à direita do título, como a
+ * engrenagem das notificações.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -397,6 +398,7 @@ internal fun MolduraAjustes(
     modifier: Modifier = Modifier,
     titulo: String = "Ajustes do ano letivo",
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
+    acoes: @Composable RowScope.() -> Unit = {},
     barraDeBaixo: @Composable () -> Unit = {},
     conteudo: @Composable (PaddingValues) -> Unit,
 ) {
@@ -421,6 +423,7 @@ internal fun MolduraAjustes(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
                     }
                 },
+                actions = acoes,
                 windowInsets = WindowInsets(0, 0, 0, 0),
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,

@@ -44,6 +44,7 @@ fun AppRoot() {
             val anosLetivos by contextoVm.anosLetivos.collectAsStateWithLifecycle()
             val disciplinas by contextoVm.disciplinas.collectAsStateWithLifecycle()
             val siglas by contextoVm.siglas.collectAsStateWithLifecycle()
+            val temNotificacoesNovas by contextoVm.temNotificacoesNovas.collectAsStateWithLifecycle()
 
             AppScaffold(
                 contexto = s.contexto,
@@ -52,6 +53,7 @@ fun AppRoot() {
                 disciplinas = disciplinas,
                 siglas = siglas,
                 estiloDasAbas = (configuracoes ?: Configuracoes()).estiloDasAbas,
+                temNotificacoesNovas = temNotificacoesNovas,
                 onSelecionarPeriodo = { periodo -> contextoVm.trocarPeriodo(periodo?.id) }
             )
         }
