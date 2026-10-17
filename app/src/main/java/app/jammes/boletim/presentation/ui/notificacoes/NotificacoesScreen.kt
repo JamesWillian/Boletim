@@ -20,7 +20,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.TrendingDown
 import androidx.compose.material.icons.outlined.DeleteSweep
+import androidx.compose.material.icons.outlined.EditNote
+import androidx.compose.material.icons.outlined.Event
+import androidx.compose.material.icons.outlined.EventBusy
+import androidx.compose.material.icons.outlined.HourglassBottom
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.NotificationsNone
 import androidx.compose.material.icons.outlined.NotificationsOff
@@ -42,6 +47,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.semantics
@@ -53,6 +59,7 @@ import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.jammes.boletim.BuildConfig
 import app.jammes.boletim.domain.model.Configuracoes
+import app.jammes.boletim.domain.model.TipoNotificacao
 import app.jammes.boletim.presentation.ui.anoletivo.Cartao
 import app.jammes.boletim.presentation.ui.anoletivo.Divisoria
 import app.jammes.boletim.presentation.ui.anoletivo.MolduraAjustes
@@ -70,10 +77,11 @@ import java.time.temporal.ChronoUnit
 import java.util.Locale
 
 /**
- * As notificações do app, abertas pelo sino do topo, no mesmo painel das configurações: agrupadas
- * por dia, das mais novas para as mais antigas. As que chegaram desde a última visita vêm com o selo
- * azul e um ponto, e aparecer aqui já conta como lida: o sino do topo apaga. O Limpar, no topo da
- * lista, apaga todas, com Desfazer; a engrenagem leva às configurações delas.
+ * As notificações do aluno aberto, abertas pelo sino do topo, no mesmo painel das configurações:
+ * agrupadas por dia, das mais novas para as mais antigas. As que chegaram desde a última visita vêm
+ * com o selo azul e um ponto, e aparecer aqui já conta como lida: o sino do topo apaga. O Limpar, no
+ * topo da lista, apaga as do aluno, com Desfazer; a engrenagem leva às configurações delas, que valem
+ * para o aparelho todo.
  *
  * A chave das notificações vem do ViewModel das configurações preso à Activity: desligadas, a lista
  * vazia diz isso, em vez de esperar avisos que não vão chegar.
@@ -131,6 +139,7 @@ fun NotificacoesScreen(
 
             is NotificacoesUiState.Carregadas -> if (s.dias.isEmpty()) {
                 SemNotificacoes(
+                    titulo = tituloSemNotificacoes(s.nomeDoAluno),
                     // Antes de carregar vale o padrão, como nas configurações
                     ativas = (configuracoes ?: Configuracoes()).notificacoesAtivas,
                     onAtivar = {
@@ -170,7 +179,7 @@ private fun ListaDeNotificacoes(
     ) {
         item(key = "topo") {
             TopoDaLista(
-                resumo = resumoDasNotificacoes(estado.total, estado.novas),
+                resumo = resumoDasNotificacoes(estado.total, estado.novas, estado.nomeDoAluno),
                 onLimpar = onLimpar,
                 modifier = Modifier.animateItem(),
             )
@@ -229,7 +238,7 @@ private fun LinhaDaNotificacao(item: ItemDeNotificacao) {
             }
             .padding(horizontal = Espacos.l, vertical = Espacos.m),
     ) {
-        SeloDaNotificacao(nova = item.nova)
+        SeloDaNotificacao(tipo = notificacao.tipo, nova = item.nova)
         Spacer(Modifier.width(Espacos.m))
         Column(Modifier.weight(1f)) {
             Row {
@@ -261,15 +270,15 @@ private fun LinhaDaNotificacao(item: ItemDeNotificacao) {
 }
 
 /**
- * O sino num quadrado: azul e com o ponto, como o sino do topo, quando a notificação é nova; cinza
- * depois de vista.
+ * O ícone do tipo num quadrado: azul e com o ponto, como o sino do topo, quando a notificação é nova;
+ * cinza depois de vista.
  */
 @Composable
-private fun SeloDaNotificacao(nova: Boolean) {
+private fun SeloDaNotificacao(tipo: TipoNotificacao, nova: Boolean) {
     Box {
         SeloDisciplina(
             cor = if (nova) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-            icone = Icons.Outlined.Notifications,
+            icone = iconeDoTipo(tipo),
         )
         if (nova) {
             // Um anel da cor do card em volta separa o ponto do selo
@@ -294,6 +303,7 @@ private fun SeloDaNotificacao(nova: Boolean) {
  */
 @Composable
 private fun SemNotificacoes(
+    titulo: String,
     ativas: Boolean,
     onAtivar: () -> Unit,
     onCriarDeTeste: (() -> Unit)?,
@@ -303,7 +313,7 @@ private fun SemNotificacoes(
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         EstadoVazio(
             icone = if (ativas) Icons.Outlined.NotificationsNone else Icons.Outlined.NotificationsOff,
-            titulo = "Nenhuma notificação",
+            titulo = titulo,
             mensagem = if (ativas) {
                 "Os avisos do Boletim vão aparecer aqui."
             } else {
@@ -348,14 +358,31 @@ internal fun tituloDoDia(dia: LocalDate, hoje: LocalDate): String {
     return texto.replaceFirstChar { it.titlecase(PT_BR) }
 }
 
-/** "7 notificações · 2 novas"; sem novas, só quantas são. */
-internal fun resumoDasNotificacoes(total: Int, novas: Int): String {
+/**
+ * "7 notificações · 2 novas"; sem novas, só quantas são. Com [nomeDoAluno] (mais de um aluno no
+ * aparelho), ele vem na frente: "James · 7 notificações · 2 novas".
+ */
+internal fun resumoDasNotificacoes(total: Int, novas: Int, nomeDoAluno: String? = null): String {
     val quantas = if (total == 1) "1 notificação" else "$total notificações"
-    return when (novas) {
+    val resumo = when (novas) {
         0 -> quantas
         1 -> "$quantas · 1 nova"
         else -> "$quantas · $novas novas"
     }
+    return if (nomeDoAluno == null) resumo else "$nomeDoAluno · $resumo"
+}
+
+/** A lista vazia: "Nenhuma notificação", ou "Nenhuma notificação de James" com mais de um aluno. */
+internal fun tituloSemNotificacoes(nomeDoAluno: String?): String =
+    if (nomeDoAluno == null) "Nenhuma notificação" else "Nenhuma notificação de $nomeDoAluno"
+
+private fun iconeDoTipo(tipo: TipoNotificacao): ImageVector = when (tipo) {
+    TipoNotificacao.AVALIACAO -> Icons.Outlined.Event
+    TipoNotificacao.NOTA -> Icons.Outlined.EditNote
+    TipoNotificacao.MEDIA -> Icons.AutoMirrored.Outlined.TrendingDown
+    TipoNotificacao.FALTAS -> Icons.Outlined.EventBusy
+    TipoNotificacao.PERIODO -> Icons.Outlined.HourglassBottom
+    TipoNotificacao.AVISO -> Icons.Outlined.Notifications
 }
 
 /** O aviso do Limpar: "7 notificações apagadas". */

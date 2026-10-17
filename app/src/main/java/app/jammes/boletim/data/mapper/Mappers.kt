@@ -26,6 +26,7 @@ import app.jammes.boletim.domain.model.PeriodoDomain
 import app.jammes.boletim.domain.model.RegraAvaliacaoDomain
 import app.jammes.boletim.domain.model.TipoArredondamento
 import app.jammes.boletim.domain.model.TipoMedia
+import app.jammes.boletim.domain.model.TipoNotificacao
 import app.jammes.boletim.domain.model.TipoPeriodo
 
 fun AlunoEntity.toDomain(): AlunoDomain = AlunoDomain(
@@ -213,16 +214,24 @@ fun List<ContagemLancamentos>.toDomain(): Map<Long, Lancamentos> = associate {
 
 fun NotificacaoEntity.toDomain(): NotificacaoDomain = NotificacaoDomain(
     id = id,
+    alunoId = alunoId,
+    tipo = TipoNotificacao.fromString(tipo),
+    chave = chave,
     titulo = titulo,
     texto = texto,
     criadaEm = criadaEm,
-    lida = lida
+    lida = lida,
+    avisada = avisada
 )
 
 fun NotificacaoDomain.toEntity(): NotificacaoEntity = NotificacaoEntity(
     id = id,
+    alunoId = alunoId,
+    tipo = TipoNotificacao.toString(tipo),
+    chave = chave,
     titulo = titulo,
     texto = texto,
     criadaEm = criadaEm,
-    lida = lida
+    lida = lida,
+    avisada = avisada
 )

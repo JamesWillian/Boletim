@@ -1,14 +1,18 @@
 package app.jammes.boletim.presentation.ui.notificacoes
 
+import app.jammes.boletim.domain.model.AlunoDomain
 import app.jammes.boletim.domain.model.NotificacaoDomain
+import app.jammes.boletim.domain.model.TipoNotificacao
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-/** A lista de notificações: os grupos por dia, o que conta como nova e os textos da tela. */
+/** A lista de notificações: os grupos por dia, o que conta como nova, de quem são e os textos da tela. */
 class NotificacoesScreenTest {
 
     // Grupos por dia -------------------------------------------------------------------------
@@ -101,6 +105,37 @@ class NotificacoesScreenTest {
         assertEquals("7 notificações · 2 novas", resumoDasNotificacoes(total = 7, novas = 2))
     }
 
+    @Test fun `com mais de um aluno, o resumo e a lista vazia dizem de quem sao`() {
+        assertEquals("James · 7 notificações · 2 novas", resumoDasNotificacoes(total = 7, novas = 2, nomeDoAluno = "James"))
+        assertEquals("Nenhuma notificação de James", tituloSemNotificacoes("James"))
+        assertEquals("Nenhuma notificação", tituloSemNotificacoes(null))
+    }
+
+    // De quem são ----------------------------------------------------------------------------
+
+    @Test fun `com um aluno so, a tela nao diz o nome`() {
+        assertEquals(null, nomeNaLista(listOf(aluno(1, "James Willian")), alunoId = 1))
+    }
+
+    @Test fun `com mais de um aluno, o primeiro nome`() {
+        val alunos = listOf(aluno(1, "James Willian"), aluno(2, "Maria Clara"))
+
+        assertEquals("James", nomeNaLista(alunos, alunoId = 1))
+        assertEquals("Maria", nomeNaLista(alunos, alunoId = 2))
+    }
+
+    @Test fun `com o mesmo primeiro nome de outro aluno, o nome inteiro`() {
+        val alunos = listOf(aluno(1, "Maria Clara"), aluno(2, "maria Eduarda "), aluno(3, "Pedro"))
+
+        assertEquals("Maria Clara", nomeNaLista(alunos, alunoId = 1))
+        assertEquals("maria Eduarda", nomeNaLista(alunos, alunoId = 2))
+        assertEquals("Pedro", nomeNaLista(alunos, alunoId = 3))
+    }
+
+    @Test fun `o aluno aberto que nao esta na lista fica sem nome`() {
+        assertEquals(null, nomeNaLista(listOf(aluno(1, "James"), aluno(2, "Maria")), alunoId = 9))
+    }
+
     @Test fun `o aviso do Limpar no singular e no plural`() {
         assertEquals("1 notificação apagada", textoDaLimpeza(1))
         assertEquals("7 notificações apagadas", textoDaLimpeza(7))
@@ -116,7 +151,7 @@ class NotificacoesScreenTest {
     @Test fun `os exemplos passam por cada jeito de dar nome ao dia`() {
         val agora = Instant.parse("2026-10-17T15:00:00Z") // meio-dia em São Paulo
 
-        val dias = agruparPorDia(notificacoesDeTeste(agora, SAO_PAULO), vistas = emptySet(), zona = SAO_PAULO)
+        val dias = agruparPorDia(notificacoesDeTeste(alunoId = 1, agora, SAO_PAULO), vistas = emptySet(), zona = SAO_PAULO)
 
         assertEquals(
             listOf("Hoje", "Ontem", "Quarta-feira, 14 de outubro", "5 de outubro", "12 de setembro de 2025"),
@@ -125,13 +160,29 @@ class NotificacoesScreenTest {
         assertEquals(2, dias.sumOf { dia -> dia.itens.count { it.nova } })
     }
 
+    @Test fun `os exemplos sao do aluno aberto, ja avisados e com chaves que nao se repetem`() {
+        val agora = Instant.parse("2026-10-17T15:00:00Z")
+
+        val exemplos = notificacoesDeTeste(alunoId = 7, agora, SAO_PAULO)
+        val outraLeva = notificacoesDeTeste(alunoId = 7, agora + 1.seconds, SAO_PAULO)
+
+        assertTrue(exemplos.all { it.alunoId == 7L && it.avisada })
+        // Nem dentro da leva nem com a seguinte: o banco recusaria a chave repetida do mesmo aluno
+        assertEquals(exemplos.size * 2, (exemplos + outraLeva).map { it.chave }.distinct().size)
+    }
+
     private fun notificacao(id: Long, criadaEm: String, lida: Boolean = false) = NotificacaoDomain(
         id = id,
+        alunoId = 1,
+        tipo = TipoNotificacao.AVISO,
+        chave = "teste:$id",
         titulo = "Notificação $id",
         texto = "",
         criadaEm = Instant.parse(criadaEm),
         lida = lida,
     )
+
+    private fun aluno(id: Long, nome: String) = AlunoDomain(id = id, nome = nome, criadoEm = Instant.parse("2026-01-01T00:00:00Z"))
 
     private companion object {
         val SAO_PAULO: ZoneId = ZoneId.of("America/Sao_Paulo")

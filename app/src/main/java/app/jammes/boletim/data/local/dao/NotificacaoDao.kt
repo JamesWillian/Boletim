@@ -11,22 +11,23 @@ import kotlinx.coroutines.flow.Flow
 interface NotificacaoDao {
 
     // As mais novas primeiro; no mesmo instante, a gravada por último
-    @Query("SELECT * FROM notificacao ORDER BY criada_em DESC, id DESC")
-    fun observarTodas(): Flow<List<NotificacaoEntity>>
+    @Query("SELECT * FROM notificacao WHERE aluno_id = :alunoId ORDER BY criada_em DESC, id DESC")
+    fun observarDoAluno(alunoId: Long): Flow<List<NotificacaoEntity>>
 
-    @Query("SELECT COUNT(*) FROM notificacao WHERE lida = 0")
-    fun observarNaoLidas(): Flow<Int>
+    @Query("SELECT COUNT(*) FROM notificacao WHERE aluno_id = :alunoId AND lida = 0")
+    fun observarNaoLidas(alunoId: Long): Flow<Int>
 
     @Query("UPDATE notificacao SET lida = 1 WHERE id IN (:ids)")
     suspend fun marcarComoLidas(ids: List<Long>)
 
-    @Query("SELECT * FROM notificacao")
-    suspend fun todas(): List<NotificacaoEntity>
+    @Query("SELECT * FROM notificacao WHERE aluno_id = :alunoId")
+    suspend fun doAluno(alunoId: Long): List<NotificacaoEntity>
 
-    @Query("DELETE FROM notificacao")
-    suspend fun apagarTodas()
+    @Query("DELETE FROM notificacao WHERE aluno_id = :alunoId")
+    suspend fun apagarDoAluno(alunoId: Long)
 
-    // IGNORE: uma que já esteja no banco (o Desfazer chamado duas vezes) fica como está
+    // IGNORE: uma que já esteja no banco fica como está, seja pelo id (o Desfazer chamado duas vezes),
+    // seja pela chave (o mesmo aviso gerado de novo para o aluno)
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun inserir(notificacoes: List<NotificacaoEntity>)
 }

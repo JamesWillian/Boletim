@@ -78,8 +78,16 @@ class ContextoViewModel @Inject constructor(
             emptyMap()
         )
 
-    /** Se há notificação que ainda não apareceu na tela delas: acende o ponto azul do sino, no topo. */
-    val temNotificacoesNovas = notificacaoRepo.naoLidas
+    /**
+     * Se o aluno aberto tem notificação que ainda não apareceu na tela delas: acende o ponto azul do
+     * sino, no topo. As dos outros alunos não contam; trocar de aluno troca o ponto junto.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val temNotificacoesNovas = contextRepo.contexto
+        .filterNotNull()
+        .map { it.alunoId }
+        .distinctUntilChanged()
+        .flatMapLatest { aluno -> notificacaoRepo.naoLidas(aluno) }
         .map { it > 0 }
         .distinctUntilChanged()
         .stateIn(

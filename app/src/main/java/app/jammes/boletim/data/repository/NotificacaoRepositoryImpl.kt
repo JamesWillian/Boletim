@@ -16,10 +16,10 @@ class NotificacaoRepositoryImpl @Inject constructor(
     private val dao: NotificacaoDao,
 ) : NotificacaoRepository {
 
-    override val notificacoes: Flow<List<NotificacaoDomain>> =
-        dao.observarTodas().map { lista -> lista.map { it.toDomain() } }
+    override fun notificacoes(alunoId: Long): Flow<List<NotificacaoDomain>> =
+        dao.observarDoAluno(alunoId).map { lista -> lista.map { it.toDomain() } }
 
-    override val naoLidas: Flow<Int> = dao.observarNaoLidas()
+    override fun naoLidas(alunoId: Long): Flow<Int> = dao.observarNaoLidas(alunoId)
 
     override suspend fun marcarComoLidas(ids: Collection<Long>) {
         if (ids.isEmpty()) return
@@ -30,10 +30,10 @@ class NotificacaoRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun apagarTodas(): List<NotificacaoDomain> = db.withTransaction {
-        val todas = dao.todas()
-        dao.apagarTodas()
-        todas.map { it.toDomain() }
+    override suspend fun apagarDoAluno(alunoId: Long): List<NotificacaoDomain> = db.withTransaction {
+        val apagadas = dao.doAluno(alunoId)
+        dao.apagarDoAluno(alunoId)
+        apagadas.map { it.toDomain() }
     }
 
     override suspend fun inserir(notificacoes: List<NotificacaoDomain>) {
