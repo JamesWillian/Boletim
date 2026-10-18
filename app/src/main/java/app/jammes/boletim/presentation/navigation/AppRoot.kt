@@ -54,6 +54,7 @@ fun AppRoot() {
                 siglas = siglas,
                 estiloDasAbas = (configuracoes ?: Configuracoes()).estiloDasAbas,
                 temNotificacoesNovas = temNotificacoesNovas,
+                irParaNotificacoes = contextoVm.irParaNotificacoes,
                 onSelecionarPeriodo = { periodo -> contextoVm.trocarPeriodo(periodo?.id) }
             )
         }

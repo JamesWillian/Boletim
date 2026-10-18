@@ -108,12 +108,16 @@ fun DisciplinaDetailScreen(
 
     val state by viewModel.state.collectAsStateWithLifecycle()
 
-    // A lista aberta embaixo do resumo. Sobrevive a girar a tela, como o formulário.
-    var aba by rememberSaveable { mutableStateOf(AbaDoDetalhe.AVALIACOES) }
+    // A lista aberta embaixo do resumo. Sobrevive a girar a tela, como o formulário. Um aviso de faltas
+    // abre a tela já na aba delas
+    var aba by rememberSaveable {
+        mutableStateOf(if (viewModel.abrirNasFaltas) AbaDoDetalhe.FALTAS else AbaDoDetalhe.AVALIACOES)
+    }
 
     // O que está aberto no formulário: null = fechado, NOVA = lançando um novo.
     // Guarda só o id, que sobrevive a girar a tela; a avaliação ou a falta em si vem do state.
-    var avaliacaoAbertaId by rememberSaveable { mutableStateOf<Long?>(null) }
+    // Vinda de uma notificação, a tela já abre com a avaliação dela no formulário
+    var avaliacaoAbertaId by rememberSaveable { mutableStateOf(viewModel.avaliacaoAoAbrir) }
     var faltaAbertaId by rememberSaveable { mutableStateOf<Long?>(null) }
     // A confirmação aberta de finalizar ou reabrir; o que ela diz vem do state
     var dialogo by rememberSaveable { mutableStateOf<DialogoDoFechamento?>(null) }
@@ -249,7 +253,8 @@ fun DisciplinaDetailScreen(
                 val avaliacaoAberta = when (avaliacaoAbertaId) {
                     null -> null
                     NOVA -> remember { viewModel.novaAvaliacao(detalhe) }
-                    else -> detalhe.avaliacoes.find { it.id == avaliacaoAbertaId }
+                    // Finalizada, nenhuma abre; só a de uma notificação chegaria aqui assim
+                    else -> detalhe.avaliacoes.find { it.id == avaliacaoAbertaId }?.takeUnless { detalhe.finalizada }
                 }
                 if (avaliacaoAberta != null) {
                     AvaliacaoBottomSheet(

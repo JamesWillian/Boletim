@@ -232,7 +232,7 @@ private fun BoasVindas(onComecar: () -> Unit, onCarregarDadosDeTeste: (() -> Uni
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconeDoApp(tamanho = 34.dp)
                 Spacer(Modifier.width(Espacos.m))
-                Text("Boletim", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                Text("Boletim Escolar", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             }
             Spacer(Modifier.height(Espacos.l))
             Text(

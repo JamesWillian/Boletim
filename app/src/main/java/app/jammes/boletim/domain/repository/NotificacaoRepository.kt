@@ -14,13 +14,28 @@ interface NotificacaoRepository {
 
     suspend fun marcarComoLidas(ids: Collection<Long>)
 
-    /** Apaga as do aluno e devolve as que apagou, para o Desfazer pôr de volta. As dos outros ficam. */
-    suspend fun apagarDoAluno(alunoId: Long): List<NotificacaoDomain>
+    /**
+     * O Limpar: tira da lista as do aluno e devolve as que tirou, para o Desfazer pôr de volta. As dos
+     * outros alunos ficam. Elas continuam guardadas, sem aparecer em lugar nenhum: o mesmo aviso, gerado
+     * de novo no horário seguinte, não volta.
+     */
+    suspend fun limparDoAluno(alunoId: Long): List<NotificacaoDomain>
+
+    /** O Desfazer do Limpar: as [ids] voltam para a lista, iguais, no mesmo lugar. */
+    suspend fun restaurar(ids: Collection<Long>)
 
     /**
-     * Grava as [notificacoes]. Com id 0, cada uma ganha um id novo; com o id de antes (o Desfazer do
-     * Limpar), ela volta igual, no mesmo lugar da lista. Uma com a chave de outra do mesmo aluno não
-     * entra: esse aviso já existe.
+     * Grava as [notificacoes], cada uma com um id novo, e diz quantas entraram. Uma com a chave de
+     * outra do mesmo aluno não entra, mesmo que a outra tenha saído da lista pelo Limpar: esse aviso
+     * já foi dado.
      */
-    suspend fun inserir(notificacoes: List<NotificacaoDomain>)
+    suspend fun inserir(notificacoes: List<NotificacaoDomain>): Int
+
+    /** As que ainda não foram lidas, de todos os alunos, da mais nova para a mais antiga. */
+    suspend fun todasNaoLidas(): List<NotificacaoDomain>
+
+    /** As que ainda não entraram na notificação do celular, de todos os alunos. */
+    suspend fun naoAvisadas(): List<NotificacaoDomain>
+
+    suspend fun marcarComoAvisadas(ids: Collection<Long>)
 }

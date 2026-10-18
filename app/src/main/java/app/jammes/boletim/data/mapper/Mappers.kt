@@ -221,7 +221,11 @@ fun NotificacaoEntity.toDomain(): NotificacaoDomain = NotificacaoDomain(
     texto = texto,
     criadaEm = criadaEm,
     lida = lida,
-    avisada = avisada
+    avisada = avisada,
+    anoLetivoId = anoLetivoId,
+    periodoId = periodoId,
+    disciplinaId = disciplinaId,
+    avaliacaoId = avaliacaoId
 )
 
 fun NotificacaoDomain.toEntity(): NotificacaoEntity = NotificacaoEntity(
@@ -233,5 +237,9 @@ fun NotificacaoDomain.toEntity(): NotificacaoEntity = NotificacaoEntity(
     texto = texto,
     criadaEm = criadaEm,
     lida = lida,
-    avisada = avisada
+    avisada = avisada,
+    anoLetivoId = anoLetivoId,
+    periodoId = periodoId,
+    disciplinaId = disciplinaId,
+    avaliacaoId = avaliacaoId
 )

@@ -1,6 +1,7 @@
 package app.jammes.boletim.presentation.ui.notificacoes
 
 import androidx.activity.compose.LocalActivity
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -12,11 +13,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.BugReport
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.NotificationsActive
 import androidx.compose.material.icons.outlined.NotificationsOff
@@ -29,7 +32,9 @@ import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.jammes.boletim.BuildConfig
 import app.jammes.boletim.domain.model.Configuracoes
 import app.jammes.boletim.domain.model.MAXIMO_DE_HORARIOS
 import app.jammes.boletim.presentation.ui.aluno.Selo
@@ -66,6 +72,9 @@ import java.time.LocalTime
  * com o lembrete de escolher horários fora das aulas. Cada escolha vale na hora, sem Salvar.
  * Desligadas, os horários continuam guardados, apagados na tela, para quando elas voltarem.
  *
+ * Ligar a chave pede a permissão do Android, quando ela falta; com os avisos bloqueados no celular,
+ * a faixa do topo diz isso e libera.
+ *
  * Usa o ViewModel das configurações preso à Activity, que já está carregado: a chave abre na posição
  * certa, sem pular.
  */
@@ -82,6 +91,16 @@ fun ConfiguracoesDasNotificacoesScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val haptico = LocalHapticFeedback.current
+    val jaPediu by viewModel.permissaoDeNotificacoesPedida.collectAsStateWithLifecycle()
+    val permissao = rememberPermissaoDeNotificacoes(jaPediu, viewModel::marcarPermissaoDeNotificacoesPedida)
+
+    // Só no build de debug: o Gerar avisos agora terminou
+    LaunchedEffect(viewModel) {
+        viewModel.avisosGerados.collect { novas ->
+            snackbarHostState.currentSnackbarData?.dismiss()
+            scope.launch { snackbarHostState.showSnackbar(textoDosAvisosGerados(novas)) }
+        }
+    }
 
     // O sheet do relógio, aberto para um horário novo ([mudando] null) ou para mudar um da lista
     var escolhendo by rememberSaveable { mutableStateOf(false) }
@@ -116,11 +135,16 @@ fun ConfiguracoesDasNotificacoesScreen(
                 .padding(start = Espacos.l, end = Espacos.l, top = Espacos.xs, bottom = Espacos.xl),
             verticalArrangement = Arrangement.spacedBy(Espacos.l),
         ) {
+            // Ligadas no app, mas bloqueadas no Android
+            AnimatedVisibility(visible = atuais.notificacoesAtivas && !permissao.liberada) {
+                AvisoDeBloqueio(onPermitir = permissao::pedir)
+            }
             SecaoNotificacoes(
                 ativas = atuais.notificacoesAtivas,
                 onMudar = { ativas ->
                     haptico.performHapticFeedback(if (ativas) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
                     viewModel.ativarNotificacoes(ativas)
+                    if (ativas) permissao.pedirAoLigar()
                 },
             )
             SecaoHorarios(
@@ -136,6 +160,13 @@ fun ConfiguracoesDasNotificacoesScreen(
                 },
                 onRemover = ::remover,
             )
+            if (BuildConfig.DEBUG) {
+                GerarAvisosAgora(
+                    habilitado = atuais.notificacoesAtivas,
+                    onClick = viewModel::gerarAvisosAgora,
+                    modifier = Modifier.align(Alignment.CenterHorizontally),
+                )
+            }
         }
     }
 
@@ -313,12 +344,35 @@ private fun LinhaDeAdicionar(
     }
 }
 
+/**
+ * Só no build de debug: faz agora o que o horário das notificações faz, para testar os avisos do
+ * celular sem esperar por ele.
+ */
+@Composable
+private fun GerarAvisosAgora(
+    habilitado: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    TextButton(onClick = onClick, enabled = habilitado, modifier = modifier) {
+        Icon(Icons.Outlined.BugReport, contentDescription = null, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(Espacos.s))
+        Text("Gerar avisos agora")
+    }
+}
+
 // A transparência do Material para o que está desabilitado
 private const val ALFA_APAGADA = 0.38f
 
 // Textos ------------------------------------------------------------------------------------
 
 internal const val AVISO_DAS_AULAS = "Escolha horários fora das aulas: assim as notificações não atrapalham."
+
+private fun textoDosAvisosGerados(novas: Int): String = when (novas) {
+    0 -> "Nenhuma notificação nova"
+    1 -> "1 notificação nova"
+    else -> "$novas notificações novas"
+}
 
 /** Em que parte do dia o horário cai, para conferir de relance que 07:00 não era 19:00. */
 internal fun parteDoDia(horario: LocalTime): String = when (horario.hour) {

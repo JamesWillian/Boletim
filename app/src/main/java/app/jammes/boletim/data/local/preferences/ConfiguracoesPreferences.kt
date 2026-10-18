@@ -39,12 +39,27 @@ class ConfiguracoesPreferences @Inject constructor(
         val BACKUP_AUTOMATICO = booleanPreferencesKey("backup_automatico")
         val NOTIFICACOES_ATIVAS = booleanPreferencesKey("notificacoes_ativas")
         val HORARIOS_DAS_NOTIFICACOES = stringSetPreferencesKey("horarios_das_notificacoes") // "19:00"
+        val PERMISSAO_DE_NOTIFICACOES_PEDIDA = booleanPreferencesKey("permissao_de_notificacoes_pedida")
     }
 
-    val configuracoes: Flow<Configuracoes> = context.dataStore.data
+    private val preferencias: Flow<Preferences> = context.dataStore.data
         .catch { e -> if (e is IOException) emit(emptyPreferences()) else throw e }
+
+    val configuracoes: Flow<Configuracoes> = preferencias
         .map { it.toConfiguracoes() }
         .distinctUntilChanged()
+
+    /**
+     * Se o app já mostrou o pedido de permissão de notificações do Android. Não é uma escolha da
+     * pessoa, por isso fica fora das Configuracoes: só diz se o pedido ainda pode aparecer.
+     */
+    val permissaoDeNotificacoesPedida: Flow<Boolean> = preferencias
+        .map { it[Keys.PERMISSAO_DE_NOTIFICACOES_PEDIDA] == true }
+        .distinctUntilChanged()
+
+    suspend fun marcarPermissaoDeNotificacoesPedida() {
+        context.dataStore.edit { it[Keys.PERMISSAO_DE_NOTIFICACOES_PEDIDA] = true }
+    }
 
     suspend fun salvarTema(tema: Tema) {
         context.dataStore.edit { it[Keys.TEMA] = tema.name }

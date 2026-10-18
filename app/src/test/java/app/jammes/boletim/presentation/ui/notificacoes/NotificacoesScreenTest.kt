@@ -1,6 +1,5 @@
 package app.jammes.boletim.presentation.ui.notificacoes
 
-import app.jammes.boletim.domain.model.AlunoDomain
 import app.jammes.boletim.domain.model.NotificacaoDomain
 import app.jammes.boletim.domain.model.TipoNotificacao
 import org.junit.Assert.assertEquals
@@ -12,7 +11,10 @@ import java.time.ZoneId
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 
-/** A lista de notificações: os grupos por dia, o que conta como nova, de quem são e os textos da tela. */
+/**
+ * A lista de notificações: os grupos por dia, o que conta como nova e os textos da tela. Como o app
+ * chama cada aluno fica nos testes das notificações do domínio, onde o nomeNaLista mora.
+ */
 class NotificacoesScreenTest {
 
     // Grupos por dia -------------------------------------------------------------------------
@@ -111,31 +113,6 @@ class NotificacoesScreenTest {
         assertEquals("Nenhuma notificação", tituloSemNotificacoes(null))
     }
 
-    // De quem são ----------------------------------------------------------------------------
-
-    @Test fun `com um aluno so, a tela nao diz o nome`() {
-        assertEquals(null, nomeNaLista(listOf(aluno(1, "James Willian")), alunoId = 1))
-    }
-
-    @Test fun `com mais de um aluno, o primeiro nome`() {
-        val alunos = listOf(aluno(1, "James Willian"), aluno(2, "Maria Clara"))
-
-        assertEquals("James", nomeNaLista(alunos, alunoId = 1))
-        assertEquals("Maria", nomeNaLista(alunos, alunoId = 2))
-    }
-
-    @Test fun `com o mesmo primeiro nome de outro aluno, o nome inteiro`() {
-        val alunos = listOf(aluno(1, "Maria Clara"), aluno(2, "maria Eduarda "), aluno(3, "Pedro"))
-
-        assertEquals("Maria Clara", nomeNaLista(alunos, alunoId = 1))
-        assertEquals("maria Eduarda", nomeNaLista(alunos, alunoId = 2))
-        assertEquals("Pedro", nomeNaLista(alunos, alunoId = 3))
-    }
-
-    @Test fun `o aluno aberto que nao esta na lista fica sem nome`() {
-        assertEquals(null, nomeNaLista(listOf(aluno(1, "James"), aluno(2, "Maria")), alunoId = 9))
-    }
-
     @Test fun `o aviso do Limpar no singular e no plural`() {
         assertEquals("1 notificação apagada", textoDaLimpeza(1))
         assertEquals("7 notificações apagadas", textoDaLimpeza(7))
@@ -181,8 +158,6 @@ class NotificacoesScreenTest {
         criadaEm = Instant.parse(criadaEm),
         lida = lida,
     )
-
-    private fun aluno(id: Long, nome: String) = AlunoDomain(id = id, nome = nome, criadoEm = Instant.parse("2026-01-01T00:00:00Z"))
 
     private companion object {
         val SAO_PAULO: ZoneId = ZoneId.of("America/Sao_Paulo")

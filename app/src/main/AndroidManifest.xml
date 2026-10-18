@@ -2,6 +2,14 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Os avisos na barra do celular; do Android 13 em diante, a pessoa precisa permitir -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- O despertador dos horários das notificações se perde quando o celular desliga -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- O despertador na hora certa. Vem liberada até o Android 13; do 14 em diante, vem desligada
+         (Alarmes e lembretes, nas configurações do app), e o despertador pode atrasar -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+
     <application
         android:name=".BoletimApp"
         android:allowBackup="true"
@@ -25,6 +33,26 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- O despertador do horário das notificações -->
+        <receiver
+            android:name=".avisos.AvisosReceiver"
+            android:exported="false" />
+
+        <!-- Marca o despertador de novo quando ele se perde ou fica na hora errada. Os avisos do
+             sistema chegam mesmo sem exported -->
+        <receiver
+            android:name=".avisos.ReagendarAvisosReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <!-- A pessoa liberou os alarmes e lembretes: o despertador pode ser exato -->
+                <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

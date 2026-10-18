@@ -74,7 +74,7 @@ internal fun notificacoesDeTeste(alunoId: Long, agora: Instant, zona: ZoneId): L
         ),
         Exemplo(
             tipo = TipoNotificacao.AVISO,
-            titulo = "Boas-vindas ao Boletim",
+            titulo = "Boas-vindas ao Boletim Escolar",
             texto = "Os avisos do app aparecem aqui.",
             criadaEm = diasAtras(400, 19),
         ),

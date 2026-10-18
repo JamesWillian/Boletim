@@ -70,8 +70,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.jammes.boletim.domain.model.DisciplinaResumo
 import app.jammes.boletim.domain.model.StatusDisciplina
 import app.jammes.boletim.domain.model.Substituta
-import app.jammes.boletim.domain.model.TipoArredondamento
-import app.jammes.boletim.domain.usecase.arredondarMedia
+import app.jammes.boletim.domain.usecase.mediaEmTexto
 import app.jammes.boletim.presentation.ui.components.AnelDaMedia
 import app.jammes.boletim.presentation.ui.components.CarregandoDiscreto
 import app.jammes.boletim.presentation.ui.components.ChavesCompartilhadas
@@ -79,13 +78,12 @@ import app.jammes.boletim.presentation.ui.components.DURACAO_TRANSICAO
 import app.jammes.boletim.presentation.ui.components.SeloDisciplina
 import app.jammes.boletim.presentation.ui.components.elementoCompartilhado
 import app.jammes.boletim.presentation.ui.components.limitesCompartilhados
+import app.jammes.boletim.presentation.ui.notificacoes.PedirPermissaoAoAbrir
 import app.jammes.boletim.presentation.ui.theme.BoletimTheme
 import app.jammes.boletim.presentation.ui.theme.CoresDisciplina
 import app.jammes.boletim.presentation.ui.theme.Espacos
 import app.jammes.boletim.presentation.ui.theme.IconesDisciplina
 import kotlinx.coroutines.delay
-import java.text.NumberFormat
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -97,6 +95,10 @@ fun BoletimScreen(
 
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val dica by viewModel.dicaDaPrimeiraNota.collectAsStateWithLifecycle()
+
+    // As notificações já vêm ligadas, mas do Android 13 em diante só chegam com a permissão: na
+    // primeira vez que o boletim abre, o Android pergunta
+    PedirPermissaoAoAbrir()
 
     Scaffold(
         modifier = modifier,
@@ -496,14 +498,5 @@ internal fun LinhaDaOutraMedia(rotulo: String, media: Double, modifier: Modifier
 internal fun nomeDoFiltro(periodoId: Long?): String =
     if (periodoId == null) "ano letivo" else "período"
 
-// 1 ou 2 casas (7,0 · 7,5 · 6,96), as mesmas que a regra NENHUM guarda: assim o número na tela
-// nunca contradiz a cor do status. A média geral chega sem arredondar e passa pela mesma limpeza.
-internal fun formatarMedia(media: Double?): String =
-    media?.let {
-        NumberFormat.getNumberInstance(Locale.forLanguageTag("pt-BR"))
-            .apply {
-                minimumFractionDigits = 1
-                maximumFractionDigits = 2
-            }
-            .format(arredondarMedia(it, TipoArredondamento.NENHUM))
-    } ?: "—"
+// 1 ou 2 casas (7,0 · 7,5 · 6,96), pelo mediaEmTexto do domínio, que as notificações também usam
+internal fun formatarMedia(media: Double?): String = media?.let(::mediaEmTexto) ?: "—"

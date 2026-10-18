@@ -11,6 +11,8 @@ import kotlin.time.Instant
  *   ponto azul.
  * - [avisada] passa a true quando ele entra no resumo da notificação do celular, para não ser avisado
  *   de novo no horário seguinte.
+ * - [anoLetivoId], [periodoId], [disciplinaId] e [avaliacaoId] dizem o que o toque nele abre; null no
+ *   que não se aplica.
  */
 data class NotificacaoDomain(
     val id: Long = 0L,
@@ -22,4 +24,8 @@ data class NotificacaoDomain(
     val criadaEm: Instant,
     val lida: Boolean = false,
     val avisada: Boolean = false,
+    val anoLetivoId: Long? = null,
+    val periodoId: Long? = null,
+    val disciplinaId: Long? = null,
+    val avaliacaoId: Long? = null,
 )

@@ -139,6 +139,10 @@ fun AppNavHost(
                     NotificacoesScreen(
                         onVoltar = { navController.fecharNotificacoes() },
                         onConfigurar = { navController.abrirConfiguracoesDasNotificacoes() },
+                        onAbrirDisciplina = { id, avaliacaoId, abaDeFaltas ->
+                            navController.abrirDisciplinaDaNotificacao(id, avaliacaoId, abaDeFaltas)
+                        },
+                        onAbrirBoletimGeral = { navController.abrirBoletimGeral() },
                     )
                 }
                 composable<Routes.ConfiguracoesDasNotificacoes>(
@@ -292,6 +296,16 @@ fun NavController.abrirNotificacoes() {
 /** Fecha as notificações. Como nos ajustes, só tira elas da pilha, mesmo se for chamado duas vezes. */
 fun NavController.fecharNotificacoes() {
     popBackStack<Routes.Notificacoes>(inclusive = true)
+}
+
+/**
+ * Abre a disciplina de uma notificação, por cima da lista: o voltar leva de novo a ela. Com
+ * [avaliacaoId], a avaliação já abre no formulário; com [abaDeFaltas], a aba das faltas.
+ */
+fun NavController.abrirDisciplinaDaNotificacao(disciplinaId: Long, avaliacaoId: Long?, abaDeFaltas: Boolean) {
+    navigate(Routes.Boletim.Disciplina(disciplinaId, avaliacaoId, abaDeFaltas)) {
+        launchSingleTop = true
+    }
 }
 
 /** Abre as configurações das notificações por cima da lista; o voltar leva de novo a ela. */

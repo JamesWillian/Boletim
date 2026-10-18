@@ -1,5 +1,6 @@
 package app.jammes.boletim
 
+import android.content.Intent
 import android.graphics.Color
 import android.os.Bundle
 import android.os.SystemClock
@@ -16,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.jammes.boletim.avisos.AberturaPeloAviso
 import app.jammes.boletim.presentation.contexto.ContextoUiState
 import app.jammes.boletim.presentation.contexto.ContextoViewModel
 import app.jammes.boletim.presentation.navigation.AppNavGraph
@@ -72,6 +74,22 @@ class MainActivity : ComponentActivity() {
 //                }
             }
         }
+
+        // Aberto pelo toque num aviso do celular. Só na primeira criação: girar a tela recria a
+        // Activity com o mesmo intent, e o pedido já foi atendido
+        if (savedInstanceState == null) atenderAviso(intent)
+    }
+
+    // Com o app já aberto, o toque no aviso chega aqui, na mesma Activity
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        atenderAviso(intent)
+    }
+
+    private fun atenderAviso(intent: Intent) {
+        val pedido = AberturaPeloAviso.ler(intent) ?: return
+        contextoVm.abrirNotificacoes(pedido.alunoId)
     }
 }
 

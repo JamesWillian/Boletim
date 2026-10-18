@@ -94,8 +94,8 @@ fun ArquivoDeBackup.resumo() = ResumoDoBackup(
 internal const val MARCA_DO_APP = "app.jammes.boletim"
 internal const val VERSAO_DO_ARQUIVO = 1
 
-internal const val NAO_E_BACKUP = "Esse arquivo não é um backup do Boletim"
-internal const val VERSAO_MAIS_NOVA = "Esse backup é de uma versão mais nova do Boletim. Atualize o app para importar"
+internal const val NAO_E_BACKUP = "Esse arquivo não é um backup do Boletim Escolar"
+internal const val VERSAO_MAIS_NOVA = "Esse backup é de uma versão mais nova do Boletim Escolar. Atualize o app para importar"
 internal const val BACKUP_ALTERADO = "O arquivo está incompleto ou foi alterado"
 internal const val SEM_ANO_LETIVO = "O arquivo não tem nenhum aluno com ano letivo"
 

@@ -43,9 +43,16 @@ class DisciplinaViewModel @Inject constructor(
     private val disciplinaRepo: DisciplinaRepository,
 ): ViewModel() {
 
-    // Argumento da rota que abriu a tela. Cada disciplina aberta ganha seu próprio ViewModel,
-    // então o id não muda durante a vida dele.
-    private val disciplinaId = savedStateHandle.toRoute<Routes.Boletim.Disciplina>().disciplinaId
+    // Argumentos da rota que abriu a tela. Cada disciplina aberta ganha seu próprio ViewModel,
+    // então eles não mudam durante a vida dele.
+    private val rota = savedStateHandle.toRoute<Routes.Boletim.Disciplina>()
+    private val disciplinaId = rota.disciplinaId
+
+    /** A avaliação que a tela já abre no formulário, quando ela veio de uma notificação; senão, null. */
+    val avaliacaoAoAbrir: Long? = rota.avaliacaoId
+
+    /** A tela abre na aba das faltas, quando veio de um aviso de faltas. */
+    val abrirNasFaltas: Boolean = rota.abaDeFaltas
 
     val state: StateFlow<DisciplinaUiState> =
         obterDisciplinaDetalhe(disciplinaId, contextoRepo.contexto.filterNotNull())

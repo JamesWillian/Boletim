@@ -183,3 +183,21 @@ class CriarAnoLetivo @Inject constructor(
         contextoRepository.selecionarAnoLetivo(criado.id, criado.periodo.periodoAoAbrir(hoje))
     }
 }
+
+/**
+ * Abre o aluno no ano letivo mais recente dele, no período de [hoje], como a troca no perfil. É o que
+ * o toque no aviso do celular faz antes de mostrar as notificações dele. O aluno que já está aberto
+ * fica como está, e um aluno sem ano letivo não tem o que abrir.
+ */
+class AbrirAluno @Inject constructor(
+    private val contextoRepository: ContextoRepository,
+    private val anoLetivoRepository: AnoLetivoRepository,
+) {
+    suspend operator fun invoke(alunoId: Long, hoje: LocalDate = LocalDate.now()) {
+        if (contextoRepository.contexto.first()?.alunoId == alunoId) return
+        val ano = anoLetivoRepository.observeByAluno(alunoId).first()
+            .sortedWith(MAIS_RECENTE_PRIMEIRO)
+            .firstOrNull() ?: return
+        contextoRepository.selecionarAluno(alunoId, ano.id, ano.periodo.periodoAoAbrir(hoje))
+    }
+}

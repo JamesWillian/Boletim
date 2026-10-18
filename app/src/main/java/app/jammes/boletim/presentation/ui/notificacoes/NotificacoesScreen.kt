@@ -2,6 +2,7 @@ package app.jammes.boletim.presentation.ui.notificacoes
 
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,6 +60,7 @@ import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.jammes.boletim.BuildConfig
 import app.jammes.boletim.domain.model.Configuracoes
+import app.jammes.boletim.domain.model.NotificacaoDomain
 import app.jammes.boletim.domain.model.TipoNotificacao
 import app.jammes.boletim.presentation.ui.anoletivo.Cartao
 import app.jammes.boletim.presentation.ui.anoletivo.Divisoria
@@ -90,6 +92,8 @@ import java.util.Locale
 fun NotificacoesScreen(
     onVoltar: () -> Unit,
     onConfigurar: () -> Unit,
+    onAbrirDisciplina: (disciplinaId: Long, avaliacaoId: Long?, abaDeFaltas: Boolean) -> Unit,
+    onAbrirBoletimGeral: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: NotificacoesViewModel = hiltViewModel(),
     configuracoesViewModel: ConfiguracoesViewModel = hiltViewModel(LocalActivity.current as ViewModelStoreOwner),
@@ -99,6 +103,21 @@ fun NotificacoesScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val haptico = LocalHapticFeedback.current
+    val jaPediu by configuracoesViewModel.permissaoDeNotificacoesPedida.collectAsStateWithLifecycle()
+    val permissao = rememberPermissaoDeNotificacoes(jaPediu, configuracoesViewModel::marcarPermissaoDeNotificacoesPedida)
+    // Ligadas no app, mas bloqueadas no Android: a faixa no topo diz isso e libera
+    val bloqueadas = (configuracoes ?: Configuracoes()).notificacoesAtivas && !permissao.liberada
+
+    // O toque numa notificação: o app já está no ano e no período dela
+    LaunchedEffect(viewModel) {
+        viewModel.abrir.collect { destino ->
+            when (destino) {
+                is DestinoDaNotificacao.Disciplina ->
+                    onAbrirDisciplina(destino.disciplinaId, destino.avaliacaoId, destino.abaDeFaltas)
+                is DestinoDaNotificacao.Boletim -> onAbrirBoletimGeral()
+            }
+        }
+    }
 
     // O que aparece na tela conta como lido. Só enquanto ela está aberta: com as configurações por
     // cima, esta tela sai da composição, e o que chegar nesse meio-tempo fica para quando ela voltar
@@ -140,11 +159,13 @@ fun NotificacoesScreen(
             is NotificacoesUiState.Carregadas -> if (s.dias.isEmpty()) {
                 SemNotificacoes(
                     titulo = tituloSemNotificacoes(s.nomeDoAluno),
+                    onPermitir = if (bloqueadas) permissao::pedir else null,
                     // Antes de carregar vale o padrão, como nas configurações
                     ativas = (configuracoes ?: Configuracoes()).notificacoesAtivas,
                     onAtivar = {
                         haptico.performHapticFeedback(HapticFeedbackType.ToggleOn)
                         configuracoesViewModel.ativarNotificacoes(true)
+                        permissao.pedirAoLigar()
                     },
                     onCriarDeTeste = if (BuildConfig.DEBUG) viewModel::criarNotificacoesDeTeste else null,
                     modifier = Modifier.padding(padding),
@@ -152,6 +173,8 @@ fun NotificacoesScreen(
             } else {
                 ListaDeNotificacoes(
                     estado = s,
+                    onPermitir = if (bloqueadas) permissao::pedir else null,
+                    onAbrir = viewModel::abrir,
                     onLimpar = {
                         haptico.performHapticFeedback(HapticFeedbackType.Confirm)
                         viewModel.limpar()
@@ -167,6 +190,8 @@ fun NotificacoesScreen(
 @Composable
 private fun ListaDeNotificacoes(
     estado: NotificacoesUiState.Carregadas,
+    onPermitir: (() -> Unit)?, // só com os avisos bloqueados no Android
+    onAbrir: (NotificacaoDomain) -> Unit,
     onLimpar: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -177,6 +202,9 @@ private fun ListaDeNotificacoes(
         contentPadding = PaddingValues(start = Espacos.l, end = Espacos.l, top = Espacos.xs, bottom = Espacos.xl),
         verticalArrangement = Arrangement.spacedBy(Espacos.l),
     ) {
+        if (onPermitir != null) {
+            item(key = "bloqueio") { AvisoDeBloqueio(onPermitir = onPermitir, modifier = Modifier.animateItem()) }
+        }
         item(key = "topo") {
             TopoDaLista(
                 resumo = resumoDasNotificacoes(estado.total, estado.novas, estado.nomeDoAluno),
@@ -190,7 +218,11 @@ private fun ListaDeNotificacoes(
                 Cartao {
                     dia.itens.forEachIndexed { i, item ->
                         if (i > 0) Divisoria()
-                        LinhaDaNotificacao(item)
+                        LinhaDaNotificacao(
+                            item = item,
+                            // Só a que aponta para algum lugar abre
+                            onClick = if (destinoDa(item.notificacao) != null) ({ onAbrir(item.notificacao) }) else null,
+                        )
                     }
                 }
             }
@@ -226,12 +258,13 @@ private fun TopoDaLista(
 
 /** O selo, o título com a hora ao lado e o texto embaixo. A nova tem o título mais forte. */
 @Composable
-private fun LinhaDaNotificacao(item: ItemDeNotificacao) {
+private fun LinhaDaNotificacao(item: ItemDeNotificacao, onClick: (() -> Unit)?) {
     val notificacao = item.notificacao
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClickLabel = "Abrir", onClick = onClick) else Modifier)
             // Uma frase só para o leitor de tela, que avisa antes quando ela é nova
             .semantics(mergeDescendants = true) {
                 if (item.nova) stateDescription = "Nova"
@@ -304,6 +337,7 @@ private fun SeloDaNotificacao(tipo: TipoNotificacao, nova: Boolean) {
 @Composable
 private fun SemNotificacoes(
     titulo: String,
+    onPermitir: (() -> Unit)?, // só com os avisos bloqueados no Android
     ativas: Boolean,
     onAtivar: () -> Unit,
     onCriarDeTeste: (() -> Unit)?,
@@ -311,11 +345,17 @@ private fun SemNotificacoes(
 ) {
     // Rola com a fonte do sistema bem grande ou com a tela deitada
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        if (onPermitir != null) {
+            AvisoDeBloqueio(
+                onPermitir = onPermitir,
+                modifier = Modifier.padding(start = Espacos.l, end = Espacos.l, top = Espacos.xs),
+            )
+        }
         EstadoVazio(
             icone = if (ativas) Icons.Outlined.NotificationsNone else Icons.Outlined.NotificationsOff,
             titulo = titulo,
             mensagem = if (ativas) {
-                "Os avisos do Boletim vão aparecer aqui."
+                "Os avisos do Boletim Escolar vão aparecer aqui."
             } else {
                 "As notificações estão desligadas: nenhum aviso vai chegar."
             },

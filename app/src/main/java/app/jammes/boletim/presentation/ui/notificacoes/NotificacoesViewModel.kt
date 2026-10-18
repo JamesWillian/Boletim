@@ -3,11 +3,12 @@ package app.jammes.boletim.presentation.ui.notificacoes
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import app.jammes.boletim.domain.model.AlunoDomain
 import app.jammes.boletim.domain.model.NotificacaoDomain
 import app.jammes.boletim.domain.repository.AlunoRepository
 import app.jammes.boletim.domain.repository.ContextoRepository
 import app.jammes.boletim.domain.repository.NotificacaoRepository
+import app.jammes.boletim.domain.usecase.RetirarAvisoDoAluno
+import app.jammes.boletim.domain.usecase.nomeNaLista
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jakarta.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -61,15 +62,17 @@ sealed interface NotificacoesUiState {
 
 /**
  * A lista de notificações do aluno aberto; as dos outros alunos ficam guardadas, mas não aparecem.
- * Aparecer na tela é o que conta como lida: o sino do topo apaga, mas o ponto azul continua nelas até
- * a pessoa sair daqui, para dar tempo de ver quais eram as novas.
+ * Aparecer na tela é o que conta como lida: o sino do topo apaga, o aviso do aluno sai da barra do
+ * celular, e o ponto azul continua nelas até a pessoa sair daqui, para dar tempo de ver quais eram as
+ * novas.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class NotificacoesViewModel @Inject constructor(
     private val repo: NotificacaoRepository,
-    contextoRepo: ContextoRepository,
+    private val contextoRepo: ContextoRepository,
     alunoRepo: AlunoRepository,
+    private val retirarAvisoDoAluno: RetirarAvisoDoAluno,
     private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -99,24 +102,56 @@ class NotificacoesViewModel @Inject constructor(
     /** O Limpar apagou estas notificações: o aviso diz quantas, e o Desfazer põe elas de volta. */
     val limpou: Flow<List<NotificacaoDomain>> = _limpou.receiveAsFlow()
 
+    private val _abrir = Channel<DestinoDaNotificacao>(Channel.BUFFERED)
+
+    /** Uma notificação foi tocada: o app já está no ano e no período dela, falta a tela ir até lá. */
+    val abrir: Flow<DestinoDaNotificacao> = _abrir.receiveAsFlow()
+
+    init {
+        // Abrir a lista é ver o aviso do celular: ele sai da barra
+        viewModelScope.launch { retirarAvisoDoAluno(alunoAberto.first()) }
+    }
+
     /** As [ids] apareceram na tela: ficam gravadas como lidas, e com o ponto azul até a tela fechar. */
     fun marcarComoVistas(ids: List<Long>) {
         vistas.update { it + ids }
         savedStateHandle[CHAVE_VISTAS] = vistas.value.toLongArray()
-        viewModelScope.launch { repo.marcarComoLidas(ids) }
+        viewModelScope.launch {
+            repo.marcarComoLidas(ids)
+            // Chegou um aviso com a tela aberta: ele também já foi visto aqui
+            retirarAvisoDoAluno(alunoAberto.first())
+        }
     }
 
-    /** Apaga as do aluno aberto; as dos outros alunos ficam. */
+    /**
+     * Leva ao que a [notificacao] avisa. Primeiro põe o app no ano letivo e no período dela, porque a
+     * tela de destino mostra o que está no contexto; só depois pede a tela. Um aviso que não aponta
+     * para nada não faz nada.
+     */
+    fun abrir(notificacao: NotificacaoDomain) {
+        val destino = destinoDa(notificacao) ?: return
+        viewModelScope.launch {
+            val contexto = contextoRepo.contexto.first()
+            when {
+                contexto?.anoLetivoId != destino.anoLetivoId ->
+                    contextoRepo.selecionarAnoLetivo(destino.anoLetivoId, destino.periodoId)
+                contexto?.periodoId != destino.periodoId -> contextoRepo.selecionarPeriodo(destino.periodoId)
+            }
+            _abrir.send(destino)
+        }
+    }
+
+    /** Tira da lista as do aluno aberto; as dos outros alunos ficam. */
     fun limpar() {
         viewModelScope.launch {
-            val apagadas = repo.apagarDoAluno(alunoAberto.first())
+            val apagadas = repo.limparDoAluno(alunoAberto.first())
             if (apagadas.isNotEmpty()) _limpou.send(apagadas)
         }
     }
 
-    /** Põe de volta as [apagadas] por um Limpar, com os mesmos ids: o ponto azul volta nas que tinham. */
+    /** Põe de volta as [apagadas] por um Limpar, como estavam: o ponto azul volta nas que tinham. */
     fun desfazerLimpeza(apagadas: List<NotificacaoDomain>) {
-        viewModelScope.launch { repo.inserir(apagadas) }
+        viewModelScope.launch { repo.restaurar(apagadas.map { it.id }) }
     }
 
     /**
@@ -131,20 +166,6 @@ class NotificacoesViewModel @Inject constructor(
 }
 
 private const val CHAVE_VISTAS = "vistas"
-
-/**
- * Como a tela chama o aluno [alunoId]: pelo primeiro nome, ou pelo nome inteiro quando outro aluno do
- * aparelho tem o mesmo primeiro nome. null com um aluno só, porque aí não há de quem mais ser.
- */
-internal fun nomeNaLista(alunos: List<AlunoDomain>, alunoId: Long): String? {
-    if (alunos.size < 2) return null
-    val aluno = alunos.find { it.id == alunoId } ?: return null
-    val primeiro = primeiroNome(aluno.nome)
-    val repetido = alunos.any { it.id != alunoId && primeiroNome(it.nome).equals(primeiro, ignoreCase = true) }
-    return if (repetido) aluno.nome.trim() else primeiro
-}
-
-private fun primeiroNome(nome: String): String = nome.trim().substringBefore(' ')
 
 /**
  * As [notificacoes] agrupadas pelo dia em que chegaram, no fuso [zona]: os dias e, dentro de cada

@@ -25,4 +25,9 @@ interface ConfiguracoesRepository {
      * edição: dois toques seguidos não se atropelam.
      */
     suspend fun editarHorariosDasNotificacoes(mudar: (List<LocalTime>) -> List<LocalTime>)
+
+    /** Se o app já mostrou o pedido de permissão de notificações do Android (Android 13 em diante). */
+    val permissaoDeNotificacoesPedida: Flow<Boolean>
+
+    suspend fun marcarPermissaoDeNotificacoesPedida()
 }

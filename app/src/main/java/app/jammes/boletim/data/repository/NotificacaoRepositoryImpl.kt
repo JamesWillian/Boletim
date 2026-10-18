@@ -30,14 +30,33 @@ class NotificacaoRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun apagarDoAluno(alunoId: Long): List<NotificacaoDomain> = db.withTransaction {
+    override suspend fun limparDoAluno(alunoId: Long): List<NotificacaoDomain> = db.withTransaction {
         val apagadas = dao.doAluno(alunoId)
-        dao.apagarDoAluno(alunoId)
+        dao.limparDoAluno(alunoId)
         apagadas.map { it.toDomain() }
     }
 
-    override suspend fun inserir(notificacoes: List<NotificacaoDomain>) {
-        dao.inserir(notificacoes.map { it.toEntity() })
+    override suspend fun restaurar(ids: Collection<Long>) {
+        if (ids.isEmpty()) return
+        db.withTransaction {
+            ids.chunked(TAMANHO_DO_PEDACO).forEach { dao.restaurar(it) }
+        }
+    }
+
+    override suspend fun inserir(notificacoes: List<NotificacaoDomain>): Int {
+        if (notificacoes.isEmpty()) return 0
+        return dao.inserir(notificacoes.map { it.toEntity() }).count { it != -1L }
+    }
+
+    override suspend fun todasNaoLidas(): List<NotificacaoDomain> = dao.naoLidas().map { it.toDomain() }
+
+    override suspend fun naoAvisadas(): List<NotificacaoDomain> = dao.naoAvisadas().map { it.toDomain() }
+
+    override suspend fun marcarComoAvisadas(ids: Collection<Long>) {
+        if (ids.isEmpty()) return
+        db.withTransaction {
+            ids.chunked(TAMANHO_DO_PEDACO).forEach { dao.marcarComoAvisadas(it) }
+        }
     }
 }
 

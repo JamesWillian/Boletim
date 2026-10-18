@@ -28,6 +28,8 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.text.NumberFormat
+import java.util.Locale
 import kotlin.collections.filter
 
 // ---------------------------------------------------------------------------
@@ -198,6 +200,19 @@ fun arredondarMedia(media: Double, tipo: TipoArredondamento): Double {
 
     return arredondada.toDouble()
 }
+
+/**
+ * A média escrita com 1 ou 2 casas (7,0 · 7,5 · 6,96), as mesmas que a regra NENHUM guarda: assim o
+ * número nunca contradiz a cor do status. A média geral chega sem arredondar e passa pela mesma
+ * limpeza. É a da tela e a do texto das notificações.
+ */
+fun mediaEmTexto(media: Double): String =
+    NumberFormat.getNumberInstance(Locale.forLanguageTag("pt-BR"))
+        .apply {
+            minimumFractionDigits = 1
+            maximumFractionDigits = 2
+        }
+        .format(arredondarMedia(media, TipoArredondamento.NENHUM))
 
 object CalcularFrequencia {
     /** Faltas permitidas no ano. null enquanto totalAulas não foi informado. */

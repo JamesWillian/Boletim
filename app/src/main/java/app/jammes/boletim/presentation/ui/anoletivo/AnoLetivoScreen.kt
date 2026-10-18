@@ -104,6 +104,9 @@ import app.jammes.boletim.domain.model.Lancamentos
 import app.jammes.boletim.domain.model.TipoArredondamento
 import app.jammes.boletim.domain.model.TipoMedia
 import app.jammes.boletim.domain.model.TipoPeriodo
+import app.jammes.boletim.domain.model.nomeDe
+import app.jammes.boletim.domain.model.nomeFeminino
+import app.jammes.boletim.domain.model.ordinalDe
 import app.jammes.boletim.domain.usecase.arredondarMedia
 import app.jammes.boletim.presentation.ui.boletim.formatarMedia
 import app.jammes.boletim.presentation.ui.components.CarregandoDiscreto
@@ -1161,16 +1164,16 @@ private const val SELOS_EMPILHADOS = 4
 
 // Textos ------------------------------------------------------------------------------------
 
+// As regras moram no domínio, que também escreve os nomes nas notificações; estes só repassam
+
 // Unidade é palavra feminina (1ª Unidade); bimestre, trimestre e semestre, masculinas (1º Bimestre)
 internal val TipoPeriodo.feminino: Boolean
-    get() = this == TipoPeriodo.UNIDADE
+    get() = nomeFeminino
 
 /** "1ª" ou "1º", conforme o tipo. */
-internal fun ordinalDoPeriodo(numero: Int, tipo: TipoPeriodo): String =
-    "$numero${if (tipo.feminino) "ª" else "º"}"
+internal fun ordinalDoPeriodo(numero: Int, tipo: TipoPeriodo): String = tipo.ordinalDe(numero)
 
-internal fun nomeDoPeriodo(numero: Int, tipo: TipoPeriodo): String =
-    "${ordinalDoPeriodo(numero, tipo)} ${tipo.displayName}"
+internal fun nomeDoPeriodo(numero: Int, tipo: TipoPeriodo): String = tipo.nomeDe(numero)
 
 internal val MESES = listOf("jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez")
 

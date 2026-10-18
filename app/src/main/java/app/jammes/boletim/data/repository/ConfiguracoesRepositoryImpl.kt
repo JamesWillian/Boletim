@@ -25,4 +25,8 @@ class ConfiguracoesRepositoryImpl @Inject constructor(
 
     override suspend fun editarHorariosDasNotificacoes(mudar: (List<LocalTime>) -> List<LocalTime>) =
         prefs.editarHorariosDasNotificacoes(mudar)
+
+    override val permissaoDeNotificacoesPedida: Flow<Boolean> = prefs.permissaoDeNotificacoesPedida
+
+    override suspend fun marcarPermissaoDeNotificacoesPedida() = prefs.marcarPermissaoDeNotificacoesPedida()
 }

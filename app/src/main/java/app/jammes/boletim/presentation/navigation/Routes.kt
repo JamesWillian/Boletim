@@ -30,7 +30,17 @@ object Routes {
     @Serializable
     data object Boletim {
         @Serializable data object Geral
-        @Serializable data class Disciplina(val disciplinaId: Long)
+
+        /**
+         * Vinda de uma notificação, a tela já abre a [avaliacaoId] no formulário, ou a aba das faltas
+         * com [abaDeFaltas]; nas outras vezes, os dois ficam no padrão.
+         */
+        @Serializable
+        data class Disciplina(
+            val disciplinaId: Long,
+            val avaliacaoId: Long? = null,
+            val abaDeFaltas: Boolean = false,
+        )
     }
 
     @Serializable data object Materia

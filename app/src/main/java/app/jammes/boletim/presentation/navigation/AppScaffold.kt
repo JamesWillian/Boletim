@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -28,6 +29,7 @@ import app.jammes.boletim.domain.model.EstiloDasAbas
 import app.jammes.boletim.domain.model.PeriodoDomain
 import app.jammes.boletim.presentation.ui.components.AbasDisciplinas
 import app.jammes.boletim.presentation.ui.components.IdentificacaoCard
+import kotlinx.coroutines.flow.Flow
 
 /**
  * Moldura do app quando já existe um contexto. Só monta o layout:
@@ -54,10 +56,20 @@ fun AppScaffold(
     siglas: Map<Long, String>, // pelo id da disciplina, para as abas no estilo "Ícones + sigla"
     estiloDasAbas: EstiloDasAbas,
     temNotificacoesNovas: Boolean, // o ponto azul no sino
+    irParaNotificacoes: Flow<Unit>, // o toque num aviso do celular
     onSelecionarPeriodo: (PeriodoDomain?) -> Unit, // null: o ano letivo inteiro
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
 ) {
+    // O toque num aviso do celular: as telas abertas podiam ser de outro aluno, então a lista abre por
+    // cima do Boletim Geral, e o voltar leva a ele
+    LaunchedEffect(irParaNotificacoes) {
+        irParaNotificacoes.collect {
+            navController.abrirBoletimGeral()
+            navController.abrirNotificacoes()
+        }
+    }
+
     val topo by navController.currentBackStackEntryAsState()
     // O perfil do aluno é um dialog, aberto por cima: a moldura segue a tela de baixo. Sem isso, as
     // abas sairiam enquanto ele está aberto
