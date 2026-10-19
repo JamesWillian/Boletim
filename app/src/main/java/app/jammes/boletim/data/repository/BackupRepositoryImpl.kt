@@ -131,5 +131,5 @@ private fun InputStream.lerTexto(): String {
         bytes.write(pedaco, 0, lidos)
         if (bytes.size() > LIMITE_DO_ARQUIVO) throw BackupInvalidoException(NAO_E_BACKUP)
     }
-    return String(bytes.toByteArray(), Charsets.UTF_8).removePrefix("﻿")
+    return String(bytes.toByteArray(), Charsets.UTF_8).removePrefix("\uFEFF")
 }

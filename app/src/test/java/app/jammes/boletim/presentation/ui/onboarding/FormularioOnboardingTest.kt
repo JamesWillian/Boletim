@@ -4,6 +4,7 @@ import app.jammes.boletim.domain.model.Etapa
 import app.jammes.boletim.domain.model.TipoMedia
 import app.jammes.boletim.domain.model.TipoPeriodo
 import app.jammes.boletim.presentation.ui.anoletivo.DatasPeriodo
+import app.jammes.boletim.presentation.ui.components.nomeRepetido
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull

@@ -48,6 +48,19 @@ class AjustesAnoLetivoTest {
     @Test fun `materia desmarcada nao vira disciplina`() {
         assertTrue(disciplinasNovas(ajustes(disciplinas = emptyList()), materiaIds = emptySet()).isEmpty())
     }
+
+    @Test fun `materia criada nos ajustes vira disciplina depois das que vieram do cadastro`() {
+        val original = ajustes(disciplinas = listOf(disciplina(PORTUGUES, ordem = 1)))
+        // Já gravada no cadastro pelo Salvar, com o id dela
+        val robotica = MateriaDomain(id = 20, nome = "Robótica", abreviacao = "ROB", cor = 2, icone = IconeMateria.ROBO)
+
+        val novas = disciplinasNovas(original, materiaIds = setOf(PORTUGUES.id, ARTE.id), criadas = listOf(robotica))
+
+        assertEquals(listOf("Arte", "Robótica"), novas.map { it.nome })
+        assertEquals(listOf(2, 3), novas.map { it.ordem })
+        assertEquals(robotica.id, novas.last().materiaId)
+        assertEquals(IconeMateria.ROBO, novas.last().icone)
+    }
 }
 
 private const val ANO_LETIVO_ID = 7L

@@ -61,7 +61,7 @@ class AnoLetivoViewModel @Inject constructor(
         _salvamento.value = Salvamento.Salvando
         viewModelScope.launch {
             _salvamento.value = try {
-                salvarAjustes(ajustes, gravacao.anoLetivo, gravacao.regra, gravacao.materiaIds)
+                salvarAjustes(ajustes, gravacao.anoLetivo, gravacao.regra, gravacao.materiaIds, gravacao.materiasNovas)
                 Salvamento.Salvo
             } catch (e: AjusteBloqueadoException) {
                 Salvamento.Falhou(e.message ?: "Não deu para salvar")

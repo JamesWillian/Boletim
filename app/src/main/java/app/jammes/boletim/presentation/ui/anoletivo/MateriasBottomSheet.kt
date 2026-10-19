@@ -15,6 +15,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -25,13 +26,18 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import app.jammes.boletim.presentation.ui.components.DialogoDaMateriaNova
 import app.jammes.boletim.presentation.ui.components.Pilula
 import app.jammes.boletim.presentation.ui.components.SeloDisciplina
 import app.jammes.boletim.presentation.ui.theme.CoresDisciplina
@@ -41,7 +47,8 @@ import kotlinx.coroutines.launch
 
 /**
  * Quais matérias o aluno tem no ano: um switch em cada. As que já têm avaliações ou faltas ficam
- * presas com um cadeado, porque tirá-las apagaria esses lançamentos.
+ * presas com um cadeado, porque tirá-las apagaria esses lançamentos. No fim da lista, "Nova matéria"
+ * abre o mesmo diálogo do onboarding: a criada entra ligada, e no cadastro só no Salvar.
  *
  * Cada toque já vai para o formulário da tela, e quem grava é o Salvar dela; "Pronto" só fecha.
  */
@@ -50,12 +57,17 @@ import kotlinx.coroutines.launch
 internal fun MateriasBottomSheet(
     linhas: List<LinhaMateria>,
     marcadas: Set<Long>, // as que entram no ano
+    novas: List<LinhaMateria>, // criadas aqui: entram no ano junto com as marcadas
+    existentes: List<String>, // os nomes que uma nova não pode repetir
     onMudar: (Set<Long>) -> Unit,
+    onCriar: (nome: String) -> Unit,
+    onDesistir: (nome: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     val haptico = LocalHapticFeedback.current
+    var criando by rememberSaveable { mutableStateOf(false) }
 
     // Esconde com a animação e só então avisa a tela, que tira o sheet da composição
     fun fechar() {
@@ -83,8 +95,9 @@ internal fun MateriasBottomSheet(
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.weight(1f),
                 )
-                if (linhas.isNotEmpty()) {
-                    Pilula(texto = "${linhas.count { it.materiaId in marcadas }} de ${linhas.size}")
+                val total = linhas.size + novas.size
+                if (total > 0) {
+                    Pilula(texto = "${linhas.count { it.materiaId in marcadas } + novas.size} de $total")
                 }
             }
 
@@ -99,7 +112,7 @@ internal fun MateriasBottomSheet(
                     )
                     Spacer(Modifier.width(Espacos.s))
                     Text(
-                        text = "Com avaliações ou faltas, a matéria fica no ano",
+                        text = "Matérias com avaliações ou faltas não podem ser removidas",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -112,30 +125,37 @@ internal fun MateriasBottomSheet(
                     .weight(1f, fill = false)
                     .verticalScroll(rememberScrollState())
             ) {
-                if (linhas.isEmpty()) {
-                    Text(
-                        text = "Nenhuma matéria cadastrada",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                } else {
-                    Cartao {
-                        linhas.forEachIndexed { i, linha ->
-                            if (i > 0) Divisoria()
-                            LinhaDaMateria(
-                                linha = linha,
-                                marcada = linha.materiaId in marcadas,
-                                onMarcar = { marcar ->
-                                    haptico.performHapticFeedback(
-                                        if (marcar) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff
-                                    )
-                                    onMudar(if (marcar) marcadas + linha.materiaId else marcadas - linha.materiaId)
-                                },
-                                // Presa, o toque só responde "não" no dedo: o porquê já está escrito na linha
-                                onBloqueada = { haptico.performHapticFeedback(HapticFeedbackType.Reject) },
-                            )
-                        }
+                // As do cadastro, as criadas aqui e, por último, a linha de criar outra
+                Cartao {
+                    linhas.forEach { linha ->
+                        LinhaDaMateria(
+                            linha = linha,
+                            marcada = linha.materiaId in marcadas,
+                            onMarcar = { marcar ->
+                                haptico.performHapticFeedback(
+                                    if (marcar) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff
+                                )
+                                onMudar(if (marcar) marcadas + linha.materiaId else marcadas - linha.materiaId)
+                            },
+                            // Presa, o toque só responde "não" no dedo: o porquê já está escrito na linha
+                            onBloqueada = { haptico.performHapticFeedback(HapticFeedbackType.Reject) },
+                        )
+                        Divisoria()
                     }
+                    // Desligar uma criada aqui é desistir dela: ainda não existe no cadastro
+                    novas.forEach { nova ->
+                        LinhaDaMateria(
+                            linha = nova,
+                            marcada = true,
+                            onMarcar = {
+                                haptico.performHapticFeedback(HapticFeedbackType.ToggleOff)
+                                onDesistir(nova.nome)
+                            },
+                            onBloqueada = {},
+                        )
+                        Divisoria()
+                    }
+                    LinhaNovaMateria(onClick = { criando = true })
                 }
             }
 
@@ -145,6 +165,18 @@ internal fun MateriasBottomSheet(
                 shape = RoundedCornerShape(12.dp)
             ) { Text("Pronto") }
         }
+    }
+
+    if (criando) {
+        DialogoDaMateriaNova(
+            titulo = "Nova matéria",
+            existentes = existentes,
+            onCriar = { nome ->
+                onCriar(nome)
+                criando = false
+            },
+            onDismiss = { criando = false },
+        )
     }
 }
 
@@ -194,12 +226,37 @@ private fun LinhaDaMateria(
         if (bloqueada) {
             Icon(
                 imageVector = Icons.Outlined.Lock,
-                contentDescription = "Fica no ano",
+                contentDescription = "Não pode ser removida",
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp),
             )
         } else {
             Switch(checked = marcada, onCheckedChange = null)
         }
+    }
+}
+
+/** A última linha da lista, com o mesmo tamanho das outras e a cor de ação. */
+@Composable
+private fun LinhaNovaMateria(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .clickable(onClickLabel = "Criar uma matéria", role = Role.Button, onClick = onClick)
+            .padding(horizontal = Espacos.l, vertical = Espacos.s),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        SeloDisciplina(
+            cor = MaterialTheme.colorScheme.primary,
+            icone = Icons.Filled.Add,
+            tamanho = 32.dp,
+        )
+        Spacer(Modifier.width(Espacos.m))
+        Text(
+            text = "Nova matéria",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.primary,
+        )
     }
 }

@@ -74,8 +74,9 @@ internal fun iconeSugerido(nome: String): IconeMateria {
 private val MARCAS_DE_ACENTO = Regex("\\p{M}")
 
 /**
- * As matérias criadas no onboarding, ainda sem id. Cada uma pega a menor cor que o [cadastro] ainda
- * não usa (as padrão deixam umas livres), para não repetir a de outra aba, e o [iconeSugerido].
+ * As matérias criadas no onboarding ou nas matérias do ano, ainda sem id. Cada uma pega a menor cor
+ * que o [cadastro] ainda não usa (as padrão deixam umas livres), para não repetir a de outra aba, e o
+ * [iconeSugerido].
  */
 internal fun materiasNovas(nomes: List<String>, cadastro: List<MateriaDomain>): List<MateriaDomain> {
     val usadas = cadastro.map { it.cor }.toSet()

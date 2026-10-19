@@ -108,6 +108,7 @@ import app.jammes.boletim.domain.model.nomeDe
 import app.jammes.boletim.domain.model.nomeFeminino
 import app.jammes.boletim.domain.model.ordinalDe
 import app.jammes.boletim.domain.usecase.arredondarMedia
+import app.jammes.boletim.domain.usecase.materiasNovas
 import app.jammes.boletim.presentation.ui.boletim.formatarMedia
 import app.jammes.boletim.presentation.ui.components.CarregandoDiscreto
 import app.jammes.boletim.presentation.ui.components.EstadoVazio
@@ -202,6 +203,9 @@ private fun EditorAjustes(
     val problemas = remember(form.periodos) { problemasDasDatas(form.periodos.visiveis) }
     val bloqueio = remember(form.periodos, ajustes) { form.periodos.bloqueioParaDiminuir(ajustes) }
     val materias = remember(ajustes) { linhasDasMaterias(ajustes) }
+    val novas = remember(form.materiasNovas, ajustes) { linhasDasNovas(form.materiasNovas, ajustes) }
+    // Uma matéria nova não repete nenhum destes: os do cadastro e os das disciplinas, que podem ter mudado
+    val nomesUsados = remember(ajustes) { (ajustes.materias.map { it.nome } + materias.map { it.nome }).distinct() }
     val alterado = alteracoes.total > 0
 
     // Com alterações, sair pergunta antes: pela seta da barra e pelo voltar do sistema
@@ -302,6 +306,7 @@ private fun EditorAjustes(
                 SecaoMaterias(
                     linhas = materias,
                     marcadas = form.materias,
+                    novas = novas,
                     alterada = alteracoes.materias > 0,
                     onEditar = { editor = Editor.Materias },
                 )
@@ -353,7 +358,11 @@ private fun EditorAjustes(
         Editor.Materias -> MateriasBottomSheet(
             linhas = materias,
             marcadas = form.materias,
+            novas = novas,
+            existentes = nomesUsados + form.materiasNovas,
             onMudar = { form = form.copy(materias = it) },
+            onCriar = { form = form.comMateriaNova(it) },
+            onDesistir = { form = form.semMateriaNova(it) },
             onDismiss = { editor = null },
         )
         null -> Unit
@@ -697,17 +706,18 @@ private fun SecaoRegras(
 private fun SecaoMaterias(
     linhas: List<LinhaMateria>,
     marcadas: Set<Long>, // as que entram no ano
+    novas: List<LinhaMateria>, // criadas aqui: entram no ano junto com as marcadas
     alterada: Boolean,
     onEditar: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val noAno = remember(linhas, marcadas) { linhas.filter { it.materiaId in marcadas } }
+    val noAno = remember(linhas, marcadas, novas) { linhas.filter { it.materiaId in marcadas } + novas }
 
     Column(modifier) {
         TituloDaSecao("Matérias do ano", alterada = alterada)
         Cartao {
             LinhaQueAbre(
-                titulo = tituloDasMaterias(noAno.size, linhas.size),
+                titulo = tituloDasMaterias(noAno.size, linhas.size + novas.size),
                 resumo = detalheDasMaterias(linhas.count { it.lancamentos != null }),
                 rotuloDoClique = "Escolher as matérias",
                 onClick = onEditar,
@@ -1308,3 +1318,12 @@ internal fun linhasDasMaterias(ajustes: AjustesAnoLetivo): List<LinhaMateria> {
         )
     }
 }
+
+/**
+ * As matérias criadas na tela, como vão ficar: com a cor e o ícone que o cadastro vai dar a elas no
+ * Salvar. Ainda não têm id nem lançamentos.
+ */
+internal fun linhasDasNovas(nomes: List<String>, ajustes: AjustesAnoLetivo): List<LinhaMateria> =
+    materiasNovas(nomes, ajustes.materias).map { materia ->
+        LinhaMateria(materiaId = 0, nome = materia.nome, cor = materia.cor, icone = materia.icone, lancamentos = null)
+    }

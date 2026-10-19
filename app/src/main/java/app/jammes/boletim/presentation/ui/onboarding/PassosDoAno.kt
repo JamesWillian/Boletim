@@ -26,8 +26,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -44,7 +42,6 @@ import androidx.compose.material.icons.outlined.RadioButtonUnchecked
 import androidx.compose.material.icons.outlined.School
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ColorScheme
@@ -54,12 +51,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -70,8 +65,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -88,8 +81,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -118,6 +109,7 @@ import app.jammes.boletim.presentation.ui.anoletivo.problemasDasDatas
 import app.jammes.boletim.presentation.ui.anoletivo.resumoDasDatas
 import app.jammes.boletim.presentation.ui.boletim.formatarMedia
 import app.jammes.boletim.presentation.ui.components.Avatar
+import app.jammes.boletim.presentation.ui.components.DialogoDaMateriaNova
 import app.jammes.boletim.presentation.ui.components.Pilula
 import app.jammes.boletim.presentation.ui.components.SeloDisciplina
 import app.jammes.boletim.presentation.ui.components.descricaoDoAno
@@ -647,6 +639,7 @@ internal fun PassoMaterias(
 
     if (criando) {
         DialogoDaMateriaNova(
+            titulo = "Outra matéria",
             existentes = materias.map { it.nome } + formulario.materiasNovas,
             onCriar = { nome ->
                 onMudar(formulario.comMateriaNova(nome))
@@ -700,39 +693,6 @@ private fun Modifier.bordaTracejada(cor: Color, raio: Dp) = drawBehind {
         size = Size(size.width - espessura, size.height - espessura),
         cornerRadius = CornerRadius(raio.toPx()),
         style = Stroke(width = espessura, pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 4.dp.toPx()))),
-    )
-}
-
-@Composable
-private fun DialogoDaMateriaNova(existentes: List<String>, onCriar: (String) -> Unit, onDismiss: () -> Unit) {
-    var nome by rememberSaveable { mutableStateOf("") }
-    val repetido = nomeRepetido(nome, existentes)
-    val podeCriar = nome.isNotBlank() && !repetido
-    val foco = remember { FocusRequester() }
-    LaunchedEffect(Unit) { foco.requestFocus() }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Outra matéria") },
-        text = {
-            OutlinedTextField(
-                value = nome,
-                onValueChange = { nome = it },
-                label = { Text("Nome da matéria") },
-                singleLine = true,
-                isError = repetido,
-                supportingText = if (repetido) {
-                    { Text("Essa matéria já está na lista") }
-                } else {
-                    null
-                },
-                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { if (podeCriar) onCriar(nome.trim()) }),
-                modifier = Modifier.focusRequester(foco),
-            )
-        },
-        confirmButton = { TextButton(onClick = { onCriar(nome.trim()) }, enabled = podeCriar) { Text("Criar") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } },
     )
 }
 

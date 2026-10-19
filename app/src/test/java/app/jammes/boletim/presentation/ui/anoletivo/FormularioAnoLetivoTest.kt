@@ -171,6 +171,16 @@ class FormularioAnoLetivoTest {
         assertEquals(4, form.alteracoes(gravado).total)
     }
 
+    @Test fun `materia criada aqui conta uma alteracao ate desistir dela`() {
+        val gravado = FormularioAnoLetivo.de(ajustes())
+
+        val comRobotica = gravado.comMateriaNova(" Robótica ")
+
+        assertEquals(listOf("Robótica"), comRobotica.materiasNovas) // sem o espaço sobrando
+        assertEquals(1, comRobotica.alteracoes(gravado).materias)
+        assertEquals(0, comRobotica.semMateriaNova("Robótica").alteracoes(gravado).total)
+    }
+
     @Test fun `espaco sobrando no ano ou na serie nao conta`() {
         val gravado = FormularioAnoLetivo.de(ajustes())
 
@@ -244,6 +254,16 @@ class FormularioAnoLetivoTest {
         val gravacao = form.copy(identificacao = form.identificacao.copy(serie = "  ")).paraGravar(ajustes)!!
 
         assertNull(gravacao.anoLetivo.serie)
+    }
+
+    @Test fun `materia criada aqui vai para o banco so com o nome`() {
+        val ajustes = ajustes(materiaIds = setOf(1))
+        val form = FormularioAnoLetivo.de(ajustes).comMateriaNova("Robótica")
+
+        val gravacao = form.paraGravar(ajustes)!!
+
+        assertEquals(setOf(1L), gravacao.materiaIds)
+        assertEquals(listOf("Robótica"), gravacao.materiasNovas)
     }
 
     @Test fun `regras vao para o banco como estao na tela`() {

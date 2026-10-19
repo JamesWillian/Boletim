@@ -21,14 +21,18 @@ import kotlinx.coroutines.flow.first
 
 /**
  * As disciplinas das matérias que entram no ano agora. Copiam nome, abreviação, cor e ícone da
- * matéria, como no cadastro, e vão para o fim das abas, na ordem das matérias.
+ * matéria, como no cadastro, e vão para o fim das abas: as do cadastro na ordem dele e, por último,
+ * as [criadas] na tela, já gravadas no cadastro.
  */
-internal fun disciplinasNovas(original: AjustesAnoLetivo, materiaIds: Set<Long>): List<DisciplinaDomain> {
+internal fun disciplinasNovas(
+    original: AjustesAnoLetivo,
+    materiaIds: Set<Long>,
+    criadas: List<MateriaDomain> = emptyList(),
+): List<DisciplinaDomain> {
     val jaNoAno = original.disciplinas.map { it.materiaId }.toSet()
     val ultimaOrdem = original.disciplinas.maxOfOrNull { it.ordem } ?: 0
 
-    return original.materias
-        .filter { it.id in materiaIds && it.id !in jaNoAno }
+    return (original.materias.filter { it.id in materiaIds && it.id !in jaNoAno } + criadas)
         .mapIndexed { i, materia -> novaDisciplina(materia, original.anoLetivo.id, ordem = ultimaOrdem + 1 + i) }
 }
 
@@ -86,6 +90,7 @@ class SalvarAjustesAnoLetivo @Inject constructor(
     private val transacao: Transacao,
     private val anoLetivoRepository: AnoLetivoRepository,
     private val regraRepository: RegraAvaliacaoRepository,
+    private val materiaRepository: MateriaRepository,
     private val disciplinaRepository: DisciplinaRepository,
     private val contextoRepository: ContextoRepository,
 ) {
@@ -97,13 +102,15 @@ class SalvarAjustesAnoLetivo @Inject constructor(
      * não deixa chegar aqui assim; a conta é refeita no banco só para garantir.
      *
      * @param anoLetivo já com os períodos que devem existir, em ordem (id 0 = período novo).
-     * @param materiaIds as matérias que entram no ano.
+     * @param materiaIds as matérias do cadastro que entram no ano.
+     * @param nomesNovos as matérias criadas na tela, só os nomes: entram no cadastro e no ano juntas.
      */
     suspend operator fun invoke(
         original: AjustesAnoLetivo,
         anoLetivo: AnoLetivoDomain,
         regra: RegraAvaliacaoDomain,
         materiaIds: Set<Long>,
+        nomesNovos: List<String> = emptyList(),
     ) {
         require(anoLetivo.periodo.isNotEmpty()) { "O ano letivo precisa de pelo menos um período" }
 
@@ -130,7 +137,10 @@ class SalvarAjustesAnoLetivo @Inject constructor(
             anoLetivoRepository.upsert(anoLetivo)
             regraRepository.upsert(regra)
             disciplinasQueSaem.forEach { disciplinaRepository.delete(it) }
-            disciplinasNovas(original, materiaIds).forEach { disciplinaRepository.upsert(it) }
+            // As criadas na tela entram no cadastro aqui, junto com o resto: descartar não deixa sobra.
+            // A cor e o ícone saem da mesma conta que a tela mostrou, com o cadastro que ela leu
+            val criadas = materiasNovas(nomesNovos, original.materias).map { it.copy(id = materiaRepository.upsert(it)) }
+            disciplinasNovas(original, materiaIds, criadas).forEach { disciplinaRepository.upsert(it) }
             ids
         }
 

@@ -26,6 +26,7 @@ data class FormularioAnoLetivo(
     val periodos: Periodos,
     val regras: Regras,
     val materias: Set<Long>, // ids das matérias que entram no ano
+    val materiasNovas: List<String> = emptyList(), // criadas aqui: entram no cadastro só no Salvar
 ) : Serializable {
 
     /** O ano e a série, como estão digitados. */
@@ -118,13 +119,17 @@ data class FormularioAnoLetivo(
         ).count { it }
     }
 
+    // Desistir de uma criada aqui é só tirá-la da lista: ela ainda não existe no cadastro
+    fun comMateriaNova(nome: String) = copy(materiasNovas = materiasNovas + nome.trim())
+    fun semMateriaNova(nome: String) = copy(materiasNovas = materiasNovas - nome)
+
     /** Quantas coisas mudaram em cada seção, comparando com o [gravado]. */
     fun alteracoes(gravado: FormularioAnoLetivo) = Alteracoes(
         ano = identificacao.alteracoes(gravado.identificacao),
         periodos = periodos.alteracoes(gravado.periodos),
         regras = regras.alteracoes(gravado.regras),
-        // Cada matéria que entra ou sai do ano conta uma
-        materias = (materias - gravado.materias).size + (gravado.materias - materias).size,
+        // Cada matéria que entra ou sai do ano conta uma, e cada criada aqui também
+        materias = (materias - gravado.materias).size + (gravado.materias - materias).size + materiasNovas.size,
     )
 
     /** O que impede de salvar, do jeito que a barra de baixo mostra; null quando dá para gravar. */
@@ -169,6 +174,7 @@ data class FormularioAnoLetivo(
                 arredondamento = regras.arredondamento,
             ),
             materiaIds = materias,
+            materiasNovas = materiasNovas,
         )
     }
 
@@ -224,11 +230,15 @@ data class Alteracoes(
 
 data class DatasPeriodo(val inicio: LocalDate, val fim: LocalDate) : Serializable
 
-/** O ano letivo com os períodos que devem existir, a regra e as matérias: o que o Salvar grava. */
+/**
+ * O ano letivo com os períodos que devem existir, a regra e as matérias (as do cadastro e as criadas
+ * na tela): o que o Salvar grava.
+ */
 class Gravacao(
     val anoLetivo: AnoLetivoDomain,
     val regra: RegraAvaliacaoDomain,
     val materiaIds: Set<Long>,
+    val materiasNovas: List<String>,
 )
 
 enum class ProblemaDatas(val mensagem: String) {

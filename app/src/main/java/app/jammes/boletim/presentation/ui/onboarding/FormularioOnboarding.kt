@@ -120,7 +120,3 @@ data class FormularioOnboarding(
         )
     }
 }
-
-/** O nome já está na lista (do cadastro ou criado aqui), sem ligar para maiúsculas e espaços. */
-internal fun nomeRepetido(nome: String, existentes: List<String>): Boolean =
-    existentes.any { it.trim().equals(nome.trim(), ignoreCase = true) }

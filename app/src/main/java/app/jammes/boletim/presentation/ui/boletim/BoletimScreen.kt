@@ -105,7 +105,9 @@ fun BoletimScreen(
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
     ) { paddingValues ->
 
-        when (state) {
+        // Dentro da grade, só o `s`: quando o estado deixa de ser Sucesso, a grade ainda roda
+        // mais uma vez antes de sumir, e um `state as Sucesso` ali quebra o app
+        when (val s = state) {
             BoletimUiState.Carregando -> CarregandoDiscreto(Modifier.fillMaxSize().padding(paddingValues))
 
             BoletimUiState.SemDisciplinas -> Column(
@@ -140,12 +142,11 @@ fun BoletimScreen(
             ) {
                 item(span = StaggeredGridItemSpan.FullLine) {
                     MediasPorDisciplina(
-                        boletim = (state as BoletimUiState.Sucesso).boletim,
+                        boletim = s.boletim,
                         modifier = Modifier.padding(bottom = Espacos.xs),
                     )
                 }
-                val boletim = (state as BoletimUiState.Sucesso).boletim
-                val disciplinas = boletim.disciplinas
+                val disciplinas = s.boletim.disciplinas
                 items(disciplinas, key = { it.id }) {
                     ComDicaDaPrimeiraNota(
                         mostrar = dica && it.id == disciplinas.first().id,

@@ -147,6 +147,16 @@ class AnoLetivoScreenTest {
         assertEquals(Lancamentos(avaliacoes = 13, faltas = 6), linhas[0].lancamentos)
         assertNull(linhas[1].lancamentos) // zerada também pode sair
     }
+
+    @Test fun `materia criada aqui aparece com a primeira cor livre e o icone que o nome sugere`() {
+        // O cadastro usa as cores 0 e 8: a nova fica com a 1
+        val robotica = linhasDasNovas(listOf("Robótica"), ajustes(disciplinas = emptyList())).single()
+
+        assertEquals("Robótica", robotica.nome)
+        assertEquals(1, robotica.cor)
+        assertEquals(IconeMateria.ROBO, robotica.icone)
+        assertNull(robotica.lancamentos) // nada lançado ainda: pode sair
+    }
 }
 
 private val PORTUGUES = MateriaDomain(id = 1, nome = "Português", cor = 0, icone = IconeMateria.LIVRO)
