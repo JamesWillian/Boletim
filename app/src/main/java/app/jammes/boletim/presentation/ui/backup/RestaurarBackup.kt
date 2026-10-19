@@ -21,10 +21,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.jammes.boletim.presentation.ui.theme.Espacos
 
 /**
- * O "Restaurar backup" das boas-vindas, para quem já usava o app: escolher o arquivo, conferir o que
- * ele traz e gravar. Depois de gravar não há o que fazer aqui: o contexto do backup fica salvo, e o
- * AppRoot troca as boas-vindas pelo boletim. Os avisos (um arquivo que não é backup, por exemplo)
- * aparecem no [snackbar] da tela de quem chama.
+ * O "Restaurar backup" das boas-vindas, para quem já usava o app: escolher o arquivo, digitar a
+ * senha, se ele tiver uma, conferir o que ele traz e gravar. Depois de gravar não há o que fazer
+ * aqui: o contexto do backup fica salvo, e o AppRoot troca as boas-vindas pelo boletim. Os avisos
+ * (um arquivo que não é backup, por exemplo) aparecem no [snackbar] da tela de quem chama.
  */
 @Composable
 internal fun RestaurarBackup(
@@ -54,12 +54,5 @@ internal fun RestaurarBackup(
         Text("Restaurar backup")
     }
 
-    (andamento as? Andamento.Confirmando)?.let { confirmando ->
-        ConfirmarImportacao(
-            resumo = confirmando.backup.resumo,
-            substituindo = false,
-            onConfirmar = viewModel::importar,
-            onCancelar = viewModel::cancelarImportacao,
-        )
-    }
+    EtapasDaImportacao(andamento, substituindo = false, viewModel = viewModel)
 }

@@ -84,7 +84,7 @@ fun BackupScreen(
 
     // null: a pessoa desistiu no seletor
     val exportarPara = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument(TIPO_DO_ARQUIVO)) { uri ->
-        if (uri != null) viewModel.exportar(uri.toString())
+        if (uri != null) viewModel.exportar(uri.toString()) else viewModel.cancelarExportacao()
     }
     val escolherBackup = rememberEscolherBackup(viewModel)
 
@@ -129,24 +129,22 @@ fun BackupScreen(
             )
             SecaoArquivo(
                 andamento = andamento,
-                onExportar = {
-                    if (andamento == Andamento.Parado) {
-                        abrirSeletor(viewModel) { exportarPara.launch(nomeDoArquivo(LocalDate.now())) }
-                    }
-                },
+                onExportar = viewModel::pedirSenhaParaExportar, // o seletor vem depois da senha
                 onImportar = escolherBackup,
             )
         }
     }
 
-    (andamento as? Andamento.Confirmando)?.let { confirmando ->
-        ConfirmarImportacao(
-            resumo = confirmando.backup.resumo,
-            substituindo = true,
-            onConfirmar = viewModel::importar,
-            onCancelar = viewModel::cancelarImportacao,
+    if (andamento == Andamento.DefinindoSenha) {
+        SenhaParaExportarBottomSheet(
+            onExportar = { senha ->
+                viewModel.senhaDefinida(senha)
+                abrirSeletor(viewModel) { exportarPara.launch(nomeDoArquivo(LocalDate.now())) }
+            },
+            onDismiss = viewModel::cancelarExportacao,
         )
     }
+    EtapasDaImportacao(andamento, substituindo = true, viewModel = viewModel)
 }
 
 /**
@@ -208,7 +206,7 @@ private fun SecaoArquivo(
             LinhaQueAbre(
                 titulo = "Exportar dados",
                 resumo = "Salva uma cópia dos seus dados localmente",
-                rotuloDoClique = "Escolher onde salvar o arquivo",
+                rotuloDoClique = "Escolher a senha e onde salvar o arquivo",
                 onClick = onExportar,
                 fim = if (andamento == Andamento.Exportando) {
                     { Rodando() }
@@ -274,6 +272,33 @@ internal fun LinhaComChave(
 @Composable
 private fun Rodando() {
     CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+}
+
+/**
+ * O que a importação mostra por cima da tela, conforme o [andamento]: a senha, se o arquivo tem uma,
+ * e depois a confirmação. [substituindo], como no [ConfirmarImportacao].
+ */
+@Composable
+internal fun EtapasDaImportacao(
+    andamento: Andamento,
+    substituindo: Boolean,
+    viewModel: BackupViewModel,
+) {
+    when (andamento) {
+        is Andamento.PedindoSenha -> SenhaParaImportarBottomSheet(
+            abrindo = andamento.abrindo,
+            senhaIncorreta = andamento.senhaIncorreta,
+            onAbrir = viewModel::abrirComSenha,
+            onDismiss = viewModel::cancelarImportacao,
+        )
+        is Andamento.Confirmando -> ConfirmarImportacao(
+            resumo = andamento.backup.resumo,
+            substituindo = substituindo,
+            onConfirmar = viewModel::importar,
+            onCancelar = viewModel::cancelarImportacao,
+        )
+        else -> Unit
+    }
 }
 
 /**

@@ -8,11 +8,16 @@ import androidx.room.withTransaction
 import app.jammes.boletim.data.backup.BACKUP_ALTERADO
 import app.jammes.boletim.data.backup.CopiaDoBanco
 import app.jammes.boletim.data.backup.NAO_E_BACKUP
+import app.jammes.boletim.data.backup.abrirComSenha
 import app.jammes.boletim.data.backup.escreverBackup
 import app.jammes.boletim.data.backup.lerBackup
+import app.jammes.boletim.data.backup.protegerComSenha
 import app.jammes.boletim.data.backup.resumo
+import app.jammes.boletim.data.backup.temSenha
 import app.jammes.boletim.data.local.AppDatabase
 import app.jammes.boletim.data.local.dao.BackupDao
+import app.jammes.boletim.domain.model.ArquivoLido
+import app.jammes.boletim.domain.model.BackupComSenha
 import app.jammes.boletim.domain.model.BackupInvalidoException
 import app.jammes.boletim.domain.model.BackupLido
 import app.jammes.boletim.domain.repository.BackupRepository
@@ -33,24 +38,31 @@ class BackupRepositoryImpl @Inject constructor(
     private val dao: BackupDao,
 ) : BackupRepository {
 
-    override suspend fun exportar(destino: String) {
+    override suspend fun exportar(destino: String, senha: String?) {
         // Numa transação, a cópia é de um momento só, mesmo que algo seja gravado no meio
         val copia = db.withTransaction { copiarTudo() }
-        val texto = withContext(Dispatchers.Default) { escreverBackup(copia, exportadoEm = Clock.System.now()) }
+        val texto = withContext(Dispatchers.Default) {
+            val backup = escreverBackup(copia, exportadoEm = Clock.System.now())
+            if (senha == null) backup else protegerComSenha(backup, senha)
+        }
         withContext(Dispatchers.IO) {
             abrirParaEscrever(Uri.parse(destino)).use { it.write(texto.toByteArray(Charsets.UTF_8)) }
         }
     }
 
-    override suspend fun ler(origem: String): BackupLido {
+    override suspend fun ler(origem: String): ArquivoLido {
         val texto = withContext(Dispatchers.IO) {
             val entrada = context.contentResolver.openInputStream(Uri.parse(origem))
                 ?: throw IOException("O arquivo não abriu")
             entrada.use { it.lerTexto() }
         }
-        val arquivo = withContext(Dispatchers.Default) { lerBackup(texto) }
-        return BackupLido(resumo = arquivo.resumo(), conteudo = texto)
+        return withContext(Dispatchers.Default) {
+            if (temSenha(texto)) BackupComSenha(texto) else conferir(texto)
+        }
     }
+
+    override suspend fun abrir(backup: BackupComSenha, senha: String): BackupLido =
+        withContext(Dispatchers.Default) { conferir(abrirComSenha(backup.conteudo, senha)) }
 
     override suspend fun substituirTudo(backup: BackupLido) {
         val copia = withContext(Dispatchers.Default) { lerBackup(backup.conteudo).copia }
@@ -67,6 +79,9 @@ class BackupRepositoryImpl @Inject constructor(
             throw IOException("Os dados não foram gravados", e) // sem espaço no aparelho, por exemplo
         }
     }
+
+    // O texto de um backup aberto, conferido, com o resumo para a confirmação
+    private fun conferir(texto: String) = BackupLido(resumo = lerBackup(texto).resumo(), conteudo = texto)
 
     private suspend fun copiarTudo() = CopiaDoBanco(
         materias = dao.materias(),
