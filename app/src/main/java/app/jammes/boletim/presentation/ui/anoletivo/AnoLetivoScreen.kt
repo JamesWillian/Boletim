@@ -177,6 +177,7 @@ private sealed interface Editor : Serializable {
     data object Materias : Editor
 }
 
+@OptIn(ExperimentalMaterial3Api::class) // o MateriasBottomSheet recebe um SheetState
 @Composable
 private fun EditorAjustes(
     ajustes: AjustesAnoLetivo,

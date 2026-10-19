@@ -53,6 +53,9 @@ import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -71,6 +74,7 @@ import app.jammes.boletim.domain.model.DisciplinaResumo
 import app.jammes.boletim.domain.model.StatusDisciplina
 import app.jammes.boletim.domain.model.Substituta
 import app.jammes.boletim.domain.usecase.mediaEmTexto
+import app.jammes.boletim.presentation.ui.anoletivo.MateriasDoAnoSheet
 import app.jammes.boletim.presentation.ui.components.AnelDaMedia
 import app.jammes.boletim.presentation.ui.components.CarregandoDiscreto
 import app.jammes.boletim.presentation.ui.components.ChavesCompartilhadas
@@ -95,6 +99,7 @@ fun BoletimScreen(
 
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val dica by viewModel.dicaDaPrimeiraNota.collectAsStateWithLifecycle()
+    var adicionandoMaterias by rememberSaveable { mutableStateOf(false) }
 
     // As notificações já vêm ligadas, mas do Android 13 em diante só chegam com a permissão: na
     // primeira vez que o boletim abre, o Android pergunta
@@ -123,7 +128,7 @@ fun BoletimScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(12.dp))
-                TextButton(onClick = {}) { Text("Adicionar matérias") }
+                TextButton(onClick = { adicionandoMaterias = true }) { Text("Adicionar matérias") }
             }
 
             // Um mural: cada coluna empilha os cards sem alinhar por linha, e um card mais baixo não
@@ -167,6 +172,11 @@ fun BoletimScreen(
                 }
             }
         }
+    }
+
+    // Fora do when: ao salvar, o boletim deixa de estar vazio, e o sheet ainda desce com a animação
+    if (adicionandoMaterias) {
+        MateriasDoAnoSheet(onFechar = { adicionandoMaterias = false })
     }
 }
 
