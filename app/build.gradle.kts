@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.kotlin.ksp)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.androidx.room)
 }
 
 android {
@@ -43,6 +44,14 @@ android {
     }
 }
 
+room {
+    // Um N.json por versão do banco, no git: é o que as AutoMigrations e o MigrationTestHelper leem
+    schemaDirectory("$projectDir/schemas")
+}
+
+// O SchemasTest lê esses N.json, então só roda depois de o Room regravá-los
+tasks.withType<Test>().configureEach { mustRunAfter("copyRoomSchemas") }
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
@@ -72,6 +81,7 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)

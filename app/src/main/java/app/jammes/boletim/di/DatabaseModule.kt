@@ -34,6 +34,7 @@ object DatabaseModule {
             AppDatabase.NAME
         )
             .addCallback(MateriasPadraoCallback())
+            .addMigrations(*AppDatabase.MIGRACOES)
             .build()
 
     @Provides

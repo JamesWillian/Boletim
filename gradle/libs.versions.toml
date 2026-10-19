@@ -3,7 +3,7 @@ agp = "9.2.1"
 coreKtx = "1.19.0"
 coreSplashscreen = "1.0.1"
 datastorePreferences = "1.2.1"
-kotlinxSerializationJson = "1.7.3" # A mesma que o DataStore já traz. As mais novas vêm com Kotlin mais novo, como a 3.3 do Vico
+kotlinxSerializationJson = "1.8.1" # A que o room-testing pede para ler os schemas (com a 1.7.3 o MigrationTestHelper quebra). As mais novas vêm com Kotlin mais novo, como a 3.3 do Vico
 junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
@@ -45,6 +45,7 @@ vico-compose-m3 = { group = "com.patrykandpatrick.vico", name = "compose-m3", ve
 # Room #
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+androidx-room-testing = { group = "androidx.room", name = "room-testing", version.ref = "room" } # MigrationTestHelper
 
 # Dagger Hilt #
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
@@ -63,4 +64,5 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" } # Rotas type-safe da navegação
 kotlin-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
+androidx-room = { id = "androidx.room", version.ref = "room" } # Exporta o schema de cada versão do banco
 

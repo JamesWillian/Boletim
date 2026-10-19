@@ -1,0 +1,872 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "2dc9fb5fb6b81ddcac095f98a2d12575",
+    "entities": [
+      {
+        "tableName": "aluno",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `nome` TEXT NOT NULL, `avatar` TEXT, `ativo` INTEGER NOT NULL, `created_at` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nome",
+            "columnName": "nome",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "avatar",
+            "columnName": "avatar",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "ativo",
+            "columnName": "ativo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "criadoEm",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "ano_letivo",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `aluno_id` INTEGER NOT NULL, `ano` INTEGER NOT NULL, `serie` TEXT, `tipo_periodo` TEXT NOT NULL, `qtd_periodos` INTEGER NOT NULL, `ativo` INTEGER NOT NULL, FOREIGN KEY(`aluno_id`) REFERENCES `aluno`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "alunoId",
+            "columnName": "aluno_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ano",
+            "columnName": "ano",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "serie",
+            "columnName": "serie",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "tipoPeriodo",
+            "columnName": "tipo_periodo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "qtdPeriodos",
+            "columnName": "qtd_periodos",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ativo",
+            "columnName": "ativo",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_ano_letivo_aluno_id",
+            "unique": false,
+            "columnNames": [
+              "aluno_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_ano_letivo_aluno_id` ON `${TABLE_NAME}` (`aluno_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "aluno",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "aluno_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "avaliacao",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `disciplina_id` INTEGER NOT NULL, `periodo_id` INTEGER, `nome` TEXT NOT NULL, `nota` REAL, `nota_maxima` REAL NOT NULL, `peso` REAL NOT NULL, `tipo` TEXT NOT NULL, `data` INTEGER, `created_at` INTEGER NOT NULL, FOREIGN KEY(`disciplina_id`) REFERENCES `disciplina`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`periodo_id`) REFERENCES `periodo`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "disciplinaId",
+            "columnName": "disciplina_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "periodoId",
+            "columnName": "periodo_id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "nome",
+            "columnName": "nome",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nota",
+            "columnName": "nota",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "notaMaxima",
+            "columnName": "nota_maxima",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "peso",
+            "columnName": "peso",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tipo",
+            "columnName": "tipo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "data",
+            "columnName": "data",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "criadoEm",
+            "columnName": "created_at",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_avaliacao_disciplina_id_periodo_id",
+            "unique": false,
+            "columnNames": [
+              "disciplina_id",
+              "periodo_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_avaliacao_disciplina_id_periodo_id` ON `${TABLE_NAME}` (`disciplina_id`, `periodo_id`)"
+          },
+          {
+            "name": "index_avaliacao_periodo_id",
+            "unique": false,
+            "columnNames": [
+              "periodo_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_avaliacao_periodo_id` ON `${TABLE_NAME}` (`periodo_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "disciplina",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "disciplina_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "periodo",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "periodo_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "disciplina",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `materia_id` INTEGER NOT NULL, `ano_letivo_id` INTEGER NOT NULL, `nome` TEXT NOT NULL, `abreviacao` TEXT, `cor` INTEGER NOT NULL, `icone` TEXT NOT NULL, `total_aulas` INTEGER, `professor` TEXT, `periodo_inicio` INTEGER, `periodo_fim` INTEGER, `ativa` INTEGER NOT NULL, `ordem` INTEGER NOT NULL, FOREIGN KEY(`materia_id`) REFERENCES `materia`(`id`) ON UPDATE NO ACTION ON DELETE RESTRICT , FOREIGN KEY(`ano_letivo_id`) REFERENCES `ano_letivo`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "materiaId",
+            "columnName": "materia_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "anoLetivoId",
+            "columnName": "ano_letivo_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nome",
+            "columnName": "nome",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "abreviacao",
+            "columnName": "abreviacao",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "cor",
+            "columnName": "cor",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "icone",
+            "columnName": "icone",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalAulas",
+            "columnName": "total_aulas",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "professor",
+            "columnName": "professor",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "periodoInicio",
+            "columnName": "periodo_inicio",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "periodoFim",
+            "columnName": "periodo_fim",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "ativa",
+            "columnName": "ativa",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ordem",
+            "columnName": "ordem",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_disciplina_materia_id_ano_letivo_id",
+            "unique": true,
+            "columnNames": [
+              "materia_id",
+              "ano_letivo_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_disciplina_materia_id_ano_letivo_id` ON `${TABLE_NAME}` (`materia_id`, `ano_letivo_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "materia",
+            "onDelete": "RESTRICT",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "materia_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "ano_letivo",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "ano_letivo_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "falta",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `disciplina_id` INTEGER NOT NULL, `periodo_id` INTEGER NOT NULL, `data` INTEGER NOT NULL, `qtd_aulas` INTEGER NOT NULL, FOREIGN KEY(`disciplina_id`) REFERENCES `disciplina`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`periodo_id`) REFERENCES `periodo`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "disciplinaId",
+            "columnName": "disciplina_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "periodoId",
+            "columnName": "periodo_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "data",
+            "columnName": "data",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "qtdAulas",
+            "columnName": "qtd_aulas",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_falta_disciplina_id_periodo_id",
+            "unique": false,
+            "columnNames": [
+              "disciplina_id",
+              "periodo_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_falta_disciplina_id_periodo_id` ON `${TABLE_NAME}` (`disciplina_id`, `periodo_id`)"
+          },
+          {
+            "name": "index_falta_data",
+            "unique": false,
+            "columnNames": [
+              "data"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_falta_data` ON `${TABLE_NAME}` (`data`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "disciplina",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "disciplina_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "periodo",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "periodo_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "materia",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `nome` TEXT NOT NULL, `abreviacao` TEXT, `cor` INTEGER NOT NULL, `icone` TEXT NOT NULL, `fonte` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nome",
+            "columnName": "nome",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "abreviacao",
+            "columnName": "abreviacao",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "cor",
+            "columnName": "cor",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "icone",
+            "columnName": "icone",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fonte",
+            "columnName": "fonte",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "periodo",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `ano_letivo_id` INTEGER NOT NULL, `periodo` INTEGER NOT NULL, `data_inicio` INTEGER NOT NULL, `data_fim` INTEGER NOT NULL, FOREIGN KEY(`ano_letivo_id`) REFERENCES `ano_letivo`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "anoLetivoId",
+            "columnName": "ano_letivo_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "periodo",
+            "columnName": "periodo",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dataInicio",
+            "columnName": "data_inicio",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dataFim",
+            "columnName": "data_fim",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_periodo_ano_letivo_id_periodo",
+            "unique": true,
+            "columnNames": [
+              "ano_letivo_id",
+              "periodo"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_periodo_ano_letivo_id_periodo` ON `${TABLE_NAME}` (`ano_letivo_id`, `periodo`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "ano_letivo",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "ano_letivo_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "regra_avaliacao",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `ano_letivo_id` INTEGER NOT NULL, `disciplina_id` INTEGER, `media_minima` REAL NOT NULL, `media_recuperacao` REAL, `frequencia_minima` REAL NOT NULL, `tipo_media` TEXT NOT NULL, `arredondamento` TEXT NOT NULL, `descartar_menor_nota` INTEGER NOT NULL, FOREIGN KEY(`ano_letivo_id`) REFERENCES `ano_letivo`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`disciplina_id`) REFERENCES `disciplina`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "anoLetivoId",
+            "columnName": "ano_letivo_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "disciplinaId",
+            "columnName": "disciplina_id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "mediaMinima",
+            "columnName": "media_minima",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mediaRecuperacao",
+            "columnName": "media_recuperacao",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "frequenciaMinima",
+            "columnName": "frequencia_minima",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tipoMedia",
+            "columnName": "tipo_media",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "arredondamento",
+            "columnName": "arredondamento",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "descartarMenorNota",
+            "columnName": "descartar_menor_nota",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_regra_avaliacao_ano_letivo_id",
+            "unique": false,
+            "columnNames": [
+              "ano_letivo_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_regra_avaliacao_ano_letivo_id` ON `${TABLE_NAME}` (`ano_letivo_id`)"
+          },
+          {
+            "name": "index_regra_avaliacao_disciplina_id",
+            "unique": false,
+            "columnNames": [
+              "disciplina_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_regra_avaliacao_disciplina_id` ON `${TABLE_NAME}` (`disciplina_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "ano_letivo",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "ano_letivo_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "disciplina",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "disciplina_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      },
+      {
+        "tableName": "notificacao",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `aluno_id` INTEGER NOT NULL, `tipo` TEXT NOT NULL, `chave` TEXT NOT NULL, `titulo` TEXT NOT NULL, `texto` TEXT NOT NULL, `criada_em` INTEGER NOT NULL, `lida` INTEGER NOT NULL, `avisada` INTEGER NOT NULL, `apagada` INTEGER NOT NULL, `ano_letivo_id` INTEGER, `periodo_id` INTEGER, `disciplina_id` INTEGER, `avaliacao_id` INTEGER, FOREIGN KEY(`aluno_id`) REFERENCES `aluno`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`ano_letivo_id`) REFERENCES `ano_letivo`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`periodo_id`) REFERENCES `periodo`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`disciplina_id`) REFERENCES `disciplina`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`avaliacao_id`) REFERENCES `avaliacao`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "alunoId",
+            "columnName": "aluno_id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tipo",
+            "columnName": "tipo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "chave",
+            "columnName": "chave",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "titulo",
+            "columnName": "titulo",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "texto",
+            "columnName": "texto",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "criadaEm",
+            "columnName": "criada_em",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lida",
+            "columnName": "lida",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "avisada",
+            "columnName": "avisada",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "apagada",
+            "columnName": "apagada",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "anoLetivoId",
+            "columnName": "ano_letivo_id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "periodoId",
+            "columnName": "periodo_id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "disciplinaId",
+            "columnName": "disciplina_id",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "avaliacaoId",
+            "columnName": "avaliacao_id",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_notificacao_aluno_id_chave",
+            "unique": true,
+            "columnNames": [
+              "aluno_id",
+              "chave"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_notificacao_aluno_id_chave` ON `${TABLE_NAME}` (`aluno_id`, `chave`)"
+          },
+          {
+            "name": "index_notificacao_ano_letivo_id",
+            "unique": false,
+            "columnNames": [
+              "ano_letivo_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notificacao_ano_letivo_id` ON `${TABLE_NAME}` (`ano_letivo_id`)"
+          },
+          {
+            "name": "index_notificacao_periodo_id",
+            "unique": false,
+            "columnNames": [
+              "periodo_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notificacao_periodo_id` ON `${TABLE_NAME}` (`periodo_id`)"
+          },
+          {
+            "name": "index_notificacao_disciplina_id",
+            "unique": false,
+            "columnNames": [
+              "disciplina_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notificacao_disciplina_id` ON `${TABLE_NAME}` (`disciplina_id`)"
+          },
+          {
+            "name": "index_notificacao_avaliacao_id",
+            "unique": false,
+            "columnNames": [
+              "avaliacao_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_notificacao_avaliacao_id` ON `${TABLE_NAME}` (`avaliacao_id`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "aluno",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "aluno_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "ano_letivo",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "ano_letivo_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "periodo",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "periodo_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "disciplina",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "disciplina_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          },
+          {
+            "table": "avaliacao",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "avaliacao_id"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '2dc9fb5fb6b81ddcac095f98a2d12575')"
+    ]
+  }
+}
