@@ -4,6 +4,7 @@ import app.jammes.boletim.data.local.dao.AlunoDao
 import app.jammes.boletim.data.mapper.toDomain
 import app.jammes.boletim.data.mapper.toEntity
 import app.jammes.boletim.domain.model.AlunoDomain
+import app.jammes.boletim.domain.model.ResumoDoAluno
 import app.jammes.boletim.domain.repository.AlunoRepository
 import jakarta.inject.Inject
 import jakarta.inject.Singleton
@@ -31,4 +32,7 @@ class AlunoRepositoryImpl @Inject constructor(
     }
 
     override suspend fun delete(aluno: AlunoDomain) = alunoDao.delete(aluno.toEntity())
+
+    override fun observeResumo(alunoId: Long): Flow<ResumoDoAluno> =
+        alunoDao.observarContagem(alunoId).map { it.toDomain() }
 }

@@ -82,6 +82,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -819,7 +820,8 @@ private fun LinhaDeAjuste(
 /**
  * Uma linha que mostra um ajuste e abre o editor dele: o selo no [inicio], o nome, o [resumo] do
  * valor e a seta. Um [aviso] aparece embaixo, em vermelho. Com [fim], ele fica no lugar da seta
- * (por exemplo, a seta para baixo de uma seção que abre ali mesmo).
+ * (por exemplo, a seta para baixo de uma seção que abre ali mesmo). [corDoTitulo] pinta o nome de
+ * uma ação que apaga dados, como excluir o aluno.
  */
 @Composable
 internal fun LinhaQueAbre(
@@ -829,6 +831,7 @@ internal fun LinhaQueAbre(
     modifier: Modifier = Modifier,
     resumo: String? = null,
     aviso: String? = null,
+    corDoTitulo: Color = Color.Unspecified,
     fim: (@Composable () -> Unit)? = null,
     inicio: @Composable () -> Unit,
 ) {
@@ -845,6 +848,7 @@ internal fun LinhaQueAbre(
             Text(
                 text = titulo,
                 style = MaterialTheme.typography.bodyLarge,
+                color = corDoTitulo,
             )
             if (resumo != null) {
                 Text(

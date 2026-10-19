@@ -2,6 +2,7 @@ package app.jammes.boletim.presentation.ui.aluno
 
 import app.jammes.boletim.domain.model.AnoLetivoDomain
 import app.jammes.boletim.domain.model.PeriodoDomain
+import app.jammes.boletim.domain.model.ResumoDoAluno
 import app.jammes.boletim.domain.model.TipoPeriodo
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -62,6 +63,49 @@ class AlunoScreenTest {
 
     @Test fun `ano novo e valido nao tem problema`() {
         assertNull(problemaDoAnoNovo(ano = 2026, anosLetivos = listOf(ano(2024))))
+    }
+
+    // Editar e excluir o aluno -----------------------------------------------------------------
+
+    @Test fun `nome em branco nao pode ser salvo`() {
+        assertEquals("Escreva o nome", problemaDoNome(""))
+        assertEquals("Escreva o nome", problemaDoNome("   "))
+        assertNull(problemaDoNome(" Ana "))
+    }
+
+    @Test fun `o que e do aluno vem em lista, com o e antes do ultimo`() {
+        assertEquals(
+            "2 anos letivos, 10 disciplinas, 53 avaliações e 8 faltas",
+            oQueEDoAluno(ResumoDoAluno(anosLetivos = 2, disciplinas = 10, avaliacoes = 53, faltas = 8)),
+        )
+    }
+
+    @Test fun `o que e do aluno fala no singular quando ha um so`() {
+        assertEquals(
+            "1 ano letivo, 1 disciplina, 1 avaliação e 1 falta",
+            oQueEDoAluno(ResumoDoAluno(anosLetivos = 1, disciplinas = 1, avaliacoes = 1, faltas = 1)),
+        )
+    }
+
+    @Test fun `o que esta zerado fica de fora`() {
+        assertEquals("1 ano letivo e 5 disciplinas", oQueEDoAluno(ResumoDoAluno(anosLetivos = 1, disciplinas = 5)))
+        assertEquals("1 ano letivo", oQueEDoAluno(ResumoDoAluno(anosLetivos = 1)))
+        assertNull(oQueEDoAluno(ResumoDoAluno()))
+    }
+
+    @Test fun `aviso da exclusao diz o que sai e que nao da para desfazer`() {
+        assertEquals(
+            "ATENÇÃO! Serão excluídos: 1 ano letivo e 5 disciplinas. Não dá para desfazer.",
+            avisoDaExclusao(ResumoDoAluno(anosLetivos = 1, disciplinas = 5), unico = false),
+        )
+    }
+
+    @Test fun `aviso da exclusao sem os numeros ainda e do unico aluno`() {
+        assertEquals(
+            "ATENÇÃO! Serão excluídos todos os dados do aluno. Não dá para desfazer. " +
+                "Como é o único aluno, o app volta ao começo, para um cadastro novo.",
+            avisoDaExclusao(resumo = null, unico = true),
+        )
     }
 }
 

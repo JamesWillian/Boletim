@@ -71,6 +71,11 @@ class ProtecaoPorSenhaTest {
         assertEquals(ARQUIVO_SALVO, protegerComSenha(BACKUP_CURTO, "boletim2026", iteracoes = 1_000, aleatorio = SemSorte()))
     }
 
+    @Test fun `um arquivo salvo pela versao 1 continua abrindo`() {
+        // A versão vai na conferência do GCM: o arquivo abre com a que está escrita nele, não com a atual
+        assertEquals(BACKUP_CURTO, abrirComSenha(ARQUIVO_SALVO_NA_VERSAO_1, "boletim2026"))
+    }
+
     // A chave da senha ----------------------------------------------------------------------
 
     @Test fun `a chave e a do PBKDF2 com HMAC-SHA256 dos exemplos da RFC 7914`() {
@@ -128,7 +133,7 @@ class ProtecaoPorSenhaTest {
 
     @Test fun `a versao aberta alterada nao abre nem com a senha certa`() {
         // A versão vai aberta, mas presa aos dados: trocar ela no arquivo é como trocar os dados
-        val protegido = proteger(BACKUP, "senha boa").replace("\"versao\": 1", "\"versao\": 0")
+        val protegido = proteger(BACKUP, "senha boa").replace("\"versao\": $VERSAO_DO_ARQUIVO", "\"versao\": 0")
 
         assertThrows(SenhaIncorretaException::class.java) { abrirComSenha(protegido, "senha boa") }
     }
@@ -151,7 +156,8 @@ class ProtecaoPorSenhaTest {
     }
 
     @Test fun `backup com senha de uma versao mais nova pede para atualizar, antes da senha`() {
-        val protegido = proteger(BACKUP, "senha boa").replace("\"versao\": 1", "\"versao\": 2")
+        val protegido = proteger(BACKUP, "senha boa")
+            .replace("\"versao\": $VERSAO_DO_ARQUIVO", "\"versao\": ${VERSAO_DO_ARQUIVO + 1}")
 
         assertEquals(VERSAO_MAIS_NOVA, motivo { temSenha(protegido) })
     }
@@ -223,6 +229,20 @@ class ProtecaoPorSenhaTest {
         const val BACKUP_CURTO = """{"app": "app.jammes.boletim", "versao": 1}"""
 
         val ARQUIVO_SALVO = """
+            {
+                "app": "app.jammes.boletim",
+                "versao": 2,
+                "protecao": {
+                    "algoritmo": "PBKDF2WithHmacSHA256/AES-256-GCM",
+                    "iteracoes": 1000,
+                    "sal": "AAECAwQFBgcICQoLDA0ODw==",
+                    "iv": "AAECAwQFBgcICQoL"
+                },
+                "dados": "7AL0gDsEDndPogCEROgNguO4OozLR4+va0kXvH4SerW0+ueBgJ04YujfHKkXt+QAQgDPfyVK7rSzUg=="
+            }
+        """.trimIndent()
+
+        val ARQUIVO_SALVO_NA_VERSAO_1 = """
             {
                 "app": "app.jammes.boletim",
                 "versao": 1,

@@ -9,6 +9,7 @@ import app.jammes.boletim.data.local.entity.MateriaEntity
 import app.jammes.boletim.data.local.entity.PeriodoEntity
 import app.jammes.boletim.data.local.entity.RegraAvaliacaoEntity
 import app.jammes.boletim.domain.model.BackupInvalidoException
+import app.jammes.boletim.domain.model.FonteMateria
 import app.jammes.boletim.domain.model.ResumoDoBackup
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
@@ -92,15 +93,19 @@ fun ArquivoDeBackup.resumo() = ResumoDoBackup(
 )
 
 internal const val MARCA_DO_APP = "app.jammes.boletim"
-internal const val VERSAO_DO_ARQUIVO = 1
+internal const val VERSAO_DO_ARQUIVO = 2 // 2: a matéria ganhou a fonte
 
 internal const val NAO_E_BACKUP = "Esse arquivo não é um backup do Boletim Escolar"
 internal const val VERSAO_MAIS_NOVA = "Esse backup é de uma versão mais nova do Boletim Escolar. Atualize o app para importar"
 internal const val BACKUP_ALTERADO = "O arquivo está incompleto ou foi alterado"
 internal const val SEM_ANO_LETIVO = "O arquivo não tem nenhum aluno com ano letivo"
 
-// O arquivo é pequeno, então vai formatado: dá para abrir e ler
-private val JSON = Json { prettyPrint = true }
+// O arquivo é pequeno, então vai formatado: dá para abrir e ler. E vai com todos os campos, até os
+// que estão com o valor padrão, que sem o encodeDefaults ficariam de fora.
+private val JSON = Json {
+    prettyPrint = true
+    encodeDefaults = true
+}
 
 /**
  * Os ids não se repetem, e as chaves estrangeiras apontam para linhas do próprio arquivo. O banco
@@ -161,6 +166,8 @@ internal data class MateriaJson(
     val abreviacao: String?,
     val cor: Int,
     val icone: String,
+    // Os arquivos da versão 1 não têm: sem saber de onde a matéria veio, ela conta como da pessoa
+    val fonte: Int = FonteMateria.toInt(FonteMateria.USUARIO),
 )
 
 @Serializable
@@ -252,7 +259,14 @@ private fun CopiaDoBanco.paraJson(exportadoEm: Instant) = BackupJson(
     versao = VERSAO_DO_ARQUIVO,
     exportadoEm = exportadoEm.toString(),
     materias = materias.map {
-        MateriaJson(id = it.id, nome = it.nome, abreviacao = it.abreviacao, cor = it.cor, icone = it.icone)
+        MateriaJson(
+            id = it.id,
+            nome = it.nome,
+            abreviacao = it.abreviacao,
+            cor = it.cor,
+            icone = it.icone,
+            fonte = it.fonte,
+        )
     },
     alunos = alunos.map {
         AlunoJson(id = it.id, nome = it.nome, avatar = it.avatar, ativo = it.ativo, criadoEm = it.criadoEm.toString())
@@ -336,7 +350,14 @@ private fun CopiaDoBanco.paraJson(exportadoEm: Instant) = BackupJson(
 
 private fun BackupJson.paraCopia() = CopiaDoBanco(
     materias = materias.map {
-        MateriaEntity(id = it.id, nome = it.nome, abreviacao = it.abreviacao, cor = it.cor, icone = it.icone)
+        MateriaEntity(
+            id = it.id,
+            nome = it.nome,
+            abreviacao = it.abreviacao,
+            cor = it.cor,
+            icone = it.icone,
+            fonte = it.fonte,
+        )
     },
     alunos = alunos.map {
         AlunoEntity(id = it.id, nome = it.nome, avatar = it.avatar, ativo = it.ativo, criadoEm = Instant.parse(it.criadoEm))

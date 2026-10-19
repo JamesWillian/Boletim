@@ -11,5 +11,6 @@ data class MateriaEntity(
     @ColumnInfo(name = "nome") val nome: String,
     @ColumnInfo(name = "abreviacao") val abreviacao: String?,
     @ColumnInfo(name = "cor") val cor: Int = 0,
-    @ColumnInfo(name = "icone") val icone: String
+    @ColumnInfo(name = "icone") val icone: String,
+    @ColumnInfo(name = "fonte") val fonte: Int // código de FonteMateria
 )

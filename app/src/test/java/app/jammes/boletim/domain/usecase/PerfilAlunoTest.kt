@@ -3,6 +3,7 @@ package app.jammes.boletim.domain.usecase
 import app.jammes.boletim.domain.model.AlunoDomain
 import app.jammes.boletim.domain.model.AnoLetivoDomain
 import app.jammes.boletim.domain.model.Contexto
+import app.jammes.boletim.domain.model.PeriodoDomain
 import app.jammes.boletim.domain.model.TipoPeriodo
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -127,19 +128,83 @@ class PerfilAlunoTest {
         assertNull(anoLetivoNovo(JAMES.id, 2026, serie = "   ").serie)
         assertNull(anoLetivoNovo(JAMES.id, 2026, serie = null).serie)
     }
+
+    // Editar e excluir o aluno ---------------------------------------------------------------
+
+    @Test fun `nome do aluno vai sem os espacos das pontas`() {
+        assertEquals("Maria Clara", nomeDoAluno("  Maria Clara "))
+    }
+
+    @Test fun `nome em branco nao vale`() {
+        assertNull(nomeDoAluno(""))
+        assertNull(nomeDoAluno("   "))
+    }
+
+    @Test fun `excluir outro aluno deixa o aberto como esta`() {
+        // prepara: a Maria aberta no 1º período, e o James sai
+        val aberto = Contexto(MARIA.id, anoLetivoId = 20, periodoId = 201)
+        val anos = listOf(ano(id = 10, alunoId = JAMES.id, ano = 2026), ano(id = 20, alunoId = MARIA.id, ano = 2026))
+
+        // executa
+        val depois = contextoDepoisDeExcluir(JAMES.id, aberto, listOf(JAMES, MARIA), anos, HOJE)
+
+        // confere
+        assertEquals(aberto, depois)
+    }
+
+    @Test fun `excluir o aberto abre o primeiro aluno que sobra, no ano mais recente dele`() {
+        // O James tem o ano mais recente de todos, mas é ele que sai
+        val anos = listOf(
+            ano(id = 10, alunoId = JAMES.id, ano = 2027),
+            ano(id = 20, alunoId = MARIA.id, ano = 2024),
+            ano(id = 21, alunoId = MARIA.id, ano = 2025),
+            ano(id = 30, alunoId = PEDRO.id, ano = 2026),
+        )
+
+        val depois = contextoDepoisDeExcluir(JAMES.id, Contexto(JAMES.id, 10, null), listOf(PEDRO, JAMES, MARIA), anos, HOJE)
+
+        assertEquals(Contexto(MARIA.id, anoLetivoId = 21, periodoId = null), depois)
+    }
+
+    @Test fun `o aluno que abre depois da exclusao fica no periodo de hoje`() {
+        val periodos = periodosPadrao(2026).mapIndexed { i, periodo -> periodo.copy(id = 301L + i, anoLetivoId = 30) }
+        val anos = listOf(ano(id = 10, alunoId = JAMES.id, ano = 2026), ano(id = 30, alunoId = PEDRO.id, ano = 2026, periodos))
+
+        val depois = contextoDepoisDeExcluir(JAMES.id, Contexto(JAMES.id, 10, null), listOf(JAMES, PEDRO), anos, HOJE)
+
+        // 19/10 cai no 4º bimestre, de 1º de outubro a 15 de dezembro
+        assertEquals(304L, depois?.periodoId)
+    }
+
+    @Test fun `excluir o aberto pula quem nao tem ano letivo`() {
+        val anos = listOf(ano(id = 10, alunoId = JAMES.id, ano = 2026), ano(id = 30, alunoId = PEDRO.id, ano = 2026))
+
+        val depois = contextoDepoisDeExcluir(JAMES.id, Contexto(JAMES.id, 10, null), listOf(JAMES, MARIA, PEDRO), anos, HOJE)
+
+        assertEquals(PEDRO.id, depois?.alunoId)
+    }
+
+    @Test fun `excluir o unico aluno nao deixa nada aberto`() {
+        val anos = listOf(ano(id = 10, alunoId = JAMES.id, ano = 2026))
+
+        assertNull(contextoDepoisDeExcluir(JAMES.id, Contexto(JAMES.id, 10, null), listOf(JAMES), anos, HOJE))
+    }
 }
+
+private val HOJE: LocalDate = LocalDate.of(2026, 10, 19)
 
 private val JAMES = aluno(id = 1, nome = "James Willian")
 private val MARIA = aluno(id = 2, nome = "Maria Clara")
+private val PEDRO = aluno(id = 3, nome = "Pedro Teste")
 
 private fun aluno(id: Long, nome: String) = AlunoDomain(id = id, nome = nome, criadoEm = Instant.fromEpochSeconds(0))
 
 // Preenche o que o perfil não usa, pra cada teste mostrar só o que importa.
-private fun ano(id: Long, alunoId: Long, ano: Int) = AnoLetivoDomain(
+private fun ano(id: Long, alunoId: Long, ano: Int, periodos: List<PeriodoDomain> = emptyList()) = AnoLetivoDomain(
     id = id,
     ano = ano,
     serie = null,
-    periodo = emptyList(),
+    periodo = periodos,
     qtdPeriodos = 4,
     alunoId = alunoId,
 )

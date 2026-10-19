@@ -4,6 +4,7 @@ import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModelStoreOwner
@@ -14,6 +15,7 @@ import app.jammes.boletim.presentation.contexto.ContextoViewModel
 import app.jammes.boletim.presentation.ui.components.CarregandoDiscreto
 import app.jammes.boletim.presentation.ui.configuracoes.ConfiguracoesViewModel
 import app.jammes.boletim.presentation.ui.onboarding.OnboardingScreen
+import java.util.UUID
 
 /**
  * Raiz da UI. O contexto salvo (aluno, ano e período) decide em que fase o app está:
@@ -37,7 +39,13 @@ fun AppRoot() {
     when (val s = state) {
         ContextoUiState.Carregando -> CarregandoDiscreto(Modifier.fillMaxSize()) //TelaCarregando()
 
-        ContextoUiState.Vazio -> OnboardingScreen()
+        ContextoUiState.Vazio -> {
+            // Um cadastro do zero a cada vez que o app fica sem contexto: no primeiro uso e depois de
+            // excluir o último aluno. O ViewModel fica na Activity, e o de uma vez anterior ainda
+            // estaria "salvando", com o botão do fim travado
+            val vez = rememberSaveable { UUID.randomUUID().toString() }
+            OnboardingScreen(vm = hiltViewModel(owner, key = "onboarding-$vez"))
+        }
 
         is ContextoUiState.Definido -> {
             val alunos by contextoVm.alunos.collectAsStateWithLifecycle()

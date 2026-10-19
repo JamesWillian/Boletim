@@ -3,6 +3,7 @@ package app.jammes.boletim.data.mapper
 import app.jammes.boletim.data.local.entity.AlunoEntity
 import app.jammes.boletim.data.local.entity.AnoLetivoEntity
 import app.jammes.boletim.data.local.entity.AvaliacaoEntity
+import app.jammes.boletim.data.local.entity.ContagemDoAluno
 import app.jammes.boletim.data.local.entity.ContagemLancamentos
 import app.jammes.boletim.data.local.entity.DisciplinaComDados
 import app.jammes.boletim.data.local.entity.DisciplinaEntity
@@ -18,12 +19,14 @@ import app.jammes.boletim.domain.model.DisciplinaDados
 import app.jammes.boletim.domain.model.TipoAvaliacao
 import app.jammes.boletim.domain.model.DisciplinaDomain
 import app.jammes.boletim.domain.model.FaltaDomain
+import app.jammes.boletim.domain.model.FonteMateria
 import app.jammes.boletim.domain.model.IconeMateria
 import app.jammes.boletim.domain.model.Lancamentos
 import app.jammes.boletim.domain.model.MateriaDomain
 import app.jammes.boletim.domain.model.NotificacaoDomain
 import app.jammes.boletim.domain.model.PeriodoDomain
 import app.jammes.boletim.domain.model.RegraAvaliacaoDomain
+import app.jammes.boletim.domain.model.ResumoDoAluno
 import app.jammes.boletim.domain.model.TipoArredondamento
 import app.jammes.boletim.domain.model.TipoMedia
 import app.jammes.boletim.domain.model.TipoNotificacao
@@ -87,7 +90,8 @@ fun MateriaEntity.toDomain(): MateriaDomain = MateriaDomain(
     nome = nome,
     abreviacao = abreviacao,
     cor = cor,
-    icone = IconeMateria.fromString(icone)
+    icone = IconeMateria.fromString(icone),
+    fonte = FonteMateria.fromInt(fonte)
 )
 
 fun MateriaDomain.toEntity(): MateriaEntity = MateriaEntity(
@@ -95,7 +99,8 @@ fun MateriaDomain.toEntity(): MateriaEntity = MateriaEntity(
     nome = nome.trim(),
     abreviacao = abreviacao?.trim(),
     cor = cor,
-    icone = IconeMateria.toString(icone)
+    icone = IconeMateria.toString(icone),
+    fonte = FonteMateria.toInt(fonte)
 )
 
 fun DisciplinaEntity.toDomain(): DisciplinaDomain = DisciplinaDomain(
@@ -211,6 +216,13 @@ fun DisciplinaComDados.toDomain(): DisciplinaDados = DisciplinaDados(
 fun List<ContagemLancamentos>.toDomain(): Map<Long, Lancamentos> = associate {
     it.id to Lancamentos(avaliacoes = it.avaliacoes, faltas = it.faltas)
 }
+
+fun ContagemDoAluno.toDomain(): ResumoDoAluno = ResumoDoAluno(
+    anosLetivos = anosLetivos,
+    disciplinas = disciplinas,
+    avaliacoes = avaliacoes,
+    faltas = faltas,
+)
 
 fun NotificacaoEntity.toDomain(): NotificacaoDomain = NotificacaoDomain(
     id = id,

@@ -35,7 +35,7 @@ class ArquivoDeBackupTest {
         val texto = escreverBackup(COPIA, EXPORTADO_EM)
 
         assertTrue(texto.contains("\"app\": \"app.jammes.boletim\""))
-        assertTrue(texto.contains("\"versao\": 1"))
+        assertTrue(texto.contains("\"versao\": $VERSAO_DO_ARQUIVO"))
     }
 
     @Test fun `as datas vao no formato ISO, e nao como o banco grava`() {
@@ -63,6 +63,13 @@ class ArquivoDeBackupTest {
         }
     }
 
+    @Test fun `a fonte da materia vai no arquivo, ate a que esta no valor padrao`() {
+        val texto = escreverBackup(COPIA, EXPORTADO_EM)
+
+        assertTrue(texto.contains("\"fonte\": 1"))
+        assertTrue(texto.contains("\"fonte\": 2"))
+    }
+
     @Test fun `o resumo tem os nomes na ordem do cadastro e as contagens`() {
         val copia = COPIA.copy(
             alunos = listOf(aluno(id = 2, nome = "Maria Clara"), aluno(id = 1, nome = "James Willian")),
@@ -74,6 +81,19 @@ class ArquivoDeBackupTest {
         assertEquals(1, resumo.anosLetivos)
         assertEquals(2, resumo.avaliacoes)
         assertEquals(EXPORTADO_EM, resumo.exportadoEm)
+    }
+
+    // Arquivo de uma versão antiga ---------------------------------------------------------
+
+    @Test fun `arquivo da versao 1 abre, com as materias contando como do usuario`() {
+        // A versão 1 ainda não tinha a fonte da matéria
+        val versao1 = escreverBackup(COPIA, EXPORTADO_EM)
+            .replace("\"versao\": $VERSAO_DO_ARQUIVO", "\"versao\": 1")
+            .replace(Regex(""",\s*"fonte": \d+"""), "")
+
+        val lido = lerBackup(versao1)
+
+        assertEquals(COPIA.materias.map { it.copy(fonte = 2) }, lido.copia.materias)
     }
 
     // O que não é backup -------------------------------------------------------------------
@@ -91,7 +111,8 @@ class ArquivoDeBackupTest {
     }
 
     @Test fun `backup de uma versao mais nova pede para atualizar o app`() {
-        val texto = escreverBackup(COPIA, EXPORTADO_EM).replace("\"versao\": 1", "\"versao\": 2")
+        val texto = escreverBackup(COPIA, EXPORTADO_EM)
+            .replace("\"versao\": $VERSAO_DO_ARQUIVO", "\"versao\": ${VERSAO_DO_ARQUIVO + 1}")
 
         assertEquals(VERSAO_MAIS_NOVA, motivo(texto))
     }
@@ -103,7 +124,7 @@ class ArquivoDeBackupTest {
     }
 
     @Test fun `backup sem a versao foi alterado`() {
-        val texto = escreverBackup(COPIA, EXPORTADO_EM).replace("\"versao\": 1,", "")
+        val texto = escreverBackup(COPIA, EXPORTADO_EM).replace("\"versao\": $VERSAO_DO_ARQUIVO,", "")
 
         assertEquals(BACKUP_ALTERADO, motivo(texto))
     }
@@ -165,8 +186,8 @@ class ArquivoDeBackupTest {
         // Uma linha em cada tabela, com os campos opcionais preenchidos numa e vazios na outra
         val COPIA = CopiaDoBanco(
             materias = listOf(
-                MateriaEntity(id = 1, nome = "Português", abreviacao = "POR", cor = 3, icone = "LIVRO"),
-                MateriaEntity(id = 16, nome = "Robótica", abreviacao = null, cor = 0, icone = "CALCULADORA"),
+                MateriaEntity(id = 1, nome = "Português", abreviacao = "POR", cor = 3, icone = "LIVRO", fonte = 1),
+                MateriaEntity(id = 16, nome = "Robótica", abreviacao = null, cor = 0, icone = "CALCULADORA", fonte = 2),
             ),
             alunos = listOf(
                 AlunoEntity(id = 1, nome = "James Willian", avatar = null, ativo = 1, criadoEm = CRIADO_EM),

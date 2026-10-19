@@ -45,6 +45,14 @@ class ContextoPreferences @Inject constructor(
         }
     }
 
+    suspend fun limpar() {
+        context.dataStore.edit { prefs ->
+            prefs.remove(Keys.ALUNO)
+            prefs.remove(Keys.ANO)
+            prefs.remove(Keys.PERIODO)
+        }
+    }
+
     private fun Preferences.toContexto(): Contexto? {
         val aluno = this[Keys.ALUNO] ?: return null
         val ano = this[Keys.ANO] ?: return null

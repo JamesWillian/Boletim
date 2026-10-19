@@ -22,8 +22,8 @@ import java.time.LocalDate
 /**
  * O aluno, o ano e o período que o app abre depois de importar um backup. O que estava [aberto]
  * continua, se o arquivo também tem o aluno e o ano (um backup deste mesmo aparelho): o período, ou
- * o ano inteiro, fica como estava. Senão, abre o primeiro aluno do cadastro que tem ano letivo, no
- * mais recente e no período de [hoje], como ao escolher um ano. null quando nenhum aluno tem ano letivo.
+ * o ano inteiro, fica como estava. Senão, abre o [primeiroAlunoComAno]: o primeiro aluno do cadastro
+ * que tem ano letivo, no mais recente e no período de [hoje]. null quando nenhum aluno tem ano letivo.
  */
 internal fun contextoDepoisDeImportar(
     aberto: Contexto?,
@@ -40,11 +40,7 @@ internal fun contextoDepoisDeImportar(
         }
         return Contexto(mesmoAno.alunoId, mesmoAno.id, periodo)
     }
-
-    val ano = alunos.sortedBy { it.id }.firstNotNullOfOrNull { aluno ->
-        anos.filter { it.alunoId == aluno.id }.sortedWith(MAIS_RECENTE_PRIMEIRO).firstOrNull()
-    } ?: return null
-    return Contexto(ano.alunoId, ano.id, ano.periodo.periodoAoAbrir(hoje))
+    return primeiroAlunoComAno(alunos, anos, hoje)
 }
 
 // ---------------------------------------------------------------------------

@@ -3,6 +3,7 @@ package app.jammes.boletim.data.local
 import androidx.room.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import app.jammes.boletim.domain.model.FonteMateria
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -31,6 +32,14 @@ class MateriasPadraoCallbackTest {
         db.close()
 
         assertEquals(MateriasPadraoCallback.MATERIAS, materias.map { it.copy(id = 0L) })
+    }
+
+    @Test fun materias_padrao_ficam_com_a_fonte_do_app() = runBlocking {
+        val db = abrirBanco()
+        val materias = db.materiaDao().observar().first()
+        db.close()
+
+        assertEquals(setOf(FonteMateria.toInt(FonteMateria.APP)), materias.map { it.fonte }.toSet())
     }
 
     @Test fun materias_apagadas_nao_voltam_ao_reabrir_o_banco() = runBlocking {

@@ -27,4 +27,8 @@ class ContextoRepositoryImpl @Inject constructor(
     override suspend fun selecionarPeriodo(periodoId: Long?) {
         prefs.atualizar { it.copy(periodoId = periodoId) }
     }
+
+    override suspend fun limpar() {
+        prefs.limpar()
+    }
 }

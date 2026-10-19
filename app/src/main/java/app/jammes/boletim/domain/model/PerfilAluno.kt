@@ -18,3 +18,11 @@ data class AlunoComAno(
     val aluno: AlunoDomain,
     val anoLetivo: AnoLetivoDomain?,
 )
+
+/** O que é de um aluno no aparelho: tudo isso sai junto quando ele é excluído. */
+data class ResumoDoAluno(
+    val anosLetivos: Int = 0,
+    val disciplinas: Int = 0,
+    val avaliacoes: Int = 0,
+    val faltas: Int = 0, // em aulas, como o Boletim conta
+)

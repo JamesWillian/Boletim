@@ -3,6 +3,7 @@ package app.jammes.boletim.data.local
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 import app.jammes.boletim.data.local.entity.MateriaEntity
+import app.jammes.boletim.domain.model.FonteMateria
 import app.jammes.boletim.domain.model.IconeMateria
 
 /**
@@ -16,8 +17,8 @@ class MateriasPadraoCallback : RoomDatabase.Callback() {
         // O banco ainda está sendo aberto, então os DAOs não podem ser usados aqui: vai SQL direto.
         MATERIAS.forEach { materia ->
             db.execSQL(
-                "INSERT INTO materia (nome, abreviacao, cor, icone) VALUES (?, ?, ?, ?)",
-                arrayOf<Any?>(materia.nome, materia.abreviacao, materia.cor, materia.icone)
+                "INSERT INTO materia (nome, abreviacao, cor, icone, fonte) VALUES (?, ?, ?, ?, ?)",
+                arrayOf<Any?>(materia.nome, materia.abreviacao, materia.cor, materia.icone, materia.fonte)
             )
         }
     }
@@ -40,7 +41,12 @@ class MateriasPadraoCallback : RoomDatabase.Callback() {
             materia("Sociologia", "SOC", cor = 14, IconeMateria.PESSOAS)
         )
 
-        private fun materia(nome: String, abreviacao: String, cor: Int, icone: IconeMateria) =
-            MateriaEntity(nome = nome, abreviacao = abreviacao, cor = cor, icone = IconeMateria.toString(icone))
+        private fun materia(nome: String, abreviacao: String, cor: Int, icone: IconeMateria) = MateriaEntity(
+            nome = nome,
+            abreviacao = abreviacao,
+            cor = cor,
+            icone = IconeMateria.toString(icone),
+            fonte = FonteMateria.toInt(FonteMateria.APP),
+        )
     }
 }

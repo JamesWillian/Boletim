@@ -11,4 +11,7 @@ interface ContextoRepository {
     suspend fun selecionarAluno(alunoId: Long, anoLetivoId: Long, periodoId: Long?)
     suspend fun selecionarAnoLetivo(anoLetivoId: Long, periodoId: Long?)
     suspend fun selecionarPeriodo(periodoId: Long?)
+
+    /** Tira o contexto: sem aluno aberto, o app volta ao onboarding. */
+    suspend fun limpar()
 }

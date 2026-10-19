@@ -2,6 +2,7 @@ package app.jammes.boletim.domain.usecase
 
 import app.jammes.boletim.domain.model.AlunoDomain
 import app.jammes.boletim.domain.model.Etapa
+import app.jammes.boletim.domain.model.FonteMateria
 import app.jammes.boletim.domain.model.IconeMateria
 import app.jammes.boletim.domain.model.MateriaDomain
 import app.jammes.boletim.domain.model.PeriodoDomain
@@ -87,6 +88,7 @@ internal fun materiasNovas(nomes: List<String>, cadastro: List<MateriaDomain>): 
             abreviacao = nome.trim().take(3).uppercase(),
             cor = livres.next(),
             icone = iconeSugerido(nome),
+            fonte = FonteMateria.USUARIO,
         )
     }
 }

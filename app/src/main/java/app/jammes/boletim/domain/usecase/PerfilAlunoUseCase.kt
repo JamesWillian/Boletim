@@ -18,9 +18,11 @@ import app.jammes.boletim.domain.repository.MateriaRepository
 import app.jammes.boletim.domain.repository.RegraAvaliacaoRepository
 import app.jammes.boletim.domain.repository.Transacao
 import jakarta.inject.Inject
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 
 // ---------------------------------------------------------------------------
@@ -61,6 +63,44 @@ internal fun montarPerfil(
             },
     )
 }
+
+/**
+ * O primeiro aluno do cadastro que tem ano letivo, no mais recente e no período de [hoje], como ao
+ * escolher um aluno no perfil. null quando nenhum aluno tem ano letivo.
+ */
+internal fun primeiroAlunoComAno(
+    alunos: List<AlunoDomain>,
+    anos: List<AnoLetivoDomain>, // de todos os alunos, com os períodos
+    hoje: LocalDate,
+): Contexto? {
+    val ano = alunos.sortedBy { it.id }.firstNotNullOfOrNull { aluno ->
+        anos.filter { it.alunoId == aluno.id }.sortedWith(MAIS_RECENTE_PRIMEIRO).firstOrNull()
+    } ?: return null
+    return Contexto(ano.alunoId, ano.id, ano.periodo.periodoAoAbrir(hoje))
+}
+
+/**
+ * O que o app abre depois de excluir o aluno [excluido]. Se o [aberto] era outro aluno, continua o
+ * mesmo. Se era ele, abre o [primeiroAlunoComAno] dos que sobram; null quando não sobra nenhum, e o
+ * app volta ao onboarding.
+ */
+internal fun contextoDepoisDeExcluir(
+    excluido: Long,
+    aberto: Contexto?,
+    alunos: List<AlunoDomain>, // os do aparelho, ainda com o excluído
+    anos: List<AnoLetivoDomain>, // de todos os alunos, com os períodos
+    hoje: LocalDate,
+): Contexto? {
+    if (aberto != null && aberto.alunoId != excluido) return aberto
+    return primeiroAlunoComAno(
+        alunos = alunos.filter { it.id != excluido },
+        anos = anos.filter { it.alunoId != excluido },
+        hoje = hoje,
+    )
+}
+
+/** O nome como ele fica gravado: sem os espaços das pontas. null quando fica em branco. */
+internal fun nomeDoAluno(digitado: String): String? = digitado.trim().ifEmpty { null }
 
 /**
  * Os períodos de um ano novo, de fevereiro a meados de dezembro: 4 bimestres (ou unidades), com as
@@ -199,5 +239,50 @@ class AbrirAluno @Inject constructor(
             .sortedWith(MAIS_RECENTE_PRIMEIRO)
             .firstOrNull() ?: return
         contextoRepository.selecionarAluno(alunoId, ano.id, ano.periodo.periodoAoAbrir(hoje))
+    }
+}
+
+class RenomearAluno @Inject constructor(
+    private val alunoRepository: AlunoRepository,
+) {
+    /** Grava o [nome] novo do aluno pelo [nomeDoAluno]. Em branco, não grava (a tela não deixa chegar aqui assim). */
+    suspend operator fun invoke(aluno: AlunoDomain, nome: String) {
+        val novo = nomeDoAluno(nome) ?: return
+        alunoRepository.upsert(aluno.copy(nome = novo))
+    }
+}
+
+class ExcluirAluno @Inject constructor(
+    private val alunoRepository: AlunoRepository,
+    private val anoLetivoRepository: AnoLetivoRepository,
+    private val contextoRepository: ContextoRepository,
+    private val retirarAvisoDoAluno: RetirarAvisoDoAluno,
+) {
+    /**
+     * Apaga o aluno com tudo o que é dele ([AlunoRepository.delete]) e tira da barra do celular o aviso
+     * dele. Se ele era o aberto, o app passa antes para outro aluno, pelo [contextoDepoisDeExcluir];
+     * sem nenhum, o contexto sai e o app volta ao onboarding.
+     *
+     * O contexto muda antes de apagar: assim nenhuma tela fica procurando um aluno que não existe mais.
+     * E nada para no meio se a tela fechar, como na importação de um backup.
+     */
+    suspend operator fun invoke(aluno: AlunoDomain, hoje: LocalDate = LocalDate.now()) {
+        withContext(NonCancellable) {
+            val aberto = contextoRepository.contexto.first()
+            val depois = contextoDepoisDeExcluir(
+                excluido = aluno.id,
+                aberto = aberto,
+                alunos = alunoRepository.observeAluno().first(),
+                anos = anoLetivoRepository.observeAll().first(),
+                hoje = hoje,
+            )
+            when {
+                depois == null -> contextoRepository.limpar()
+                depois != aberto -> contextoRepository.selecionarAluno(depois.alunoId, depois.anoLetivoId, depois.periodoId)
+            }
+            alunoRepository.delete(aluno)
+            // O resumo da barra fica só com os outros alunos
+            retirarAvisoDoAluno(aluno.id)
+        }
     }
 }
