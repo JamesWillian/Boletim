@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Política de Privacidade · Boletim Escolar</title>
+<meta name="description" content="Como o app Boletim Escolar trata os seus dados: tudo fica no aparelho, sem conta, sem internet e sem anúncios.">
+<style>
+  :root {
+    --fundo: #F7F9FF;
+    --papel: #FFFFFF;
+    --texto: #1A1C22;
+    --texto-2: #4A5060;
+    --linha: #DCE4FF;
+    --azul: #005EFF;
+    --resumo: #EDF2FF;
+    --preencher: #FFE7A3;
+    --preencher-texto: #5A4300;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --fundo: #10131A;
+      --papel: #171B24;
+      --texto: #E6E8F0;
+      --texto-2: #A9B0C2;
+      --linha: #2A3245;
+      --azul: #8EB4FF;
+      --resumo: #1C2436;
+      --preencher: #5A4300;
+      --preencher-texto: #FFE7A3;
+    }
+  }
+  :root[data-theme="dark"] {
+    --fundo: #10131A;
+    --papel: #171B24;
+    --texto: #E6E8F0;
+    --texto-2: #A9B0C2;
+    --linha: #2A3245;
+    --azul: #8EB4FF;
+    --resumo: #1C2436;
+    --preencher: #5A4300;
+    --preencher-texto: #FFE7A3;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--fundo);
+    color: var(--texto);
+    font: 17px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 40px 16px 64px;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+  header svg { flex: none; width: 56px; height: 56px; }
+  h1 { font-size: 1.75rem; line-height: 1.2; margin: 0; }
+  .app { color: var(--texto-2); font-size: 0.95rem; margin: 2px 0 0; }
+  .data { color: var(--texto-2); font-size: 0.9rem; margin: 16px 0 24px; }
+  h2 {
+    font-size: 1.15rem;
+    margin: 36px 0 8px;
+    padding-top: 20px;
+    border-top: 1px solid var(--linha);
+  }
+  p, li { color: var(--texto); }
+  ul { padding-left: 1.25em; }
+  li + li { margin-top: 6px; }
+  a { color: var(--azul); }
+  strong { font-weight: 650; }
+  .resumo {
+    background: var(--resumo);
+    border-radius: 16px;
+    padding: 4px 20px;
+  }
+  .resumo ul { padding-left: 1.1em; }
+  mark {
+    background: var(--preencher);
+    color: var(--preencher-texto);
+    border-radius: 4px;
+    padding: 0 4px;
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <svg viewBox="18 18 72 72" aria-hidden="true">
+      <defs>
+        <linearGradient id="fundo-icone" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#2E7BFF"/>
+          <stop offset="1" stop-color="#0049D9"/>
+        </linearGradient>
+      </defs>
+      <rect x="18" y="18" width="72" height="72" rx="18" fill="url(#fundo-icone)"/>
+      <path fill="#E9BB41" d="M60,38 H71.75 A3.25,3.25 0 0 1 75,41.25 V43.75 A3.25,3.25 0 0 1 71.75,47 H60 Z"/>
+      <path fill="#FFFFFF" fill-opacity="0.6" d="M60,49.5 H69.5 A3,3 0 0 1 72.5,52.5 V55.5 A3,3 0 0 1 69.5,58.5 H60 Z"/>
+      <path fill="#FFFFFF" fill-opacity="0.35" d="M60,61 H69.5 A3,3 0 0 1 72.5,64 V67 A3,3 0 0 1 69.5,70 H60 Z"/>
+      <path fill="#FFFFFF" d="M38.5,32 H59.5 A5.5,5.5 0 0 1 65,37.5 V70.5 A5.5,5.5 0 0 1 59.5,76 H38.5 A5.5,5.5 0 0 1 33,70.5 V37.5 A5.5,5.5 0 0 1 38.5,32 Z"/>
+      <path fill="#005EFF" d="M38,40.25 H55.55 A2.25,2.25 0 0 1 55.55,44.75 H38 Z M38,51.75 H48.95 A2.25,2.25 0 0 1 48.95,56.25 H38 Z M38,63.25 H53.35 A2.25,2.25 0 0 1 53.35,67.75 H38 Z"/>
+    </svg>
+    <div>
+      <h1>Política de Privacidade</h1>
+      <p class="app">Boletim Escolar · app para Android</p>
+    </div>
+  </header>
+
+  <p class="data">Última atualização: 20 de outubro de 2026</p>
+
+  <p>O Boletim Escolar serve para acompanhar notas, médias e faltas de alunos. Esta política explica
+  quais dados o app usa, onde eles ficam e o que você pode fazer com eles.</p>
+
+  <div class="resumo">
+    <p><strong>Em resumo:</strong></p>
+    <ul>
+      <li>Os dados que você cadastra ficam <strong>no seu aparelho</strong>.</li>
+      <li>O app não tem conta nem login e <strong>não se conecta à internet</strong>.</li>
+      <li>Não há anúncios, rastreamento nem ferramentas de análise de uso.</li>
+      <li>O desenvolvedor <strong>não recebe nenhum dado seu</strong> e não compartilha nada com
+      ninguém.</li>
+      <li>Os dados só saem do aparelho pelo backup do Android na sua conta Google, que pode ser
+      desligado, ou por um arquivo que você mesmo exporta.</li>
+    </ul>
+  </div>
+
+  <h2>1. Quem é o responsável</h2>
+  <p>O Boletim Escolar é desenvolvido e publicado por <mark>James Willian Da Mata</mark>. Para
+  qualquer dúvida sobre esta política ou sobre os seus dados, escreva para
+  <mark>jammeswm@gmail.com</mark>.</p>
+
+  <h2>2. Quais dados o app guarda</h2>
+  <p>O app guarda apenas o que você cadastra nele:</p>
+  <ul>
+    <li><strong>Alunos:</strong> o nome.</li>
+    <li><strong>Anos letivos:</strong> o ano, a série e como o ano é dividido (bimestres,
+    trimestres etc.).</li>
+    <li><strong>Matérias e disciplinas:</strong> nome, sigla, cor, ícone, nome do professor
+    (opcional), total de aulas e as regras de cálculo da média.</li>
+    <li><strong>Avaliações:</strong> nome, nota, nota máxima, peso, tipo e data.</li>
+    <li><strong>Faltas:</strong> a data e quantas aulas foram perdidas.</li>
+    <li><strong>Avisos:</strong> os lembretes que o próprio app gera a partir desses dados.</li>
+    <li><strong>Preferências:</strong> tema, aparência das abas, horário dos avisos e a opção de
+    backup.</li>
+  </ul>
+  <p>Você decide o que cadastrar. Não é preciso informar nome completo, documento, escola, endereço
+  ou qualquer contato.</p>
+
+  <h2>3. Onde os dados ficam</h2>
+  <p>Tudo é gravado no armazenamento interno do aparelho, numa área que só o Boletim Escolar
+  acessa. O app não tem permissão para usar a internet, então não envia nem recebe dados de
+  nenhum servidor.</p>
+  <p>O app não usa anúncios, ferramentas de análise de uso, identificador de publicidade nem
+  qualquer outro tipo de rastreamento. Como o desenvolvedor não tem acesso aos seus dados, eles
+  não são vendidos, compartilhados nem usados para nenhuma outra finalidade.</p>
+
+  <h2>4. Backup automático no Google</h2>
+  <p>O app usa o backup automático do próprio Android. Com a opção
+  <strong>“Backup automático no Google”</strong> ligada, que é o padrão, o Android pode copiar os
+  dados do app para a sua conta Google junto com o backup do aparelho. Assim você recupera os dados
+  se reinstalar o app ou trocar de celular.</p>
+  <ul>
+    <li>Esse backup é feito e guardado pelo Google, na sua conta, e segue a
+    <a href="https://policies.google.com/privacy" rel="noopener">Política de Privacidade do
+    Google</a>. O desenvolvedor não tem acesso a ele.</li>
+    <li>Ele só acontece se o backup também estiver ativado nas configurações do aparelho.</li>
+    <li>Para desligar, abra a tela <strong>Backup e Restauração</strong> no app. Com a opção
+    desligada, a próxima cópia enviada ao Google sai vazia e substitui a anterior.</li>
+    <li>A transferência direta de um celular para outro, por cabo ou Wi-Fi, ao configurar um
+    aparelho novo, continua levando os dados, porque ela não passa pela conta Google.</li>
+  </ul>
+
+  <h2>5. Exportar e importar dados</h2>
+  <p>Na tela <strong>Backup e Restauração</strong>, você pode salvar uma cópia de todos os dados
+  num arquivo e escolher onde guardá-lo: no aparelho, num cartão de memória ou num serviço de
+  nuvem que você já usa.</p>
+  <ul>
+    <li>Você pode <strong>proteger o arquivo com uma senha</strong>. Nesse caso, ele é
+    criptografado com AES-256-GCM, e a chave é derivada da senha com PBKDF2. A senha não fica
+    guardada em lugar nenhum e não pode ser recuperada.</li>
+    <li>Sem senha, quem tiver o arquivo consegue abrir e ver os dados.</li>
+    <li>Depois de exportado, o arquivo fica sob a sua responsabilidade. Se você o guardar num
+    serviço de nuvem, vale a política de privacidade desse serviço.</li>
+    <li>Ao importar um arquivo, os dados que estão no aparelho são substituídos pelos do arquivo.</li>
+  </ul>
+
+  <h2>6. Notificações</h2>
+  <p>O app pode avisar sobre provas chegando, notas para lançar, médias abaixo da mínima e faltas.
+  Esses avisos são montados no próprio aparelho e agendados pelo Android; nada vem de um servidor.
+  Eles podem mostrar o nome do aluno e da avaliação, inclusive na tela de bloqueio, conforme as
+  configurações de notificação do seu celular.</p>
+
+  <h2>7. Permissões que o app pede</h2>
+  <ul>
+    <li><strong>Notificações:</strong> para mostrar os avisos. Você pode recusar, e o app continua
+    funcionando sem eles.</li>
+    <li><strong>Executar ao ligar o aparelho:</strong> para agendar os avisos de novo depois que o
+    celular reinicia.</li>
+    <li><strong>Alarmes e lembretes:</strong> para o aviso chegar no horário escolhido.</li>
+  </ul>
+  <p>O app não pede acesso a contatos, localização, câmera, microfone, fotos ou aos seus
+  arquivos. Ele só abre um arquivo quando você escolhe um para exportar ou importar.</p>
+
+  <h2>8. Crianças e adolescentes</h2>
+  <p>O Boletim Escolar foi pensado para pais, mães e responsáveis acompanharem a vida escolar dos
+  filhos, e para estudantes acompanharem as próprias notas. Os dados cadastrados podem ser de
+  crianças e adolescentes, mas eles ficam só no aparelho de quem usa o app. O desenvolvedor não
+  recebe, não vê e não guarda nenhum desses dados.</p>
+
+  <h2>9. Por quanto tempo os dados ficam e como apagar</h2>
+  <ul>
+    <li>Os dados ficam no aparelho enquanto o app estiver instalado.</li>
+    <li>Para apagar os dados de um aluno, use <strong>Excluir aluno</strong> no app. Isso apaga
+    também os anos letivos, as notas e as faltas dele.</li>
+    <li>Para apagar tudo, limpe os dados do app nas configurações do Android ou desinstale o
+    app.</li>
+    <li>A cópia na sua conta Google pode ser apagada nas configurações de backup da sua conta
+    Google.</li>
+    <li>Arquivos que você exportou precisam ser apagados por você, onde quer que os tenha
+    guardado.</li>
+  </ul>
+
+  <h2>10. Seus direitos</h2>
+  <p>A Lei Geral de Proteção de Dados (Lei nº 13.709/2018) garante a você o direito de acessar,
+  corrigir, apagar e levar os seus dados para outro lugar. No Boletim Escolar você faz tudo isso
+  direto no app: vê e edita tudo o que cadastrou, apaga alunos ou todos os dados e exporta uma
+  cópia em arquivo. Como o desenvolvedor não tem os seus dados, não consegue consultá-los ou
+  apagá-los por você, mas responde a qualquer dúvida pelo e-mail
+  <mark>jammeswm@gmail.com</mark>.</p>
+
+  <h2>11. Segurança</h2>
+  <p>Os dados ficam numa área do aparelho que outros apps não acessam. Para protegê-los ainda
+  mais, use bloqueio de tela no celular e coloque senha nos arquivos que exportar.</p>
+
+  <h2>12. Mudanças nesta política</h2>
+  <p>Se esta política mudar, a nova versão será publicada neste mesmo endereço, com a data de
+  atualização no topo. Mudanças importantes também serão informadas nas notas da atualização do
+  app.</p>
+
+  <h2>13. Contato</h2>
+  <p><mark>James Willian Da Mata</mark> · <mark>jammeswm@gmail.com</mark></p>
+</main>
+</body>
+</html>
