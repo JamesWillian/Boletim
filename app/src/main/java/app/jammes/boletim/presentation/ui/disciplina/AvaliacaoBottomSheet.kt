@@ -68,6 +68,7 @@ import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -81,6 +82,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -186,7 +188,13 @@ fun AvaliacaoBottomSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scope = rememberCoroutineScope()
     val haptico = LocalHapticFeedback.current
-    val focusManager = LocalFocusManager.current
+    // O sheet abre em outra janela, com o foco dela: o LocalFocusManager daqui de fora é o da tela de
+    // baixo e não tira o foco dos campos do sheet (a nota ficava focada e o teclado, aberto). O de
+    // dentro do sheet fica guardado aqui, para as ações declaradas antes dele
+    val focoDoSheet = remember { mutableStateOf<FocusManager?>(null) }
+    fun tirarOFoco() {
+        focoDoSheet.value?.clearFocus()
+    }
     val hoje = remember { LocalDate.now() }
 
     // rememberSaveable: o que já foi digitado sobrevive a girar a tela
@@ -238,7 +246,7 @@ fun AvaliacaoBottomSheet(
 
     // Uma seção aberta por vez; o teclado sai da frente do que abriu
     fun abrir(secao: Secao?) {
-        focusManager.clearFocus()
+        tirarOFoco()
         secaoAberta = secao
     }
 
@@ -300,6 +308,8 @@ fun AvaliacaoBottomSheet(
         sheetState = sheetState,
         shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
     ) {
+        val focoDeDentro = LocalFocusManager.current
+        SideEffect { focoDoSheet.value = focoDeDentro }
         CabecalhoDoFormulario(
             titulo = if (nova) "Nova avaliação" else "Editar avaliação",
             subtitulo = listOfNotNull(
@@ -336,7 +346,7 @@ fun AvaliacaoBottomSheet(
                 onNome = { formulario = formulario.copy(nome = it) },
                 onProximo = {
                     // Do nome direto para a nota, a não ser que ela esteja fechada (avaliação no futuro)
-                    if (formulario.notaBloqueada(hoje)) focusManager.clearFocus() else focoNota.requestFocus()
+                    if (formulario.notaBloqueada(hoje)) tirarOFoco() else focoNota.requestFocus()
                 },
             )
 
@@ -366,7 +376,7 @@ fun AvaliacaoBottomSheet(
                 aviso = aviso,
                 foco = focoNota,
                 onNota = { formulario = formulario.copy(nota = it) },
-                onConcluir = { focusManager.clearFocus() },
+                onConcluir = { tirarOFoco() },
                 // Ao sair do campo, "9.5" vira "9,5", como o app mostra os números
                 onFocoPerdido = { formulario = formulario.notaArrumada() },
             )

@@ -258,7 +258,7 @@ private fun BoasVindas(onComecar: () -> Unit, onCarregarDadosDeTeste: (() -> Uni
             BotaoPrincipal(texto = "Começar", onClick = onComecar)
             Spacer(Modifier.height(Espacos.m))
             Text(
-                text = "Menos de 1 minuto · seus dados ficam só no aparelho",
+                text = "Leva menos de 1 minuto · não precisa criar conta",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
