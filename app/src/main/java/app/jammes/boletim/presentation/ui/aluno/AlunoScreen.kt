@@ -13,6 +13,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -56,6 +57,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -73,6 +75,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -449,9 +452,17 @@ private fun PaginaInicio(
                     onClick = onConfiguracoes,
                 ) { Selo(Icons.Outlined.Settings) }
             }
+            // runCatching: sem navegador no aparelho, o toque não faz nada em vez de fechar o app
+            val uriHandler = LocalUriHandler.current
+            TextButton(
+                onClick = { runCatching { uriHandler.openUri(URL_PRIVACIDADE) } },
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            ) { Text("Política de Privacidade") }
         }
     }
 }
+
+private const val URL_PRIVACIDADE = "https://jameswillian.github.io/Boletim/privacidade/"
 
 /**
  * O nome do aluno aberto, para corrigir, e embaixo a exclusão dele, que a página seguinte confirma.
@@ -781,7 +792,7 @@ private fun CabecalhoDaPagina(titulo: String, onVoltar: () -> Unit) {
 private fun CorpoDaPagina(
     arranjo: Arrangement.Vertical = Arrangement.Top,
     modifier: Modifier = Modifier,
-    conteudo: @Composable () -> Unit,
+    conteudo: @Composable ColumnScope.() -> Unit,
 ) {
     Column(
         modifier = Modifier
