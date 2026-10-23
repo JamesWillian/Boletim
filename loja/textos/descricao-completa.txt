@@ -1,0 +1,50 @@
+Acompanhe notas, médias e faltas sem planilha e sem fazer conta. O Boletim Escolar calcula a média de cada matéria com as regras da sua escola, mostra quanto falta para passar e avisa antes da prova e antes de as faltas passarem do limite.
+
+Feito para pais e responsáveis que acompanham os filhos e para estudantes que querem saber como estão em cada matéria.
+
+Todas as médias de uma vez
+• Um gráfico com a média de cada matéria e a linha da média mínima
+• Cores mostram o que está com folga, no limite ou abaixo da mínima
+• Veja o ano inteiro ou um período de cada vez
+
+Saiba quanto falta para passar
+• A média do ano e a de cada período na mesma tela
+• O app mostra quantos pontos faltam para chegar na média
+• Recuperação e prova final entram na conta e substituem a média quando a nota é maior
+
+Lance notas em segundos
+• Provas, trabalhos e seminários, com peso e nota máxima
+• Cadastre a prova antes e lance a nota quando ela sair
+
+Faltas sob controle
+• Marque as faltas por dia em cada matéria
+• Veja a frequência e quantas faltas ainda cabem no ano
+
+Do jeito da sua escola
+• Bimestre, trimestre, semestre ou unidade
+• Média mínima e frequência mínima que você escolhe
+• Média simples, ponderada ou soma de pontos
+• Arredondamento para meio ponto, para o inteiro, para cima ou para baixo
+• Regras próprias para a matéria que for diferente das outras
+• As matérias mais comuns do Fundamental e do Médio já vêm prontas, e dá para criar outras
+• Cor, ícone e nome do professor em cada matéria
+
+Um boletim para cada filho
+• Cadastre vários alunos, cada um com seu ano letivo, suas matérias e suas notas
+• Troque de aluno com um toque
+• Os anos anteriores continuam guardados
+
+Avisos na hora certa
+• Prova chegando, nota para lançar, média abaixo da mínima, faltas perto do limite e fim do período
+• Até 3 horários por dia, escolhidos por você
+
+Fim de ano sem surpresa
+• Finalize a matéria e veja a situação final, pela média e pelas faltas
+
+Seus dados ficam com você
+• Sem conta e sem login: comece em menos de 1 minuto
+• Funciona sem internet e não tem anúncios
+• Backup automático na sua conta Google, que pode ser desligado
+• Exporte tudo para um arquivo, com senha se quiser, e importe em outro celular
+
+Tema claro, escuro ou o mesmo do celular.

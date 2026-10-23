@@ -1,0 +1,12 @@
+<pt-BR>
+Primeira versão do Boletim Escolar.
+• Médias de cada matéria com as regras da sua escola
+• Quanto falta para chegar na média
+• Recuperação e prova final na conta
+• Faltas por dia, com o limite do ano
+• Avisos de provas, notas para lançar, médias e faltas
+• Vários alunos, cada um com seu boletim
+• Backup na conta Google e exportação com senha
+• Tema claro ou escuro
+Sem conta, sem internet e sem anúncios.
+</pt-BR>

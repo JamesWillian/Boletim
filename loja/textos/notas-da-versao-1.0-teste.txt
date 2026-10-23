@@ -1,0 +1,5 @@
+<pt-BR>
+Versão de teste do Boletim Escolar. Obrigado por testar!
+Experimente cadastrar um aluno, lançar notas e faltas e configurar os avisos.
+Encontrou um erro ou algo confuso? Conte pelo e-mail jammeswm@gmail.com ou pelo feedback privado na página do app na Play Store.
+</pt-BR>
