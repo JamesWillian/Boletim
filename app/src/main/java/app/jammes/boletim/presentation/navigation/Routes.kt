@@ -14,6 +14,7 @@ import kotlinx.serialization.Serializable
  * ├── AnoLetivo                AnoLetivoScreen         │
  * ├── EditarDisciplina(id)     EditarDisciplinaScreen  │ aberta pelo Editar do detalhe
  * ├── NovoAluno                OnboardingScreen        │ o cadastro de outro aluno, sem as boas-vindas
+ * ├── NovoAnoLetivo            NovoAnoLetivoScreen     │ outro ano do aluno aberto, nos passos do onboarding
  * ├── Configuracoes            ConfiguracoesScreen     │ o tema e o estilo das abas, aberta pelo perfil
  * ├── Backup                   BackupScreen            │ backup e restauração, aberta pelo perfil
  * ├── Notificacoes             NotificacoesScreen      │ a lista, aberta pelo sino do topo
@@ -47,6 +48,7 @@ object Routes {
     @Serializable data object AnoLetivo
     @Serializable data class EditarDisciplina(val disciplinaId: Long)
     @Serializable data object NovoAluno
+    @Serializable data object NovoAnoLetivo
     @Serializable data object Configuracoes
     @Serializable data object Backup
     @Serializable data object Notificacoes

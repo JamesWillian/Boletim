@@ -1,6 +1,13 @@
 package app.jammes.boletim.presentation.ui.onboarding
 
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -52,6 +59,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -109,6 +119,8 @@ import app.jammes.boletim.presentation.ui.anoletivo.problemasDasDatas
 import app.jammes.boletim.presentation.ui.anoletivo.resumoDasDatas
 import app.jammes.boletim.presentation.ui.boletim.formatarMedia
 import app.jammes.boletim.presentation.ui.components.Avatar
+import app.jammes.boletim.presentation.ui.components.DURACAO_SAIDA
+import app.jammes.boletim.presentation.ui.components.DURACAO_TRANSICAO
 import app.jammes.boletim.presentation.ui.components.DialogoDaMateriaNova
 import app.jammes.boletim.presentation.ui.components.Pilula
 import app.jammes.boletim.presentation.ui.components.SeloDisciplina
@@ -119,10 +131,41 @@ import app.jammes.boletim.presentation.ui.theme.Espacos
 import app.jammes.boletim.presentation.ui.theme.IconesDisciplina
 import java.time.LocalDate
 
+// Os do onboarding; o ano novo do perfil tem 2
 private const val TOTAL_DE_PASSOS = 4
 
 /**
- * O que todo passo tem: voltar, a barra dos 4 passos (e o Pular, quando dá), o título, o conteúdo
+ * O fundo de uma tela de passos, com os [avisos] logo acima do botão do rodapé. O [conteudo] troca
+ * os passos, e cada um desenha a sua [EstruturaDoPasso].
+ */
+@Composable
+internal fun TelaDePassos(avisos: SnackbarHostState, conteudo: @Composable () -> Unit) {
+    Surface(Modifier.fillMaxSize()) {
+        Box {
+            conteudo()
+            SnackbarHost(
+                hostState = avisos,
+                // Acima do botão do rodapé
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+                    .imePadding()
+                    .padding(bottom = 88.dp),
+            )
+        }
+    }
+}
+
+/** A troca de passo: o fade-through das telas do app, com um deslize curto para o lado em que se anda. */
+internal fun <P : Comparable<P>> AnimatedContentTransitionScope<P>.trocaDePasso(): ContentTransform {
+    val lado = if (targetState > initialState) 1 else -1
+    return (fadeIn(tween(DURACAO_TRANSICAO, delayMillis = DURACAO_SAIDA)) +
+        slideInHorizontally(tween(DURACAO_TRANSICAO)) { largura -> lado * largura / 10 })
+        .togetherWith(fadeOut(tween(DURACAO_SAIDA)))
+}
+
+/**
+ * O que todo passo tem: voltar, a barra dos passos (e o Pular, quando dá), o título, o conteúdo
  * rolando e o botão no rodapé, que sobe junto com o teclado. [numero] null é o resumo: a barra fica cheia.
  */
 @Composable
@@ -132,6 +175,7 @@ internal fun EstruturaDoPasso(
     subtitulo: String?,
     onVoltar: () -> Unit,
     onBotao: () -> Unit,
+    total: Int = TOTAL_DE_PASSOS,
     botao: String = "Continuar",
     botaoIcone: ImageVector? = null,
     botaoHabilitado: Boolean = true,
@@ -147,7 +191,7 @@ internal fun EstruturaDoPasso(
             IconButton(onClick = onVoltar) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Voltar")
             }
-            Progresso(atual = numero ?: TOTAL_DE_PASSOS, modifier = Modifier.weight(1f).padding(horizontal = Espacos.s))
+            Progresso(atual = numero ?: total, total = total, modifier = Modifier.weight(1f).padding(horizontal = Espacos.s))
             Box(Modifier.width(72.dp), contentAlignment = Alignment.CenterEnd) {
                 if (onPular != null) TextButton(onClick = onPular) { Text("Pular") }
             }
@@ -160,7 +204,7 @@ internal fun EstruturaDoPasso(
         ) {
             if (numero != null) {
                 Text(
-                    text = "Passo $numero de $TOTAL_DE_PASSOS",
+                    text = "Passo $numero de $total",
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -195,12 +239,12 @@ internal fun EstruturaDoPasso(
 }
 
 @Composable
-private fun Progresso(atual: Int, modifier: Modifier = Modifier) {
+private fun Progresso(atual: Int, total: Int, modifier: Modifier = Modifier) {
     Row(
-        modifier = modifier.semantics { contentDescription = "Passo $atual de $TOTAL_DE_PASSOS" },
+        modifier = modifier.semantics { contentDescription = "Passo $atual de $total" },
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        repeat(TOTAL_DE_PASSOS) { i ->
+        repeat(total) { i ->
             val cor by animateColorAsState(
                 if (i < atual) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainerHighest,
                 label = "corDoPasso",
@@ -212,13 +256,21 @@ private fun Progresso(atual: Int, modifier: Modifier = Modifier) {
 
 // 2 · Divisão do ano --------------------------------------------------------------------------
 
+/**
+ * O passo 2 do onboarding e também o último do ano novo do perfil, que tem só [total] 2: lá o
+ * [botao] já cria o ano, e o [aviso] embaixo diz o que vem depois.
+ */
 @Composable
 internal fun PassoDivisao(
-    formulario: FormularioOnboarding,
-    onMudar: (FormularioOnboarding) -> Unit,
+    formulario: FormularioNovoAnoLetivo,
+    onMudar: (FormularioNovoAnoLetivo) -> Unit,
     onVoltar: () -> Unit,
-    onPular: () -> Unit,
     onContinuar: () -> Unit,
+    total: Int = TOTAL_DE_PASSOS,
+    onPular: (() -> Unit)? = null,
+    botao: String = "Continuar",
+    carregando: Boolean = false,
+    aviso: String? = null,
 ) {
     var aberto by rememberSaveable { mutableStateOf<Int?>(null) }
     val problemas = problemasDasDatas(formulario.datas)
@@ -226,11 +278,14 @@ internal fun PassoDivisao(
 
     EstruturaDoPasso(
         numero = 2,
+        total = total,
         titulo = "Como o ano é dividido?",
         subtitulo = "As datas já vêm sugeridas. Toque num período para ajustar.",
         onVoltar = onVoltar,
         onPular = onPular,
+        botao = botao,
         botaoHabilitado = formulario.datasCertas,
+        carregando = carregando,
         onBotao = onContinuar,
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Espacos.s)) {
@@ -273,6 +328,10 @@ internal fun PassoDivisao(
                     )
                 }
             }
+        }
+        if (aviso != null) {
+            Spacer(Modifier.height(Espacos.l))
+            Aviso(aviso)
         }
     }
 
@@ -582,7 +641,7 @@ internal fun PassoMaterias(
     val novas = remember(formulario.materiasNovas, materias) { materiasNovas(formulario.materiasNovas, materias) }
     var criando by rememberSaveable { mutableStateOf(false) }
     val haptico = LocalHapticFeedback.current
-    val deCostume = when (formulario.serie.etapa) {
+    val deCostume = when (formulario.anoLetivo.serie.etapa) {
         Etapa.FUNDAMENTAL -> "as de costume no Ensino Fundamental"
         Etapa.MEDIO -> "as de costume no Ensino Médio"
         null -> "as mais comuns"
@@ -749,8 +808,9 @@ internal fun PassoPronto(
 ) {
     val cores = MaterialTheme.colorScheme
     val nomes = materias.filter { it.id in formulario.materiasMarcadas(sugeridas) }.map { it.nome } + formulario.materiasNovas
+    val anoLetivo = formulario.anoLetivo
     val hoje = remember { LocalDate.now() }
-    val agora = formulario.datas.indexOfFirst { hoje in it.inicio..it.fim }
+    val agora = anoLetivo.datas.indexOfFirst { hoje in it.inicio..it.fim }
 
     EstruturaDoPasso(
         numero = null,
@@ -792,16 +852,16 @@ internal fun PassoPronto(
             LinhaDoResumo(
                 inicio = { Avatar(nome = formulario.nome.ifBlank { null }, modifier = Modifier.size(40.dp)) },
                 titulo = formulario.nome.trim(),
-                detalhe = descricaoDoAno(formulario.serie.texto(), formulario.ano),
+                detalhe = descricaoDoAno(anoLetivo.serie.texto(), anoLetivo.ano),
                 onClick = { onMudar(1) },
             )
             DivisoriaDoResumo()
             LinhaDoResumo(
                 inicio = { IconeDaLinha(Icons.Outlined.EventAvailable) },
-                titulo = quantidadeDePeriodos(formulario.datas.size, formulario.tipoPeriodo),
-                detalhe = "de ${dataCurta(formulario.datas.first().inicio, formulario.ano)} a " +
-                    dataCurta(formulario.datas.last().fim, formulario.ano) +
-                    if (agora >= 0) " · agora: ${nomeDoPeriodo(agora + 1, formulario.tipoPeriodo)}" else "",
+                titulo = quantidadeDePeriodos(anoLetivo.datas.size, anoLetivo.tipoPeriodo),
+                detalhe = "de ${dataCurta(anoLetivo.datas.first().inicio, anoLetivo.ano)} a " +
+                    dataCurta(anoLetivo.datas.last().fim, anoLetivo.ano) +
+                    if (agora >= 0) " · agora: ${nomeDoPeriodo(agora + 1, anoLetivo.tipoPeriodo)}" else "",
                 onClick = { onMudar(2) },
             )
             DivisoriaDoResumo()
@@ -825,19 +885,22 @@ internal fun PassoPronto(
             )
         }
         Spacer(Modifier.height(Espacos.l))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Outlined.Info, contentDescription = null, tint = cores.onSurfaceVariant, modifier = Modifier.size(16.dp))
-            Spacer(Modifier.width(6.dp))
-            Text(
-                text = "Dá para mudar tudo depois, nos ajustes do ano letivo.",
-                style = MaterialTheme.typography.labelMedium,
-                color = cores.onSurfaceVariant,
-            )
-        }
+        Aviso("Dá para mudar tudo depois, nos ajustes do ano letivo.")
     }
 }
 
 // Peças comuns --------------------------------------------------------------------------------
+
+/** Uma nota no pé do passo, com o ícone de informação: o que dá para fazer depois. */
+@Composable
+private fun Aviso(texto: String) {
+    val cores = MaterialTheme.colorScheme
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+        Icon(Icons.Outlined.Info, contentDescription = null, tint = cores.onSurfaceVariant, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(6.dp))
+        Text(text = texto, style = MaterialTheme.typography.labelMedium, color = cores.onSurfaceVariant)
+    }
+}
 
 /** O cartão dos cards do app: branco (ou quase preto, no escuro) com borda fina. */
 @Composable

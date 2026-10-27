@@ -96,7 +96,7 @@ fun AppNavGraph() {
                 AlunoScreen(
                     onFechar = { navController.popBackStack() },
                     onContextoTrocado = { navController.popBackStack() },
-                    onAnoLetivoCriado = { navController.navigate(Routes.AnoLetivo) },
+                    onNovoAnoLetivo = { navController.navigate(Routes.NovoAnoLetivo) },
                     onNovoAluno = { navController.navigate(Routes.NovoAluno) },
                     onBackup = { navController.navigate(Routes.Backup) },
                     onConfiguracoes = { navController.navigate(Routes.Configuracoes) },

@@ -206,19 +206,26 @@ class CriarAnoLetivo @Inject constructor(
     private val contextoRepository: ContextoRepository,
 ) {
     /**
-     * Cria um ano letivo para o aluno com tudo no padrão: os [periodosPadrao], a [REGRA_PADRAO] e as
-     * [MATERIAS_DO_ANO_NOVO] primeiras matérias do cadastro. Depois abre esse ano no app, no período
-     * de [hoje], para os ajustes mostrarem ele.
+     * Cria um ano letivo para o aluno com os [periodos] escolhidos, do [tipo] dado; o resto vai no
+     * padrão: a [REGRA_PADRAO] e as [MATERIAS_DO_ANO_NOVO] primeiras matérias do cadastro. Depois abre
+     * esse ano no app, no período de [hoje], para os ajustes mostrarem ele.
      *
      * Grava tudo de uma vez: se algo falhar no meio, não sobra um ano pela metade. Se o aluno já tiver
      * esse ano, sai [AnoLetivoRepetidoException] sem gravar nada (a tela não deixa chegar aqui assim).
      */
-    suspend operator fun invoke(alunoId: Long, ano: Int, serie: String?, hoje: LocalDate = LocalDate.now()) {
+    suspend operator fun invoke(
+        alunoId: Long,
+        ano: Int,
+        serie: String?,
+        tipo: TipoPeriodo,
+        periodos: List<PeriodoDomain>, // ainda sem ano letivo (id 0), como os [periodosPadrao]
+        hoje: LocalDate = LocalDate.now(),
+    ) {
         if (anoLetivoRepository.observeByAluno(alunoId).first().any { it.ano == ano }) {
             throw AnoLetivoRepetidoException(ano)
         }
         val materias = materiaRepository.observeMaterias().first().take(MATERIAS_DO_ANO_NOVO)
-        val criado = transacao { gravarAnoLetivoNovo(anoLetivoNovo(alunoId, ano, serie), materias) }
+        val criado = transacao { gravarAnoLetivoNovo(anoLetivoNovo(alunoId, ano, serie, tipo, periodos), materias) }
 
         contextoRepository.selecionarAnoLetivo(criado.id, criado.periodo.periodoAoAbrir(hoje))
     }

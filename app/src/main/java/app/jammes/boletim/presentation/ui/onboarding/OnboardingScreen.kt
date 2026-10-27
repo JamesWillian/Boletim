@@ -3,15 +3,8 @@ package app.jammes.boletim.presentation.ui.onboarding
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -23,7 +16,6 @@ import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -32,33 +24,22 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.outlined.BugReport
-import androidx.compose.material.icons.outlined.CalendarMonth
-import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -83,11 +64,8 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -95,7 +73,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
@@ -108,10 +85,7 @@ import app.jammes.boletim.domain.model.IconeMateria
 import app.jammes.boletim.domain.usecase.materiasDoPrimeiroAno
 import app.jammes.boletim.presentation.ui.boletim.formatarMedia
 import app.jammes.boletim.presentation.ui.components.AnelDaMedia
-import app.jammes.boletim.presentation.ui.components.Avatar
 import app.jammes.boletim.presentation.ui.components.BarraDaMedia
-import app.jammes.boletim.presentation.ui.components.DURACAO_SAIDA
-import app.jammes.boletim.presentation.ui.components.DURACAO_TRANSICAO
 import app.jammes.boletim.presentation.ui.components.Pilula
 import app.jammes.boletim.presentation.ui.components.SeloDisciplina
 import app.jammes.boletim.presentation.ui.components.descricaoDoAno
@@ -148,9 +122,12 @@ fun OnboardingScreen(
     // As boas-vindas são só do primeiro uso
     val primeiro = if (novoAluno) Passo.ALUNO else Passo.BOAS_VINDAS
     var passo by rememberSaveable { mutableStateOf(primeiro) }
-    var formulario by rememberSaveable { mutableStateOf(FormularioOnboarding(ano = LocalDate.now().year)) }
-    val sugeridas = remember(materias, formulario.serie) {
-        materiasDoPrimeiroAno(formulario.serie.etapa, materias).map { it.id }.toSet()
+    var formulario by rememberSaveable {
+        mutableStateOf(FormularioOnboarding(anoLetivo = FormularioNovoAnoLetivo(ano = LocalDate.now().year)))
+    }
+    val serie = formulario.anoLetivo.serie
+    val sugeridas = remember(materias, serie) {
+        materiasDoPrimeiroAno(serie.etapa, materias).map { it.id }.toSet()
     }
     val snackbar = remember { SnackbarHostState() }
     val avancar = { passo = Passo.entries[passo.ordinal + 1] }
@@ -166,51 +143,36 @@ fun OnboardingScreen(
     // No primeiro passo, o voltar do sistema fica com quem abriu a tela: sai do app ou do cadastro
     BackHandler(enabled = passo != primeiro, onBack = anterior)
 
-    Surface(Modifier.fillMaxSize()) {
-        Box {
-            AnimatedContent(
-                targetState = passo,
-                transitionSpec = {
-                    // O fade-through das telas do app, com um deslize curto para o lado em que se anda
-                    val lado = if (targetState > initialState) 1 else -1
-                    (fadeIn(tween(DURACAO_TRANSICAO, delayMillis = DURACAO_SAIDA)) +
-                        slideInHorizontally(tween(DURACAO_TRANSICAO)) { largura -> lado * largura / 10 })
-                        .togetherWith(fadeOut(tween(DURACAO_SAIDA)))
-                },
-                label = "passoDoOnboarding",
-            ) { atual ->
-                when (atual) {
-                    Passo.BOAS_VINDAS -> BoasVindas(
-                        onComecar = { passo = Passo.ALUNO },
-                        onCarregarDadosDeTeste = if (BuildConfig.DEBUG) vm::carregarDadosDeTeste else null,
-                    )
-                    Passo.ALUNO -> PassoAluno(formulario, { formulario = it }, onVoltar = voltar, onContinuar = avancar)
-                    Passo.DIVISAO -> PassoDivisao(formulario, { formulario = it }, voltar, onPular = pular, onContinuar = avancar)
-                    Passo.REGRAS -> PassoRegras(formulario, { formulario = it }, voltar, onPular = pular, onContinuar = avancar)
-                    Passo.MATERIAS -> PassoMaterias(
-                        formulario, materias, sugeridas, { formulario = it }, onVoltar = voltar, onContinuar = avancar,
-                    )
-                    Passo.PRONTO -> PassoPronto(
-                        formulario = formulario,
-                        materias = materias,
-                        sugeridas = sugeridas,
-                        salvando = salvando,
-                        onVoltar = voltar,
-                        onMudar = { numero -> passo = Passo.entries[numero] }, // o passo 1 é o ALUNO
-                        // A dica do boletim é para quem chega agora; quem cadastra outro aluno já conhece
-                        onConcluir = { vm.concluir(formulario, sugeridas, pedirDica = !novoAluno) },
-                    )
-                }
+    TelaDePassos(avisos = snackbar) {
+        AnimatedContent(targetState = passo, transitionSpec = { trocaDePasso() }, label = "passoDoOnboarding") { atual ->
+            when (atual) {
+                Passo.BOAS_VINDAS -> BoasVindas(
+                    onComecar = { passo = Passo.ALUNO },
+                    onCarregarDadosDeTeste = if (BuildConfig.DEBUG) vm::carregarDadosDeTeste else null,
+                )
+                Passo.ALUNO -> PassoAluno(formulario, { formulario = it }, onVoltar = voltar, onContinuar = avancar)
+                Passo.DIVISAO -> PassoDivisao(
+                    formulario = formulario.anoLetivo,
+                    onMudar = { formulario = formulario.copy(anoLetivo = it) },
+                    onVoltar = voltar,
+                    onPular = pular,
+                    onContinuar = avancar,
+                )
+                Passo.REGRAS -> PassoRegras(formulario, { formulario = it }, voltar, onPular = pular, onContinuar = avancar)
+                Passo.MATERIAS -> PassoMaterias(
+                    formulario, materias, sugeridas, { formulario = it }, onVoltar = voltar, onContinuar = avancar,
+                )
+                Passo.PRONTO -> PassoPronto(
+                    formulario = formulario,
+                    materias = materias,
+                    sugeridas = sugeridas,
+                    salvando = salvando,
+                    onVoltar = voltar,
+                    onMudar = { numero -> passo = Passo.entries[numero] }, // o passo 1 é o ALUNO
+                    // A dica do boletim é para quem chega agora; quem cadastra outro aluno já conhece
+                    onConcluir = { vm.concluir(formulario, sugeridas, pedirDica = !novoAluno) },
+                )
             }
-            SnackbarHost(
-                hostState = snackbar,
-                // Acima do botão do rodapé
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .navigationBarsPadding()
-                    .imePadding()
-                    .padding(bottom = 88.dp),
-            )
         }
     }
 }
@@ -446,6 +408,8 @@ private fun PassoAluno(
 ) {
     val foco = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
+    val anoLetivo = formulario.anoLetivo
+    val mudarAnoLetivo = { novo: FormularioNovoAnoLetivo -> onMudar(formulario.copy(anoLetivo = novo)) }
     // O teclado já abre no nome, o único campo que precisa ser preenchido (e só na primeira vez)
     LaunchedEffect(Unit) { if (formulario.nome.isBlank()) foco.requestFocus() }
 
@@ -457,7 +421,7 @@ private fun PassoAluno(
         botaoHabilitado = formulario.podeConcluir,
         onBotao = onContinuar,
     ) {
-        Previa(nome = formulario.nome, descricao = descricaoDoAno(formulario.serie.texto(), formulario.ano))
+        PreviaDaIdentificacao(nome = formulario.nome, descricao = descricaoDoAno(anoLetivo.serie.texto(), anoLetivo.ano))
         Spacer(Modifier.height(Espacos.xl))
         OutlinedTextField(
             value = formulario.nome,
@@ -477,144 +441,8 @@ private fun PassoAluno(
             },
             modifier = Modifier.fillMaxWidth().focusRequester(foco),
         )
-        EscolhaDaSerie(serie = formulario.serie, onEscolher = { onMudar(formulario.copy(serie = it)) })
-        TituloDaSecao("Ano letivo")
-        EscolhaDoAno(ano = formulario.ano, onEscolher = { onMudar(formulario.comAno(it)) })
-    }
-}
-
-/** Como o aluno vai aparecer no topo do app, já enquanto se digita. */
-@Composable
-private fun Previa(nome: String, descricao: String) {
-    val cores = MaterialTheme.colorScheme
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.large)
-            .background(cores.surfaceContainerLow)
-            .border(1.dp, cores.outlineVariant, MaterialTheme.shapes.large)
-            .padding(horizontal = Espacos.l, vertical = Espacos.m),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Avatar(nome = nome.ifBlank { null })
-        Column(Modifier.weight(1f).padding(start = Espacos.m)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = nome.ifBlank { "Nome do aluno" },
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (nome.isBlank()) cores.onSurfaceVariant else cores.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-                Icon(Icons.Filled.ExpandMore, contentDescription = null, tint = cores.onSurfaceVariant, modifier = Modifier.size(20.dp))
-            }
-            Text(descricao, style = MaterialTheme.typography.bodyMedium, color = cores.onSurfaceVariant)
-        }
-        Icon(Icons.Outlined.CalendarMonth, contentDescription = null, tint = cores.onSurfaceVariant)
-    }
-}
-
-@Composable
-private fun EscolhaDaSerie(serie: Serie?, onEscolher: (Serie?) -> Unit) {
-    val haptico = LocalHapticFeedback.current
-    // Tocar de novo na escolhida tira a série: ela é opcional
-    val escolher = { opcao: Serie ->
-        haptico.performHapticFeedback(HapticFeedbackType.SegmentTick)
-        onEscolher(opcao.takeUnless { it == serie })
-    }
-
-    TituloDaSecao("Série", detalhe = "Opcional")
-    BoxWithConstraints(Modifier.fillMaxWidth()) {
-        // Os 9 anos do Fundamental cabem numa linha só; o Médio usa o mesmo tamanho de círculo
-        val tamanho = (maxWidth - ESPACO_ENTRE_SERIES * 8) / 9
-        Column {
-            Text("Ensino Fundamental", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(Espacos.s))
-            Row(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(ESPACO_ENTRE_SERIES)) {
-                (1..9).forEach { n ->
-                    val opcao = Serie.Fundamental(n)
-                    CirculoDaSerie("${n}º", selecionado = serie == opcao, tamanho = tamanho, onClick = { escolher(opcao) })
-                }
-            }
-            Spacer(Modifier.height(Espacos.m))
-            Text("Ensino Médio", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Row(
-                modifier = Modifier.selectableGroup(),
-                horizontalArrangement = Arrangement.spacedBy(ESPACO_ENTRE_SERIES),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                (1..3).forEach { n ->
-                    val opcao = Serie.Medio(n)
-                    CirculoDaSerie("${n}ª", selecionado = serie == opcao, tamanho = tamanho, onClick = { escolher(opcao) })
-                }
-                Spacer(Modifier.width(Espacos.s))
-                FilterChip(
-                    selected = serie is Serie.Outra,
-                    onClick = {
-                        haptico.performHapticFeedback(HapticFeedbackType.SegmentTick)
-                        onEscolher(if (serie is Serie.Outra) null else Serie.Outra())
-                    },
-                    label = { Text("Outra") },
-                    leadingIcon = {
-                        Icon(Icons.Outlined.Edit, contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize))
-                    },
-                )
-            }
-        }
-    }
-    AnimatedVisibility(visible = serie is Serie.Outra) {
-        OutlinedTextField(
-            value = (serie as? Serie.Outra)?.texto.orEmpty(),
-            onValueChange = { onEscolher(Serie.Outra(it)) },
-            label = { Text("Qual série?") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
-            modifier = Modifier.fillMaxWidth().padding(top = Espacos.s),
-        )
-    }
-}
-
-private val ESPACO_ENTRE_SERIES = 4.dp
-
-@Composable
-private fun CirculoDaSerie(texto: String, selecionado: Boolean, tamanho: Dp, onClick: () -> Unit) {
-    val cores = MaterialTheme.colorScheme
-    Box(
-        modifier = Modifier
-            .size(tamanho)
-            .clip(CircleShape)
-            .background(if (selecionado) cores.primary else Color.Transparent)
-            .border(1.dp, if (selecionado) cores.primary else cores.outlineVariant, CircleShape)
-            .selectable(selected = selecionado, role = Role.RadioButton, onClick = onClick),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = texto,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold,
-            color = if (selecionado) cores.onPrimary else cores.onSurfaceVariant,
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun EscolhaDoAno(ano: Int, onEscolher: (Int) -> Unit) {
-    // O passado, o atual e o próximo: cobre quem cadastra atrasado e quem já prepara o seguinte
-    val atual = remember { LocalDate.now().year }
-    val anos = listOf(atual - 1, atual, atual + 1)
-    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-        anos.forEachIndexed { i, opcao ->
-            SegmentedButton(
-                selected = ano == opcao,
-                onClick = { onEscolher(opcao) },
-                shape = SegmentedButtonDefaults.itemShape(index = i, count = anos.size),
-            ) {
-                Text(opcao.toString())
-            }
-        }
+        EscolhaDaSerie(serie = anoLetivo.serie, onEscolher = { mudarAnoLetivo(anoLetivo.copy(serie = it)) })
+        EscolhaDoAno(ano = anoLetivo.ano, onEscolher = { mudarAnoLetivo(anoLetivo.comAno(it)) })
     }
 }
 

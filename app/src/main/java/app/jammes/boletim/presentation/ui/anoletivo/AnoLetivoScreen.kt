@@ -519,8 +519,8 @@ internal fun BarraDeSalvar(
 // Seções ------------------------------------------------------------------------------------
 
 /**
- * O ano e a série em destaque (tocar abre o sheet que edita os dois) e, embaixo, a linha do tempo
- * dos períodos.
+ * O ano e a série em destaque (tocar abre o sheet que edita a série; o ano fica bloqueado) e,
+ * embaixo, a linha do tempo dos períodos.
  */
 @Composable
 private fun SecaoAnoLetivo(
@@ -537,7 +537,7 @@ private fun SecaoAnoLetivo(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(onClickLabel = "Editar o ano e a série", onClick = onEditar)
+                    .clickable(onClickLabel = "Editar a série", onClick = onEditar)
                     .padding(start = Espacos.l, end = Espacos.m, top = Espacos.m, bottom = Espacos.m),
                 verticalAlignment = Alignment.CenterVertically,
             ) {

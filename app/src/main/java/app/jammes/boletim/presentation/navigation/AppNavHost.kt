@@ -38,6 +38,7 @@ import app.jammes.boletim.presentation.ui.disciplina.EditarDisciplinaScreen
 import app.jammes.boletim.presentation.ui.materia.MateriaScreen
 import app.jammes.boletim.presentation.ui.notificacoes.ConfiguracoesDasNotificacoesScreen
 import app.jammes.boletim.presentation.ui.notificacoes.NotificacoesScreen
+import app.jammes.boletim.presentation.ui.onboarding.NovoAnoLetivoScreen
 import app.jammes.boletim.presentation.ui.onboarding.OnboardingScreen
 
 /**
@@ -113,6 +114,20 @@ fun AppNavHost(
                         onConcluido = { navController.abrirBoletimGeral() },
                     )
                 }
+                // Um ano novo para o aluno aberto, nos passos do onboarding que fazem o ano; sobe como os ajustes
+                composable<Routes.NovoAnoLetivo>(
+                    enterTransition = { subindo },
+                    popExitTransition = { descendo },
+                ) {
+                    NovoAnoLetivoScreen(
+                        onFechar = { navController.fecharNovoAnoLetivo() },
+                        // O ano novo já está aberto: as telas eram do anterior, e falta conferir os ajustes dele
+                        onCriado = {
+                            navController.abrirBoletimGeral()
+                            navController.abrirAjustesAnoLetivo()
+                        },
+                    )
+                }
                 // As configurações sobem como os ajustes
                 composable<Routes.Configuracoes>(
                     enterTransition = { subindo },
@@ -165,10 +180,7 @@ fun AppNavHost(
                         onFechar = { navController.fecharPerfilDoAluno() },
                         // As telas abertas eram do aluno ou do ano anterior: volta ao Boletim Geral
                         onContextoTrocado = { navController.abrirBoletimGeral() },
-                        onAnoLetivoCriado = {
-                            navController.abrirBoletimGeral()
-                            navController.abrirAjustesAnoLetivo()
-                        },
+                        onNovoAnoLetivo = { navController.abrirNovoAnoLetivo() },
                         onNovoAluno = { navController.abrirNovoAluno() },
                         onBackup = { navController.abrirBackup() },
                         onConfiguracoes = { navController.abrirConfiguracoes() },
@@ -260,6 +272,19 @@ fun NavController.fecharNovoAluno() {
     popBackStack<Routes.NovoAluno>(inclusive = true)
 }
 
+/** Fecha o perfil e abre no lugar dele a criação de um ano letivo, como o cadastro de outro aluno. */
+fun NavController.abrirNovoAnoLetivo() {
+    navigate(Routes.NovoAnoLetivo) {
+        popUpTo<Routes.Aluno> { inclusive = true }
+        launchSingleTop = true
+    }
+}
+
+/** Desiste do ano novo. Como nos ajustes, só tira ele da pilha, mesmo se for chamado duas vezes. */
+fun NavController.fecharNovoAnoLetivo() {
+    popBackStack<Routes.NovoAnoLetivo>(inclusive = true)
+}
+
 /** Fecha o perfil e abre no lugar dele as configurações, como o cadastro de outro aluno. */
 fun NavController.abrirConfiguracoes() {
     navigate(Routes.Configuracoes) {
@@ -337,13 +362,14 @@ fun NavController.abrirDisciplina(disciplinaId: Long) {
 /**
  * O card de identificação some nos ajustes do ano letivo e na edição da disciplina, que têm barra
  * própria (e o card mostraria o ano como está gravado enquanto ele é editado), no cadastro de outro
- * aluno, que ainda não existe, e nas configurações, no backup e nas notificações, que não são de
- * nenhum aluno.
+ * aluno, que ainda não existe, e no de um ano novo, que já tem a prévia de como o card vai ficar, e
+ * nas configurações, no backup e nas notificações, que não são de nenhum aluno.
  */
 val NavBackStackEntry.mostraIdentificacao: Boolean
     get() = !destination.hasRoute<Routes.AnoLetivo>() &&
         !destination.hasRoute<Routes.EditarDisciplina>() &&
         !destination.hasRoute<Routes.NovoAluno>() &&
+        !destination.hasRoute<Routes.NovoAnoLetivo>() &&
         !destination.hasRoute<Routes.Configuracoes>() &&
         !destination.hasRoute<Routes.Backup>() &&
         !destination.hasRoute<Routes.Notificacoes>() &&

@@ -53,8 +53,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -82,7 +80,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
@@ -97,7 +94,6 @@ import app.jammes.boletim.domain.model.TipoPeriodo
 import app.jammes.boletim.domain.usecase.nomeDoAluno
 import app.jammes.boletim.presentation.ui.anoletivo.Cartao
 import app.jammes.boletim.presentation.ui.anoletivo.Divisoria
-import app.jammes.boletim.presentation.ui.anoletivo.FormularioAnoLetivo
 import app.jammes.boletim.presentation.ui.anoletivo.LinhaQueAbre
 import app.jammes.boletim.presentation.ui.components.Avatar
 import app.jammes.boletim.presentation.ui.components.DURACAO_SAIDA
@@ -106,15 +102,14 @@ import app.jammes.boletim.presentation.ui.components.EstadoVazio
 import app.jammes.boletim.presentation.ui.components.SeloDisciplina
 import app.jammes.boletim.presentation.ui.components.descricaoDoAno
 import app.jammes.boletim.presentation.ui.theme.Espacos
-import java.time.LocalDate
 
 /**
  * Perfil do aluno, aberto como dialog ao tocar na identificação do topo. Em cima, o aluno e o ano
  * abertos no app, como no card de identificação; embaixo, o que dá para fazer com eles.
  *
- * Editar o aluno, trocar de aluno, trocar de ano e criar um ano abrem uma página dentro do próprio
- * card, que cresce ou encolhe até ela. O voltar do sistema volta à página anterior (o início, ou a
- * edição do aluno na exclusão dele), e no início fecha.
+ * Editar o aluno, trocar de aluno e trocar de ano abrem uma página dentro do próprio card, que cresce
+ * ou encolhe até ela. O voltar do sistema volta à página anterior (o início, ou a edição do aluno na
+ * exclusão dele), e no início fecha. Um aluno ou um ano novo têm tela própria, com os passos do onboarding.
  *
  * O dialog ocupa a janela toda e o card fica no alto, perto da identificação que o abriu. Assim a
  * janela não muda de tamanho a cada quadro enquanto o card anima; o toque fora dele é tratado aqui.
@@ -123,7 +118,7 @@ import java.time.LocalDate
 fun AlunoScreen(
     onFechar: () -> Unit,
     onContextoTrocado: () -> Unit, // aluno ou ano trocado: o que estava aberto era do anterior
-    onAnoLetivoCriado: () -> Unit, // o ano novo já está aberto: falta conferir os ajustes dele
+    onNovoAnoLetivo: () -> Unit, // abre a criação do ano, nos passos do onboarding que fazem o ano
     onNovoAluno: () -> Unit, // abre o cadastro, que é o onboarding a partir do passo do aluno
     onBackup: () -> Unit, // fecha o perfil e abre o backup e a restauração
     onConfiguracoes: () -> Unit, // fecha o perfil e abre as configurações do app
@@ -138,7 +133,6 @@ fun AlunoScreen(
     // O perfil no toque em Excluir. O app troca de aluno (ou volta ao onboarding) e só depois apaga:
     // até o perfil fechar, o card continua como estava, sem mostrar o outro aluno nem números zerados
     var naExclusao by remember { mutableStateOf<RetratoDoPerfil?>(null) }
-    val snackbarHostState = remember { SnackbarHostState() }
     val haptico = LocalHapticFeedback.current
     // O detector de toque do fundo não reinicia: assim ele chama sempre o onFechar atual
     val fechar by rememberUpdatedState(onFechar)
@@ -146,12 +140,8 @@ fun AlunoScreen(
     BackHandler(enabled = pagina != Pagina.Inicio) { pagina = pagina.anterior }
 
     LaunchedEffect(mudanca) {
-        when (val m = mudanca) {
+        when (mudanca) {
             Mudanca.Trocou -> onContextoTrocado()
-            Mudanca.CriouAnoLetivo -> {
-                haptico.performHapticFeedback(HapticFeedbackType.Confirm)
-                onAnoLetivoCriado()
-            }
             // O início já mostra o nome novo
             Mudanca.Renomeou -> {
                 haptico.performHapticFeedback(HapticFeedbackType.Confirm)
@@ -161,11 +151,6 @@ fun AlunoScreen(
             // As telas abertas eram do aluno excluído. Sem nenhum aluno, o onboarding já tomou o lugar
             // do app, e com ele o do perfil
             Mudanca.Excluiu -> onContextoTrocado()
-            is Mudanca.Falhou -> {
-                naExclusao = null
-                snackbarHostState.showSnackbar(m.motivo)
-                viewModel.mudancaVista()
-            }
             else -> Unit
         }
     }
@@ -197,11 +182,10 @@ fun AlunoScreen(
 
             is AlunoUiState.Sucesso -> {
                 val perfil = s.perfil
-                // Do toque até o perfil fechar. Depois de gravar, o perfil já mostra o aluno ou o ano
-                // novo enquanto fecha, e as páginas não podem reagir a isso
+                // Do toque até o perfil fechar. Depois de gravar, o perfil já mostra o outro aluno ou
+                // ano enquanto fecha, e as páginas não podem reagir a isso
                 val mudando = mudanca == Mudanca.Mudando ||
                     mudanca == Mudanca.Trocou ||
-                    mudanca == Mudanca.CriouAnoLetivo ||
                     mudanca == Mudanca.Excluiu
                 CartaoDoPerfil(cartao) {
                     PaginasDoPerfil(
@@ -228,13 +212,13 @@ fun AlunoScreen(
                                 viewModel.trocarAnoLetivo(escolhido)
                             }
                         },
-                        onCriarAnoLetivo = viewModel::criarAnoLetivo,
                         onRenomearAluno = viewModel::renomearAluno,
                         onExcluirAluno = {
                             haptico.performHapticFeedback(HapticFeedbackType.Confirm)
                             naExclusao = RetratoDoPerfil(perfil, resumo)
                             viewModel.excluirAluno()
                         },
+                        onNovoAnoLetivo = onNovoAnoLetivo,
                         onNovoAluno = onNovoAluno,
                         onBackup = onBackup,
                         onConfiguracoes = onConfiguracoes,
@@ -242,8 +226,6 @@ fun AlunoScreen(
                 }
             }
         }
-
-        SnackbarHost(snackbarHostState, Modifier.align(Alignment.BottomCenter))
     }
 }
 
@@ -252,7 +234,7 @@ fun AlunoScreen(
  * e da edição do aluno para a exclusão dele também.
  */
 private enum class Pagina {
-    Inicio, EditarAluno, ExcluirAluno, TrocarAluno, NovoAnoLetivo, TrocarAnoLetivo;
+    Inicio, EditarAluno, ExcluirAluno, TrocarAluno, TrocarAnoLetivo;
 
     /** Para onde o voltar leva: da exclusão, de volta à edição do aluno; das outras, ao início. */
     val anterior: Pagina
@@ -286,9 +268,9 @@ private fun PaginasDoPerfil(
     onFechar: () -> Unit,
     onEscolherAluno: (AlunoComAno) -> Unit,
     onEscolherAno: (AnoLetivoDomain) -> Unit,
-    onCriarAnoLetivo: (ano: Int, serie: String) -> Unit,
     onRenomearAluno: (nome: String) -> Unit,
     onExcluirAluno: () -> Unit,
+    onNovoAnoLetivo: () -> Unit,
     onNovoAluno: () -> Unit,
     onBackup: () -> Unit,
     onConfiguracoes: () -> Unit,
@@ -314,6 +296,7 @@ private fun PaginasDoPerfil(
                 perfil = perfil,
                 onFechar = onFechar,
                 onAbrir = onAbrir,
+                onNovoAnoLetivo = onNovoAnoLetivo,
                 onNovoAluno = onNovoAluno,
                 onBackup = onBackup,
                 onConfiguracoes = onConfiguracoes,
@@ -340,12 +323,6 @@ private fun PaginasDoPerfil(
                 onVoltar = voltar,
                 onEscolher = onEscolherAluno,
             )
-            Pagina.NovoAnoLetivo -> PaginaNovoAnoLetivo(
-                anosLetivos = perfil.anosLetivos,
-                mudando = mudando,
-                onVoltar = voltar,
-                onCriar = onCriarAnoLetivo,
-            )
             Pagina.TrocarAnoLetivo -> PaginaTrocarAnoLetivo(
                 perfil = perfil,
                 mudando = mudando,
@@ -364,6 +341,7 @@ private fun PaginaInicio(
     perfil: PerfilAluno,
     onFechar: () -> Unit,
     onAbrir: (Pagina) -> Unit,
+    onNovoAnoLetivo: () -> Unit,
     onNovoAluno: () -> Unit,
     onBackup: () -> Unit,
     onConfiguracoes: () -> Unit,
@@ -429,7 +407,7 @@ private fun PaginaInicio(
                 LinhaQueAbre(
                     titulo = "Criar novo ano letivo",
                     rotuloDoClique = "Criar um ano letivo",
-                    onClick = { onAbrir(Pagina.NovoAnoLetivo) },
+                    onClick = onNovoAnoLetivo,
                 ) { Selo(Icons.Outlined.EditCalendar) }
                 Divisoria()
                 LinhaQueAbre(
@@ -679,87 +657,6 @@ private fun PaginaTrocarAnoLetivo(
     }
 }
 
-/**
- * O ano e a série do ano novo; o resto (períodos, regras e matérias) começa no padrão. Criar grava o
- * ano, abre ele no app e leva aos ajustes dele, para conferir.
- */
-@Composable
-private fun PaginaNovoAnoLetivo(
-    anosLetivos: List<AnoLetivoDomain>, // os que o aluno já tem: o mesmo ano não pode repetir
-    mudando: Boolean,
-    onVoltar: () -> Unit,
-    onCriar: (ano: Int, serie: String) -> Unit,
-) {
-    // rememberSaveable: o que já foi digitado sobrevive a girar a tela
-    var ano by rememberSaveable { mutableStateOf(anoSugerido(anosLetivos, LocalDate.now()).toString()) }
-    var serie by rememberSaveable { mutableStateOf("") }
-
-    val anoValor = FormularioAnoLetivo.Identificacao(ano = ano, serie = serie).anoValor
-    // Criado, o ano entra na lista antes de o perfil fechar: sem a trava, piscaria o "Já existe"
-    val problema = if (mudando) null else problemaDoAnoNovo(anoValor, anosLetivos)
-
-    Column(Modifier.padding(bottom = Espacos.l)) {
-        CabecalhoDaPagina("Novo ano letivo", onVoltar)
-        CorpoDaPagina(
-            arranjo = Arrangement.spacedBy(Espacos.m),
-            modifier = Modifier.padding(horizontal = Espacos.xs),
-        ) {
-            Row(horizontalArrangement = Arrangement.spacedBy(Espacos.m)) {
-                OutlinedTextField(
-                    value = ano,
-                    onValueChange = { ano = it },
-                    label = { Text("Ano") },
-                    isError = problema != null,
-                    supportingText = problema?.let { { Text(it) } },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number,
-                        imeAction = ImeAction.Next,
-                    ),
-                    modifier = Modifier.weight(1f)
-                )
-                OutlinedTextField(
-                    value = serie,
-                    onValueChange = { serie = it },
-                    label = { Text("Série") },
-                    placeholder = { Text("9º Ano") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.Sentences,
-                        imeAction = ImeAction.Done,
-                    ),
-                    modifier = Modifier.weight(2f)
-                )
-            }
-
-            Text(
-                text = "Os períodos, as regras de média e as matérias começam no padrão. " +
-                    "Em seguida, os ajustes do ano abrem para você conferir.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Espacos.m)
-            ) {
-                OutlinedButton(
-                    onClick = onVoltar,
-                    modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(12.dp)
-                ) { Text("Cancelar") }
-
-                Button(
-                    onClick = { anoValor?.let { onCriar(it, serie) } },
-                    modifier = Modifier.weight(1f),
-                    enabled = problema == null && !mudando,
-                    shape = RoundedCornerShape(12.dp)
-                ) { Text("Criar") }
-            }
-        }
-    }
-}
-
 // Peças das páginas --------------------------------------------------------------------------
 
 /** O voltar e o título de uma página; o voltar leva ao início do perfil. */
@@ -890,13 +787,6 @@ internal fun resumoDoAnoLetivo(ano: AnoLetivoDomain): String = listOfNotNull(
     quantosPeriodos(ano.periodo.size, ano.tipoPeriodo),
 ).joinToString(" · ")
 
-/**
- * O ano que o formulário já traz: o do calendário, ou o seguinte ao mais recente do aluno quando
- * esse já foi criado (um ano que já existe não pode ser criado de novo).
- */
-internal fun anoSugerido(anosLetivos: List<AnoLetivoDomain>, hoje: LocalDate): Int =
-    maxOf(hoje.year, (anosLetivos.maxOfOrNull { it.ano } ?: 0) + 1)
-
 /** O que impede de salvar o nome, embaixo do campo; null quando dá. */
 internal fun problemaDoNome(digitado: String): String? =
     if (nomeDoAluno(digitado) == null) "Escreva o nome" else null
@@ -934,12 +824,3 @@ internal fun avisoDaExclusao(resumo: ResumoDoAluno?, unico: Boolean): String {
     return "$sai Não dá para desfazer.$depois"
 }
 
-/**
- * O que impede de criar o ano, curto para caber embaixo do campo; null quando dá. [ano] é o valor
- * digitado, ou null enquanto ele não tiver 4 dígitos.
- */
-internal fun problemaDoAnoNovo(ano: Int?, anosLetivos: List<AnoLetivoDomain>): String? = when {
-    ano == null -> "4 dígitos"
-    anosLetivos.any { it.ano == ano } -> "Já existe"
-    else -> null
-}

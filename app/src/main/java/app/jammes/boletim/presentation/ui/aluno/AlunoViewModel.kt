@@ -9,8 +9,6 @@ import app.jammes.boletim.domain.model.ResumoDoAluno
 import app.jammes.boletim.domain.model.periodoAoAbrir
 import app.jammes.boletim.domain.repository.AlunoRepository
 import app.jammes.boletim.domain.repository.ContextoRepository
-import app.jammes.boletim.domain.usecase.AnoLetivoRepetidoException
-import app.jammes.boletim.domain.usecase.CriarAnoLetivo
 import app.jammes.boletim.domain.usecase.ExcluirAluno
 import app.jammes.boletim.domain.usecase.ObterPerfilAluno
 import app.jammes.boletim.domain.usecase.RenomearAluno
@@ -36,17 +34,15 @@ sealed interface AlunoUiState {
 }
 
 /**
- * Andamento de uma troca, de um ano novo ou de uma mudança no aluno. Trocou, CriouAnoLetivo e Excluiu
- * fecham o perfil; Renomeou volta ao início dele; Falhou mostra o motivo e deixa tentar de novo.
+ * Andamento de uma troca ou de uma mudança no aluno. Trocou e Excluiu fecham o perfil; Renomeou volta
+ * ao início dele.
  */
 sealed interface Mudanca {
     data object Parada : Mudanca
     data object Mudando : Mudanca
     data object Trocou : Mudanca
-    data object CriouAnoLetivo : Mudanca
     data object Renomeou : Mudanca
     data object Excluiu : Mudanca
-    data class Falhou(val motivo: String) : Mudanca
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -55,7 +51,6 @@ class AlunoViewModel @Inject constructor(
     private val contextoRepo: ContextoRepository,
     alunoRepo: AlunoRepository,
     obterPerfil: ObterPerfilAluno,
-    private val criarAnoLetivo: CriarAnoLetivo,
     private val renomearAluno: RenomearAluno,
     private val excluirAluno: ExcluirAluno,
 ): ViewModel() {
@@ -102,12 +97,6 @@ class AlunoViewModel @Inject constructor(
         }
     }
 
-    /** Cria o ano com tudo no padrão e já abre ele; a tela leva então aos ajustes dele. */
-    fun criarAnoLetivo(ano: Int, serie: String) {
-        val alunoId = alunoAberto()?.id ?: return
-        mudar(Mudanca.CriouAnoLetivo) { criarAnoLetivo(alunoId, ano, serie) }
-    }
-
     fun renomearAluno(nome: String) {
         val aluno = alunoAberto() ?: return
         mudar(Mudanca.Renomeou) { renomearAluno(aluno, nome) }
@@ -119,7 +108,7 @@ class AlunoViewModel @Inject constructor(
         mudar(Mudanca.Excluiu) { excluirAluno(aluno) }
     }
 
-    /** A tela já reagiu ao fim da mudança (voltou ao início ou mostrou a falha): pode mudar de novo. */
+    /** A tela já reagiu ao fim da mudança (voltou ao início): pode mudar de novo. */
     fun mudancaVista() {
         _mudanca.value = Mudanca.Parada
     }
@@ -130,12 +119,8 @@ class AlunoViewModel @Inject constructor(
         if (_mudanca.value == Mudanca.Mudando) return // toque duplo
         _mudanca.value = Mudanca.Mudando
         viewModelScope.launch {
-            _mudanca.value = try {
-                bloco()
-                concluida
-            } catch (e: AnoLetivoRepetidoException) {
-                Mudanca.Falhou(e.message ?: "Não deu para criar o ano letivo")
-            }
+            bloco()
+            _mudanca.value = concluida
         }
     }
 }
