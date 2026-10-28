@@ -7,11 +7,16 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -84,7 +89,11 @@ fun AppScaffold(
         topBar = {
             // A barra de status fica sempre reservada aqui fora; só o card entra e sai, encolhendo.
             // Assim a tela de baixo sobe junto com ele, sem pular nem ir para trás da barra de status.
-            Column(Modifier.statusBarsPadding()) {
+            Column(
+                Modifier.windowInsetsPadding(
+                    WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal)
+                )
+            ) {
                 AnimatedVisibility(visible = entradaAtual?.mostraIdentificacao != false) {
                     IdentificacaoCard(
                         contexto = contexto,
