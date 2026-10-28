@@ -2,6 +2,7 @@ package app.jammes.boletim.data.repository
 
 import app.jammes.boletim.data.local.preferences.ConfiguracoesPreferences
 import app.jammes.boletim.domain.model.Configuracoes
+import app.jammes.boletim.domain.model.DisposicaoDoBoletim
 import app.jammes.boletim.domain.model.EstiloDasAbas
 import app.jammes.boletim.domain.model.Tema
 import app.jammes.boletim.domain.repository.ConfiguracoesRepository
@@ -18,6 +19,9 @@ class ConfiguracoesRepositoryImpl @Inject constructor(
     override suspend fun salvarTema(tema: Tema) = prefs.salvarTema(tema)
 
     override suspend fun salvarEstiloDasAbas(estilo: EstiloDasAbas) = prefs.salvarEstiloDasAbas(estilo)
+
+    override suspend fun salvarDisposicaoDoBoletim(disposicao: DisposicaoDoBoletim) =
+        prefs.salvarDisposicaoDoBoletim(disposicao)
 
     override suspend fun salvarBackupAutomatico(ligado: Boolean) = prefs.salvarBackupAutomatico(ligado)
 

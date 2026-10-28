@@ -9,6 +9,7 @@ import java.time.LocalTime
 data class Configuracoes(
     val tema: Tema = Tema.SISTEMA,
     val estiloDasAbas: EstiloDasAbas = EstiloDasAbas.ICONES_E_DESCRICAO,
+    val disposicaoDoBoletim: DisposicaoDoBoletim = DisposicaoDoBoletim.DUAS_COLUNAS,
     val backupAutomatico: Boolean = true, // o Auto Backup do Android, na conta Google do aparelho
     val notificacoesAtivas: Boolean = true, // desligadas, nenhum aviso chega; os horários ficam guardados
     val horariosDasNotificacoes: List<LocalTime> = HORARIOS_PADRAO, // em ordem, de 1 a MAXIMO_DE_HORARIOS
@@ -19,3 +20,6 @@ enum class Tema { CLARO, ESCURO, SISTEMA }
 
 /** O que as abas da lateral mostram embaixo do ícone: nada, a sigla da disciplina ou o nome inteiro. */
 enum class EstiloDasAbas { APENAS_ICONES, ICONES_E_SIGLA, ICONES_E_DESCRICAO }
+
+/** Os cards das disciplinas no Boletim Geral: lado a lado, em duas colunas, ou um por linha. */
+enum class DisposicaoDoBoletim { DUAS_COLUNAS, UMA_COLUNA }

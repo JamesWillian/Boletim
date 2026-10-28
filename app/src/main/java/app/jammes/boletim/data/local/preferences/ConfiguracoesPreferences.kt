@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import app.jammes.boletim.domain.model.Configuracoes
+import app.jammes.boletim.domain.model.DisposicaoDoBoletim
 import app.jammes.boletim.domain.model.EstiloDasAbas
 import app.jammes.boletim.domain.model.HORARIOS_PADRAO
 import app.jammes.boletim.domain.model.Tema
@@ -36,6 +37,7 @@ class ConfiguracoesPreferences @Inject constructor(
     private object Keys {
         val TEMA = stringPreferencesKey("tema")
         val ESTILO_DAS_ABAS = stringPreferencesKey("estilo_das_abas")
+        val DISPOSICAO_DO_BOLETIM = stringPreferencesKey("disposicao_do_boletim")
         val BACKUP_AUTOMATICO = booleanPreferencesKey("backup_automatico")
         val NOTIFICACOES_ATIVAS = booleanPreferencesKey("notificacoes_ativas")
         val HORARIOS_DAS_NOTIFICACOES = stringSetPreferencesKey("horarios_das_notificacoes") // "19:00"
@@ -69,6 +71,10 @@ class ConfiguracoesPreferences @Inject constructor(
         context.dataStore.edit { it[Keys.ESTILO_DAS_ABAS] = estilo.name }
     }
 
+    suspend fun salvarDisposicaoDoBoletim(disposicao: DisposicaoDoBoletim) {
+        context.dataStore.edit { it[Keys.DISPOSICAO_DO_BOLETIM] = disposicao.name }
+    }
+
     suspend fun salvarBackupAutomatico(ligado: Boolean) {
         context.dataStore.edit { it[Keys.BACKUP_AUTOMATICO] = ligado }
     }
@@ -91,6 +97,8 @@ class ConfiguracoesPreferences @Inject constructor(
             tema = Tema.entries.find { it.name == this[Keys.TEMA] } ?: padrao.tema,
             estiloDasAbas = EstiloDasAbas.entries.find { it.name == this[Keys.ESTILO_DAS_ABAS] }
                 ?: padrao.estiloDasAbas,
+            disposicaoDoBoletim = DisposicaoDoBoletim.entries.find { it.name == this[Keys.DISPOSICAO_DO_BOLETIM] }
+                ?: padrao.disposicaoDoBoletim,
             backupAutomatico = this[Keys.BACKUP_AUTOMATICO] ?: padrao.backupAutomatico,
             notificacoesAtivas = this[Keys.NOTIFICACOES_ATIVAS] ?: padrao.notificacoesAtivas,
             horariosDasNotificacoes = lerHorarios(this[Keys.HORARIOS_DAS_NOTIFICACOES]),

@@ -3,6 +3,7 @@ package app.jammes.boletim.presentation.ui.configuracoes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.jammes.boletim.domain.model.Configuracoes
+import app.jammes.boletim.domain.model.DisposicaoDoBoletim
 import app.jammes.boletim.domain.model.EstiloDasAbas
 import app.jammes.boletim.domain.model.Tema
 import app.jammes.boletim.domain.model.comHorario
@@ -23,7 +24,8 @@ import java.time.ZonedDateTime
 
 /**
  * As configurações gravadas e as escolhas da tela. Um só, preso à Activity: a MainActivity tira dele
- * o tema, o AppRoot o estilo das abas, e a tela de configurações abre com ele já carregado.
+ * o tema, o AppRoot o estilo das abas, o Boletim Geral as colunas dos cards, e a tela de
+ * configurações abre com ele já carregado.
  *
  * Cada escolha grava na hora: não tem Salvar, como nas configurações do aparelho.
  */
@@ -56,6 +58,11 @@ class ConfiguracoesViewModel @Inject constructor(
 
     fun escolherEstiloDasAbas(estilo: EstiloDasAbas) {
         viewModelScope.launch { repo.salvarEstiloDasAbas(estilo) }
+    }
+
+    /** A troca entre duas colunas e uma, que fica em cima dos cards do Boletim Geral. */
+    fun escolherDisposicaoDoBoletim(disposicao: DisposicaoDoBoletim) {
+        viewModelScope.launch { repo.salvarDisposicaoDoBoletim(disposicao) }
     }
 
     /** A chave do backup e restauração; o BoletimBackupAgent lê ela na hora do backup. */

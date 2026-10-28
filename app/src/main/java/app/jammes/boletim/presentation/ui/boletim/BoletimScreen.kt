@@ -1,5 +1,6 @@
 package app.jammes.boletim.presentation.ui.boletim
 
+import androidx.activity.compose.LocalActivity
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -11,6 +12,7 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,9 +31,14 @@ import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.text.modifiers.TextAutoSizeLayoutScope
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.outlined.ViewAgenda
 import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.HourglassEmpty
@@ -58,8 +65,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontWeight
@@ -69,8 +83,11 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.jammes.boletim.domain.model.Configuracoes
 import app.jammes.boletim.domain.model.DisciplinaResumo
+import app.jammes.boletim.domain.model.DisposicaoDoBoletim
 import app.jammes.boletim.domain.model.StatusDisciplina
 import app.jammes.boletim.domain.model.Substituta
 import app.jammes.boletim.domain.usecase.mediaEmTexto
@@ -82,6 +99,7 @@ import app.jammes.boletim.presentation.ui.components.DURACAO_TRANSICAO
 import app.jammes.boletim.presentation.ui.components.SeloDisciplina
 import app.jammes.boletim.presentation.ui.components.elementoCompartilhado
 import app.jammes.boletim.presentation.ui.components.limitesCompartilhados
+import app.jammes.boletim.presentation.ui.configuracoes.ConfiguracoesViewModel
 import app.jammes.boletim.presentation.ui.notificacoes.PedirPermissaoAoAbrir
 import app.jammes.boletim.presentation.ui.theme.BoletimTheme
 import app.jammes.boletim.presentation.ui.theme.CoresDisciplina
@@ -94,11 +112,16 @@ import kotlinx.coroutines.delay
 fun BoletimScreen(
     onAbrirDisciplina: (disciplinaId: Long) -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: BoletimViewModel = hiltViewModel()
+    viewModel: BoletimViewModel = hiltViewModel(),
+    // O da Activity, que a splash já esperou carregar: o Boletim abre direto nas colunas escolhidas
+    configuracoesViewModel: ConfiguracoesViewModel = hiltViewModel(LocalActivity.current as ViewModelStoreOwner),
 ) {
 
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val dica by viewModel.dicaDaPrimeiraNota.collectAsStateWithLifecycle()
+    val configuracoes by configuracoesViewModel.configuracoes.collectAsStateWithLifecycle()
+    val disposicao = (configuracoes ?: Configuracoes()).disposicaoDoBoletim
+    val umaColuna = disposicao == DisposicaoDoBoletim.UMA_COLUNA
     var adicionandoMaterias by rememberSaveable { mutableStateOf(false) }
 
     // As notificações já vêm ligadas, mas do Android 13 em diante só chegam com a permissão: na
@@ -133,22 +156,28 @@ fun BoletimScreen(
 
             // Um mural: cada coluna empilha os cards sem alinhar por linha, e um card mais baixo não
             // deixa vão embaixo dele. Cada card tem a altura do que mostra: a situação só ocupa
-            // linha quando existe
+            // linha quando existe. Em uma coluna, vira lista, com cada disciplina numa linha
             is BoletimUiState.Sucesso -> LazyVerticalStaggeredGrid(
-                columns = StaggeredGridCells.Fixed(2),
+                columns = StaggeredGridCells.Fixed(if (umaColuna) 1 else 2),
                 contentPadding = PaddingValues(
                     start = Espacos.l,
                     end = Espacos.l,
                     top = Espacos.s,
                     bottom = 96.dp,
                 ),
-                verticalItemSpacing = Espacos.m,
+                verticalItemSpacing = if (umaColuna) Espacos.s else Espacos.m,
                 horizontalArrangement = Arrangement.spacedBy(Espacos.m),
             ) {
                 item(span = StaggeredGridItemSpan.FullLine) {
                     MediasPorDisciplina(
                         boletim = s.boletim,
                         modifier = Modifier.padding(bottom = Espacos.xs),
+                    )
+                }
+                item(span = StaggeredGridItemSpan.FullLine) {
+                    CabecalhoDasDisciplinas(
+                        disposicao = disposicao,
+                        onEscolher = configuracoesViewModel::escolherDisposicaoDoBoletim,
                     )
                 }
                 val disciplinas = s.boletim.disciplinas
@@ -160,14 +189,16 @@ fun BoletimScreen(
                         // deslizam para as novas posições em vez de pular
                         modifier = Modifier.animateItem(),
                     ) {
-                        DisciplinaCard(
-                            resumo = it,
-                            onClick = {
-                                // Abrir uma matéria é fazer o que a dica pede: ela já cumpriu o papel
-                                if (dica) viewModel.dispensarDica()
-                                onAbrirDisciplina(it.id)
-                            },
-                        )
+                        val abrir = {
+                            // Abrir uma matéria é fazer o que a dica pede: ela já cumpriu o papel
+                            if (dica) viewModel.dispensarDica()
+                            onAbrirDisciplina(it.id)
+                        }
+                        if (umaColuna) {
+                            DisciplinaLinha(resumo = it, onClick = abrir)
+                        } else {
+                            DisciplinaCard(resumo = it, onClick = abrir)
+                        }
                     }
                 }
             }
@@ -369,6 +400,208 @@ private fun DisciplinaCard(
 }
 
 private val TAMANHO_DO_ARCO = 44.dp
+
+/**
+ * O título da lista de disciplinas, com a troca entre duas colunas e uma à direita. A escolha fica
+ * gravada nas configurações: o Boletim abre sempre do jeito que ficou.
+ */
+@Composable
+private fun CabecalhoDasDisciplinas(
+    disposicao: DisposicaoDoBoletim,
+    onEscolher: (DisposicaoDoBoletim) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "Disciplinas",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier
+                .weight(1f)
+                .padding(start = Espacos.xs)
+                .semantics { heading() },
+        )
+        SeletorDeColunas(disposicao = disposicao, onEscolher = onEscolher)
+    }
+}
+
+/** As duas opções, só com ícone, num trilho em pílula: o mesmo desenho do seletor de período. */
+@Composable
+private fun SeletorDeColunas(
+    disposicao: DisposicaoDoBoletim,
+    onEscolher: (DisposicaoDoBoletim) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val haptico = LocalHapticFeedback.current
+    Row(
+        modifier = modifier
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .padding(3.dp)
+            .selectableGroup(),
+    ) {
+        DisposicaoDoBoletim.entries.forEach { opcao ->
+            val escolhida = opcao == disposicao
+            val fundo by animateColorAsState(
+                if (escolhida) MaterialTheme.colorScheme.primary else Color.Transparent,
+                label = "fundoDaOpcao",
+            )
+            val cor by animateColorAsState(
+                if (escolhida) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                label = "corDaOpcao",
+            )
+            Box(
+                modifier = Modifier
+                    .size(width = 48.dp, height = 36.dp)
+                    .clip(CircleShape)
+                    // O fundo animado só é lido no desenho: a troca não recompõe a cada quadro
+                    .drawBehind { drawRect(fundo) }
+                    .selectable(
+                        selected = escolhida,
+                        role = Role.RadioButton,
+                        onClick = {
+                            if (!escolhida) {
+                                haptico.performHapticFeedback(HapticFeedbackType.SegmentTick)
+                                onEscolher(opcao)
+                            }
+                        },
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = iconeDaDisposicao(opcao),
+                    contentDescription = nomeDaDisposicao(opcao),
+                    tint = cor,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
+    }
+}
+
+private fun iconeDaDisposicao(disposicao: DisposicaoDoBoletim): ImageVector = when (disposicao) {
+    DisposicaoDoBoletim.DUAS_COLUNAS -> Icons.Filled.GridView
+    DisposicaoDoBoletim.UMA_COLUNA -> Icons.Outlined.ViewAgenda
+}
+
+private fun nomeDaDisposicao(disposicao: DisposicaoDoBoletim): String = when (disposicao) {
+    DisposicaoDoBoletim.DUAS_COLUNAS -> "Duas colunas"
+    DisposicaoDoBoletim.UMA_COLUNA -> "Uma coluna"
+}
+
+/**
+ * O card de uma coluna: a disciplina numa linha só, como item de lista. O selo abre a linha, o nome
+ * tem espaço para caber, e a média com o arco fica na ponta direita, alinhada com as das outras
+ * disciplinas. Sem notas, o arco fica vazio, com a ampulheta, para a coluna da direita não desalinhar.
+ */
+@Composable
+private fun DisciplinaLinha(
+    resumo: DisciplinaResumo,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val corStatus by animateColorAsState(corDoStatus(resumo.status), label = "corDoStatus")
+
+    Card(
+        onClick = onClick,
+        // Como o de duas colunas, este card se transforma no resumo do detalhe ao abrir a disciplina
+        modifier = modifier.limitesCompartilhados(
+            chave = ChavesCompartilhadas.card(resumo.id),
+            forma = MaterialTheme.shapes.medium,
+        ),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLowest),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = Espacos.l, vertical = Espacos.m),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            SeloDisciplina(
+                cor = CoresDisciplina.de(resumo.cor),
+                icone = IconesDisciplina.de(resumo.icone),
+                tamanho = TAMANHO_NA_LINHA,
+                modifier = Modifier.elementoCompartilhado(ChavesCompartilhadas.selo(resumo.id)),
+            )
+            Spacer(Modifier.width(Espacos.m))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = resumo.nome,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    // Com a fonte do sistema grande, a média aperta o nome: quebra entre palavras ou encolhe
+                    autoSize = EncolherSemPartirPalavra(
+                        minimo = 11.sp,
+                        maximo = MaterialTheme.typography.titleSmall.fontSize,
+                    ),
+                )
+                Row {
+                    // Finalizada, a situação vem antes das faltas, na cor dela
+                    resumo.situacao?.let { situacao ->
+                        Text(
+                            text = "${nomeDaSituacao(situacao)} · ",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = corDoStatus(situacao),
+                        )
+                    }
+                    Text(
+                        text = textoFaltas(resumo.faltas),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = if (resumo.emRiscoPorFalta) {
+                            MaterialTheme.colorScheme.error
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    )
+                }
+            }
+            Spacer(Modifier.width(Espacos.s))
+            MediaAnimada(resumo.media) { media ->
+                if (media != null) {
+                    Text(
+                        text = formatarMedia(media),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = corStatus,
+                        maxLines = 1,
+                    )
+                } else {
+                    Text(
+                        text = "Sem notas",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                    )
+                }
+            }
+            AnelDaMedia(
+                media = resumo.media,
+                mediaMinima = resumo.mediaMinima,
+                cor = corStatus,
+                modifier = Modifier
+                    .padding(start = Espacos.m)
+                    .size(TAMANHO_NA_LINHA),
+                espessura = 4.dp,
+            ) {
+                Crossfade(resumo.status, label = "iconeDoStatus") { status ->
+                    Icon(
+                        imageVector = iconeDoStatus(status),
+                        contentDescription = descricaoDoStatus(status),
+                        tint = corStatus,
+                        modifier = Modifier.size(16.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+// O selo e o arco do card em linha, um em cada ponta
+private val TAMANHO_NA_LINHA = 40.dp
 
 // Do tamanho do estilo para baixo, de 1 em 1sp. O piso de 12sp só chega com tela estreita e fonte
 // grande juntas, e mesmo assim o número aparece inteiro

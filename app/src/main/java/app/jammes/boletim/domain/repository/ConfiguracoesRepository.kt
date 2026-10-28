@@ -1,12 +1,16 @@
 package app.jammes.boletim.domain.repository
 
 import app.jammes.boletim.domain.model.Configuracoes
+import app.jammes.boletim.domain.model.DisposicaoDoBoletim
 import app.jammes.boletim.domain.model.EstiloDasAbas
 import app.jammes.boletim.domain.model.Tema
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalTime
 
-/** As configurações do app: o tema, o estilo das abas laterais, o backup automático e as notificações. */
+/**
+ * As configurações do app: o tema, o estilo das abas laterais, as colunas do Boletim Geral, o
+ * backup automático e as notificações.
+ */
 interface ConfiguracoesRepository {
 
     /** As gravadas; o que nunca foi escolhido vem no padrão. */
@@ -15,6 +19,8 @@ interface ConfiguracoesRepository {
     suspend fun salvarTema(tema: Tema)
 
     suspend fun salvarEstiloDasAbas(estilo: EstiloDasAbas)
+
+    suspend fun salvarDisposicaoDoBoletim(disposicao: DisposicaoDoBoletim)
 
     suspend fun salvarBackupAutomatico(ligado: Boolean)
 
