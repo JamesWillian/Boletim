@@ -75,17 +75,29 @@ internal fun iconeSugerido(nome: String): IconeMateria {
 private val MARCAS_DE_ACENTO = Regex("\\p{M}")
 
 /**
+ * Uma matéria criada no onboarding ou nas matérias do ano, como foi digitada: o nome e a sigla.
+ * É Serializable porque fica nos formulários, que o rememberSaveable guarda.
+ */
+data class MateriaNova(
+    val nome: String,
+    val abreviacao: String? = null, // null ou vazia: sai do nome
+) : java.io.Serializable
+
+/**
  * As matérias criadas no onboarding ou nas matérias do ano, ainda sem id. Cada uma pega a menor cor
  * que o [cadastro] ainda não usa (as padrão deixam umas livres), para não repetir a de outra aba, e o
- * [iconeSugerido].
+ * [iconeSugerido]. Sem sigla digitada, ela sai das três primeiras letras do nome, a mesma que o campo
+ * mostra de exemplo.
  */
-internal fun materiasNovas(nomes: List<String>, cadastro: List<MateriaDomain>): List<MateriaDomain> {
+internal fun materiasNovas(novas: List<MateriaNova>, cadastro: List<MateriaDomain>): List<MateriaDomain> {
     val usadas = cadastro.map { it.cor }.toSet()
     val livres = generateSequence(0) { it + 1 }.filter { it !in usadas }.iterator()
-    return nomes.map { nome ->
+    return novas.map { nova ->
+        val nome = nova.nome.trim()
         MateriaDomain(
-            nome = nome.trim(),
-            abreviacao = nome.trim().take(3).uppercase(),
+            nome = nome,
+            abreviacao = nova.abreviacao?.trim()?.takeIf { it.isNotEmpty() }?.uppercase()
+                ?: nome.filter { it.isLetterOrDigit() }.take(3).uppercase(),
             cor = livres.next(),
             icone = iconeSugerido(nome),
             fonte = FonteMateria.USUARIO,
@@ -99,7 +111,7 @@ internal fun materiasNovas(nomes: List<String>, cadastro: List<MateriaDomain>): 
 
 /**
  * O que o onboarding escolheu. Os períodos e a regra ainda não têm ano letivo (id 0); as matérias são
- * as do cadastro marcadas ([materiaIds]) e as criadas ali ([materiasNovas], só os nomes).
+ * as do cadastro marcadas ([materiaIds]) e as criadas ali ([materiasNovas], com o nome e a sigla).
  */
 data class PrimeiroAno(
     val nome: String,
@@ -109,7 +121,7 @@ data class PrimeiroAno(
     val periodos: List<PeriodoDomain>,
     val regra: RegraAvaliacaoDomain,
     val materiaIds: Set<Long>,
-    val materiasNovas: List<String> = emptyList(),
+    val materiasNovas: List<MateriaNova> = emptyList(),
 )
 
 class ComecarBoletim @Inject constructor(

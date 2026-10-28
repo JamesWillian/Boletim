@@ -66,7 +66,7 @@ internal fun MateriasBottomSheet(
     novas: List<LinhaMateria>, // criadas aqui: entram no ano junto com as marcadas
     existentes: List<String>, // os nomes que uma nova não pode repetir
     onMudar: (Set<Long>) -> Unit,
-    onCriar: (nome: String) -> Unit,
+    onCriar: (nome: String, abreviacao: String) -> Unit,
     onDesistir: (nome: String) -> Unit,
     onDismiss: () -> Unit,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -179,8 +179,8 @@ internal fun MateriasBottomSheet(
         DialogoDaMateriaNova(
             titulo = "Nova matéria",
             existentes = existentes,
-            onCriar = { nome ->
-                onCriar(nome)
+            onCriar = { nome, abreviacao ->
+                onCriar(nome, abreviacao)
                 criando = false
             },
             onDismiss = { criando = false },
@@ -223,9 +223,9 @@ internal fun MateriasDoAnoSheet(
         linhas = linhas,
         marcadas = form.materias,
         novas = novas,
-        existentes = nomesUsados + form.materiasNovas,
+        existentes = nomesUsados + form.materiasNovas.map { it.nome },
         onMudar = { form = form.copy(materias = it) },
-        onCriar = { form = form.comMateriaNova(it) },
+        onCriar = { nome, abreviacao -> form = form.comMateriaNova(nome, abreviacao) },
         onDesistir = { form = form.semMateriaNova(it) },
         onDismiss = onFechar,
         sheetState = sheetState,

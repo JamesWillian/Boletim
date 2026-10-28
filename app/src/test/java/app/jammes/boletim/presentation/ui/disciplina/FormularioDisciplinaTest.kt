@@ -147,22 +147,6 @@ class FormularioDisciplinaTest {
         assertNull(form.paraGravar(PORTUGUES))
     }
 
-    // Abreviação digitada ----------------------------------------------------------------------
-
-    @Test fun `abreviacao digitada fica em maiusculas, como nas abas`() {
-        assertEquals("POR", lerAbreviacao("por"))
-        assertEquals("CIÊ", lerAbreviacao("Ciê"))
-    }
-
-    @Test fun `o que passa de 3 caracteres nao entra`() {
-        assertEquals("POR", lerAbreviacao("PORT"))
-    }
-
-    @Test fun `espaco nao entra na abreviacao`() {
-        assertEquals("EF", lerAbreviacao(" E F "))
-        assertEquals("", lerAbreviacao("   "))
-    }
-
     // Período escolhido no calendário ---------------------------------------------------------
 
     @Test fun `escolher o ano letivo inteiro volta a ser o ano inteiro`() {

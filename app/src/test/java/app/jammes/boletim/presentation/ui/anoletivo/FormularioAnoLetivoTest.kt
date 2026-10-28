@@ -9,6 +9,7 @@ import app.jammes.boletim.domain.model.RegraAvaliacaoDomain
 import app.jammes.boletim.domain.model.TipoArredondamento
 import app.jammes.boletim.domain.model.TipoMedia
 import app.jammes.boletim.domain.model.TipoPeriodo
+import app.jammes.boletim.domain.usecase.MateriaNova
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -176,7 +177,7 @@ class FormularioAnoLetivoTest {
 
         val comRobotica = gravado.comMateriaNova(" Robótica ")
 
-        assertEquals(listOf("Robótica"), comRobotica.materiasNovas) // sem o espaço sobrando
+        assertEquals(listOf(MateriaNova("Robótica")), comRobotica.materiasNovas) // sem o espaço sobrando
         assertEquals(1, comRobotica.alteracoes(gravado).materias)
         assertEquals(0, comRobotica.semMateriaNova("Robótica").alteracoes(gravado).total)
     }
@@ -256,14 +257,15 @@ class FormularioAnoLetivoTest {
         assertNull(gravacao.anoLetivo.serie)
     }
 
-    @Test fun `materia criada aqui vai para o banco so com o nome`() {
+    @Test fun `materia criada aqui vai para o banco com o nome e a sigla`() {
         val ajustes = ajustes(materiaIds = setOf(1))
-        val form = FormularioAnoLetivo.de(ajustes).comMateriaNova("Robótica")
+        val form = FormularioAnoLetivo.de(ajustes).comMateriaNova("Robótica", "RBT").comMateriaNova("Teatro")
 
         val gravacao = form.paraGravar(ajustes)!!
 
         assertEquals(setOf(1L), gravacao.materiaIds)
-        assertEquals(listOf("Robótica"), gravacao.materiasNovas)
+        // Sem sigla digitada vai null, e o cadastro tira a sigla do nome
+        assertEquals(listOf(MateriaNova("Robótica", "RBT"), MateriaNova("Teatro")), gravacao.materiasNovas)
     }
 
     @Test fun `regras vao para o banco como estao na tela`() {

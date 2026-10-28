@@ -164,13 +164,3 @@ internal fun lerTotalDeAulas(texto: String): TotalDigitado {
 
 /** O máximo de algarismos do total: 999 aulas já sobram para um ano. */
 internal const val DIGITOS_DO_TOTAL = 3
-
-/**
- * A abreviação como fica no campo: em maiúsculas, como as abas mostram, sem espaços e com até
- * [TAMANHO_DA_ABREVIACAO] caracteres.
- */
-internal fun lerAbreviacao(texto: String): String =
-    texto.filterNot(Char::isWhitespace).uppercase().take(TAMANHO_DA_ABREVIACAO)
-
-/** O máximo de caracteres da abreviação, que vai embaixo do ícone, na aba fechada. */
-internal const val TAMANHO_DA_ABREVIACAO = 3

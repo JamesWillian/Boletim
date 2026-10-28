@@ -103,14 +103,15 @@ class SalvarAjustesAnoLetivo @Inject constructor(
      *
      * @param anoLetivo já com os períodos que devem existir, em ordem (id 0 = período novo).
      * @param materiaIds as matérias do cadastro que entram no ano.
-     * @param nomesNovos as matérias criadas na tela, só os nomes: entram no cadastro e no ano juntas.
+     * @param criadasNaTela as matérias criadas na tela, com o nome e a sigla: entram no cadastro e no
+     *   ano juntas.
      */
     suspend operator fun invoke(
         original: AjustesAnoLetivo,
         anoLetivo: AnoLetivoDomain,
         regra: RegraAvaliacaoDomain,
         materiaIds: Set<Long>,
-        nomesNovos: List<String> = emptyList(),
+        criadasNaTela: List<MateriaNova> = emptyList(),
     ) {
         require(anoLetivo.periodo.isNotEmpty()) { "O ano letivo precisa de pelo menos um período" }
 
@@ -139,7 +140,7 @@ class SalvarAjustesAnoLetivo @Inject constructor(
             disciplinasQueSaem.forEach { disciplinaRepository.delete(it) }
             // As criadas na tela entram no cadastro aqui, junto com o resto: descartar não deixa sobra.
             // A cor e o ícone saem da mesma conta que a tela mostrou, com o cadastro que ela leu
-            val criadas = materiasNovas(nomesNovos, original.materias).map { it.copy(id = materiaRepository.upsert(it)) }
+            val criadas = materiasNovas(criadasNaTela, original.materias).map { it.copy(id = materiaRepository.upsert(it)) }
             disciplinasNovas(original, materiaIds, criadas).forEach { disciplinaRepository.upsert(it) }
             ids
         }

@@ -2,6 +2,7 @@ package app.jammes.boletim.presentation.ui.onboarding
 
 import app.jammes.boletim.domain.model.TipoMedia
 import app.jammes.boletim.domain.model.TipoPeriodo
+import app.jammes.boletim.domain.usecase.MateriaNova
 import app.jammes.boletim.presentation.ui.anoletivo.DatasPeriodo
 import app.jammes.boletim.presentation.ui.components.nomeRepetido
 import org.junit.Assert.assertEquals
@@ -68,7 +69,7 @@ class FormularioOnboardingTest {
 
         assertEquals(1, formulario.totalDeMaterias(setOf(1L)))
         assertEquals(emptySet<Long>(), primeiro.materiaIds)
-        assertEquals(listOf("Robótica"), primeiro.materiasNovas)
+        assertEquals(listOf(MateriaNova("Robótica")), primeiro.materiasNovas)
         assertNull(formulario.semMateriaNova("Robótica").paraGravar(setOf(1L)))
     }
 

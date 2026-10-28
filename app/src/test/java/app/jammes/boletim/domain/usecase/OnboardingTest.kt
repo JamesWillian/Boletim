@@ -41,11 +41,20 @@ class OnboardingTest {
         // As padrão usam 0–6, 8, 10, 11, 14, 16 e 17
         val padrao = PADRAO.zip(listOf(0, 1, 16, 10, 2, 8, 6, 3, 5, 4, 11, 17, 14)) { materia, cor -> materia.copy(cor = cor) }
 
-        val novas = materiasNovas(listOf("Robótica", "Música", "Teatro"), padrao)
+        val novas = materiasNovas(listOf(MateriaNova("Robótica"), MateriaNova("Música"), MateriaNova("Teatro")), padrao)
 
         assertEquals(listOf(7, 9, 12), novas.map { it.cor })
         assertEquals(listOf(0L, 0L, 0L), novas.map { it.id }) // ainda não gravadas
         assertEquals("ROB", novas.first().abreviacao)
+    }
+
+    @Test fun `a sigla digitada vale, e vazia sai das letras do nome`() {
+        val novas = materiasNovas(
+            listOf(MateriaNova("Robótica", "rbt"), MateriaNova("Ed. Física", " "), MateriaNova("Teatro")),
+            PADRAO,
+        )
+
+        assertEquals(listOf("RBT", "EDF", "TEA"), novas.map { it.abreviacao })
     }
 
     @Test fun `o icone da materia nova sai do nome, e sem palavra conhecida fica o padrao`() {

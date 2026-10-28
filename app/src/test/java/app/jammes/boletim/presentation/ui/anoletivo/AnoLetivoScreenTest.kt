@@ -10,6 +10,7 @@ import app.jammes.boletim.domain.model.RegraAvaliacaoDomain
 import app.jammes.boletim.domain.model.TipoArredondamento
 import app.jammes.boletim.domain.model.TipoMedia
 import app.jammes.boletim.domain.model.TipoPeriodo
+import app.jammes.boletim.domain.usecase.MateriaNova
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -150,7 +151,7 @@ class AnoLetivoScreenTest {
 
     @Test fun `materia criada aqui aparece com a primeira cor livre e o icone que o nome sugere`() {
         // O cadastro usa as cores 0 e 8: a nova fica com a 1
-        val robotica = linhasDasNovas(listOf("Robótica"), ajustes(disciplinas = emptyList())).single()
+        val robotica = linhasDasNovas(listOf(MateriaNova("Robótica")), ajustes(disciplinas = emptyList())).single()
 
         assertEquals("Robótica", robotica.nome)
         assertEquals(1, robotica.cor)

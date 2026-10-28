@@ -699,9 +699,9 @@ internal fun PassoMaterias(
     if (criando) {
         DialogoDaMateriaNova(
             titulo = "Outra matéria",
-            existentes = materias.map { it.nome } + formulario.materiasNovas,
-            onCriar = { nome ->
-                onMudar(formulario.comMateriaNova(nome))
+            existentes = materias.map { it.nome } + formulario.materiasNovas.map { it.nome },
+            onCriar = { nome, abreviacao ->
+                onMudar(formulario.comMateriaNova(nome, abreviacao))
                 criando = false
             },
             onDismiss = { criando = false },
@@ -807,7 +807,7 @@ internal fun PassoPronto(
     onConcluir: () -> Unit,
 ) {
     val cores = MaterialTheme.colorScheme
-    val nomes = materias.filter { it.id in formulario.materiasMarcadas(sugeridas) }.map { it.nome } + formulario.materiasNovas
+    val nomes = materias.filter { it.id in formulario.materiasMarcadas(sugeridas) }.map { it.nome } + formulario.materiasNovas.map { it.nome }
     val anoLetivo = formulario.anoLetivo
     val hoje = remember { LocalDate.now() }
     val agora = anoLetivo.datas.indexOfFirst { hoje in it.inicio..it.fim }

@@ -109,6 +109,7 @@ import app.jammes.boletim.domain.model.nomeDe
 import app.jammes.boletim.domain.model.nomeFeminino
 import app.jammes.boletim.domain.model.ordinalDe
 import app.jammes.boletim.domain.usecase.arredondarMedia
+import app.jammes.boletim.domain.usecase.MateriaNova
 import app.jammes.boletim.domain.usecase.materiasNovas
 import app.jammes.boletim.presentation.ui.boletim.formatarMedia
 import app.jammes.boletim.presentation.ui.components.CarregandoDiscreto
@@ -361,9 +362,9 @@ private fun EditorAjustes(
             linhas = materias,
             marcadas = form.materias,
             novas = novas,
-            existentes = nomesUsados + form.materiasNovas,
+            existentes = nomesUsados + form.materiasNovas.map { it.nome },
             onMudar = { form = form.copy(materias = it) },
-            onCriar = { form = form.comMateriaNova(it) },
+            onCriar = { nome, abreviacao -> form = form.comMateriaNova(nome, abreviacao) },
             onDesistir = { form = form.semMateriaNova(it) },
             onDismiss = { editor = null },
         )
@@ -1328,7 +1329,7 @@ internal fun linhasDasMaterias(ajustes: AjustesAnoLetivo): List<LinhaMateria> {
  * As matérias criadas na tela, como vão ficar: com a cor e o ícone que o cadastro vai dar a elas no
  * Salvar. Ainda não têm id nem lançamentos.
  */
-internal fun linhasDasNovas(nomes: List<String>, ajustes: AjustesAnoLetivo): List<LinhaMateria> =
-    materiasNovas(nomes, ajustes.materias).map { materia ->
+internal fun linhasDasNovas(novas: List<MateriaNova>, ajustes: AjustesAnoLetivo): List<LinhaMateria> =
+    materiasNovas(novas, ajustes.materias).map { materia ->
         LinhaMateria(materiaId = 0, nome = materia.nome, cor = materia.cor, icone = materia.icone, lancamentos = null)
     }

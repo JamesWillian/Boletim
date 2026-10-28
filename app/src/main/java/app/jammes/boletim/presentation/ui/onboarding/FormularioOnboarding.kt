@@ -2,6 +2,7 @@ package app.jammes.boletim.presentation.ui.onboarding
 
 import app.jammes.boletim.domain.model.TipoArredondamento
 import app.jammes.boletim.domain.model.TipoMedia
+import app.jammes.boletim.domain.usecase.MateriaNova
 import app.jammes.boletim.domain.usecase.PrimeiroAno
 import app.jammes.boletim.domain.usecase.REGRA_PADRAO
 import app.jammes.boletim.presentation.ui.anoletivo.FAIXA_DA_FREQUENCIA
@@ -20,7 +21,7 @@ data class FormularioOnboarding(
     val tipoMedia: TipoMedia = REGRA_PADRAO.tipoMedia,
     val arredondamento: TipoArredondamento = REGRA_PADRAO.arredondamento,
     val materiaIds: Set<Long>? = null, // null: as que a série sugere, até a pessoa mexer
-    val materiasNovas: List<String> = emptyList(), // criadas aqui: entram no cadastro só no fim
+    val materiasNovas: List<MateriaNova> = emptyList(), // criadas aqui: entram no cadastro só no fim
 ) : Serializable {
     /** O nome é o único campo obrigatório do primeiro passo. */
     val podeConcluir: Boolean get() = nome.isNotBlank()
@@ -37,8 +38,9 @@ data class FormularioOnboarding(
         return copy(materiaIds = if (id in marcadas) marcadas - id else marcadas + id)
     }
 
-    fun comMateriaNova(nome: String) = copy(materiasNovas = materiasNovas + nome.trim())
-    fun semMateriaNova(nome: String) = copy(materiasNovas = materiasNovas - nome)
+    fun comMateriaNova(nome: String, abreviacao: String = "") =
+        copy(materiasNovas = materiasNovas + MateriaNova(nome.trim(), abreviacao.trim().ifEmpty { null }))
+    fun semMateriaNova(nome: String) = copy(materiasNovas = materiasNovas.filterNot { it.nome == nome })
 
     /** Quantas vão para o ano: as marcadas do cadastro mais as criadas aqui. */
     fun totalDeMaterias(sugeridas: Set<Long>): Int = materiasMarcadas(sugeridas).size + materiasNovas.size
