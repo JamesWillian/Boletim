@@ -48,12 +48,19 @@ class LimitesDoPlanoTest {
 
     // Anos letivos ---------------------------------------------------------------------------
 
-    @Test fun `no gratis, ate o ano atual`() {
-        assertEquals(CriacaoDoAno.LIBERADA, Plano.GRATIS.criacaoDoAno(2025, setOf(2026), NOVEMBRO))
-        assertEquals(CriacaoDoAno.SO_NO_PRO, Plano.GRATIS.criacaoDoAno(2027, setOf(2026), NOVEMBRO))
+    @Test fun `no gratis, o ano atual pode`() {
+        assertEquals(CriacaoDoAno.LIBERADA, Plano.GRATIS.criacaoDoAno(2026, setOf(2025), NOVEMBRO))
     }
 
-    @Test fun `no gratis, o seguinte libera em dezembro`() {
+    @Test fun `no gratis, ano passado e do Pro`() {
+        assertEquals(CriacaoDoAno.SO_NO_PRO, Plano.GRATIS.criacaoDoAno(2025, setOf(2026), NOVEMBRO))
+        assertEquals(CriacaoDoAno.SO_NO_PRO, Plano.GRATIS.criacaoDoAno(2025, setOf(2026), LocalDate.of(2026, 12, 1)))
+        // Nem no onboarding: o primeiro ano letivo é o atual ou o seguinte
+        assertEquals(CriacaoDoAno.SO_NO_PRO, Plano.GRATIS.criacaoDoAno(2025, emptySet(), NOVEMBRO))
+    }
+
+    @Test fun `no gratis, o seguinte so libera em dezembro`() {
+        assertEquals(CriacaoDoAno.SO_NO_PRO, Plano.GRATIS.criacaoDoAno(2027, setOf(2026), NOVEMBRO))
         assertEquals(CriacaoDoAno.LIBERADA, Plano.GRATIS.criacaoDoAno(2027, setOf(2026), LocalDate.of(2026, 12, 1)))
         assertEquals(CriacaoDoAno.LIBERADA, Plano.GRATIS.criacaoDoAno(2027, setOf(2026), LocalDate.of(2026, 12, 31)))
     }
@@ -62,10 +69,11 @@ class LimitesDoPlanoTest {
         assertEquals(CriacaoDoAno.SO_NO_PRO, Plano.GRATIS.criacaoDoAno(2028, setOf(2026), LocalDate.of(2026, 12, 1)))
     }
 
-    @Test fun `no gratis, o primeiro ano letivo do aluno pode ser o seguinte`() {
+    @Test fun `no gratis, o primeiro ano letivo do aluno pode ser o atual ou o seguinte`() {
         // O do onboarding: o aluno ainda não tem nenhum
         val marco = LocalDate.of(2026, 3, 15)
 
+        assertEquals(CriacaoDoAno.LIBERADA, Plano.GRATIS.criacaoDoAno(2026, emptySet(), marco))
         assertEquals(CriacaoDoAno.LIBERADA, Plano.GRATIS.criacaoDoAno(2027, emptySet(), marco))
         assertEquals(CriacaoDoAno.SO_NO_PRO, Plano.GRATIS.criacaoDoAno(2028, emptySet(), marco))
     }

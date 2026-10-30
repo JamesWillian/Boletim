@@ -30,7 +30,7 @@ enum class CriacaoDoAno {
     LIBERADA,
     REPETIDA, // o aluno já tem esse ano: o Pro cria, com um aviso
     JA_EXISTE, // o aluno já tem esse ano, e o grátis não repete
-    SO_NO_PRO; // um ano que o grátis ainda não libera
+    SO_NO_PRO; // um ano que o grátis não libera: um passado, ou um futuro antes da hora
 
     /** Se dá para criar, com ou sem aviso. */
     val permitida: Boolean get() = this == LIBERADA || this == REPETIDA
@@ -39,22 +39,26 @@ enum class CriacaoDoAno {
 /**
  * Como fica a criação de um ano letivo em [ano] para um aluno que já tem os [existentes], em [hoje].
  *
- * O grátis não repete ano e cria até o atual. O seguinte ele libera em dezembro, para quem prepara o
- * próximo, e no primeiro ano letivo do aluno, para o onboarding não esbarrar no Pro. O Pro cria
- * qualquer ano e repete com aviso: escola e curso técnico no mesmo ano, por exemplo.
+ * O grátis tem um ano letivo por ano e cria só o do ano atual, sem anos passados. O seguinte ele libera
+ * em dezembro, para quem prepara o próximo, e no primeiro ano letivo do aluno, para o onboarding não
+ * esbarrar no Pro. O Pro cria qualquer ano, passado ou futuro, e repete com aviso: escola e curso
+ * técnico no mesmo ano, por exemplo.
  */
 fun Plano.criacaoDoAno(ano: Int, existentes: Set<Int>, hoje: LocalDate): CriacaoDoAno = when (this) {
     Plano.PRO -> if (ano in existentes) CriacaoDoAno.REPETIDA else CriacaoDoAno.LIBERADA
     Plano.GRATIS -> when {
         ano in existentes -> CriacaoDoAno.JA_EXISTE
-        ano <= ultimoAnoNoGratis(existentes, hoje) -> CriacaoDoAno.LIBERADA
+        ano in anosNoGratis(existentes, hoje) -> CriacaoDoAno.LIBERADA
         else -> CriacaoDoAno.SO_NO_PRO
     }
 }
 
-/** O ano atual, ou o seguinte em dezembro e no primeiro ano letivo do aluno. */
-private fun ultimoAnoNoGratis(existentes: Set<Int>, hoje: LocalDate): Int =
-    if (hoje.month == Month.DECEMBER || existentes.isEmpty()) hoje.year + 1 else hoje.year
+/** O ano atual, e também o seguinte em dezembro e no primeiro ano letivo do aluno. */
+private fun anosNoGratis(existentes: Set<Int>, hoje: LocalDate): IntRange {
+    val seguinteLiberado = hoje.month == Month.DECEMBER || existentes.isEmpty()
+    val ultimo = if (seguinteLiberado) hoje.year + 1 else hoje.year
+    return hoje.year..ultimo
+}
 
 /**
  * Se dá para mudar o nome, a sigla, a cor e o ícone de uma disciplina da matéria vinda de [fonte], e
