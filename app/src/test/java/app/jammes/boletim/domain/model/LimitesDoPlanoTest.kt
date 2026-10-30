@@ -98,31 +98,20 @@ class LimitesDoPlanoTest {
 
     // Personalização da disciplina -----------------------------------------------------------
 
-    @Test fun `no gratis, a materia do app nao muda nome, sigla, cor nem icone`() {
-        assertEquals(
-            PersonalizacaoDaDisciplina(nomeESigla = false, corEIcone = false),
-            Plano.GRATIS.personalizacaoDaDisciplina(FonteMateria.APP),
-        )
+    @Test fun `no gratis, a materia do app nao se personaliza`() {
+        assertFalse(Plano.GRATIS.podePersonalizarDisciplina(FonteMateria.APP))
     }
 
-    @Test fun `no gratis, a materia propria muda nome e sigla, mas nao cor e icone`() {
-        assertEquals(
-            PersonalizacaoDaDisciplina(nomeESigla = true, corEIcone = false),
-            Plano.GRATIS.personalizacaoDaDisciplina(FonteMateria.USUARIO),
-        )
+    @Test fun `no gratis, a materia propria se personaliza`() {
+        assertTrue(Plano.GRATIS.podePersonalizarDisciplina(FonteMateria.USUARIO))
     }
 
     @Test fun `no gratis, a materia remota segue a do app`() {
-        assertEquals(
-            Plano.GRATIS.personalizacaoDaDisciplina(FonteMateria.APP),
-            Plano.GRATIS.personalizacaoDaDisciplina(FonteMateria.REMOTA),
-        )
+        assertFalse(Plano.GRATIS.podePersonalizarDisciplina(FonteMateria.REMOTA))
     }
 
-    @Test fun `no Pro, muda tudo em qualquer materia`() {
-        val tudo = PersonalizacaoDaDisciplina(nomeESigla = true, corEIcone = true)
-
-        FonteMateria.entries.forEach { fonte -> assertEquals(tudo, Plano.PRO.personalizacaoDaDisciplina(fonte)) }
+    @Test fun `no Pro, qualquer materia se personaliza`() {
+        FonteMateria.entries.forEach { fonte -> assertTrue(Plano.PRO.podePersonalizarDisciplina(fonte)) }
     }
 
     private companion object {

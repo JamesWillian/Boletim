@@ -19,8 +19,8 @@ fun Plano.podeCriarAluno(alunos: Int): Boolean =
     this == Plano.PRO || alunos < ALUNOS_NO_GRATIS
 
 /**
- * Se dá para criar mais uma matéria, com [proprias] já criadas pela pessoa. Contam também as que
- * estão no formulário e só vão para o banco no Salvar.
+ * Se dá para criar mais uma matéria, com [proprias] já criadas pela pessoa: todas as do cadastro, em
+ * uso num ano ou não, e também as que estão no formulário e só vão para o banco no Salvar.
  */
 fun Plano.podeCriarMateria(proprias: Int): Boolean =
     this == Plano.PRO || proprias < MATERIAS_PROPRIAS_NO_GRATIS
@@ -56,17 +56,10 @@ fun Plano.criacaoDoAno(ano: Int, existentes: Set<Int>, hoje: LocalDate): Criacao
 private fun ultimoAnoNoGratis(existentes: Set<Int>, hoje: LocalDate): Int =
     if (hoje.month == Month.DECEMBER || existentes.isEmpty()) hoje.year + 1 else hoje.year
 
-/** O que dá para mudar na aparência de uma disciplina. */
-data class PersonalizacaoDaDisciplina(
-    val nomeESigla: Boolean,
-    val corEIcone: Boolean,
-)
-
 /**
- * O que dá para mudar numa disciplina da matéria vinda de [fonte]. O grátis só renomeia as matérias
- * que a pessoa criou. O resto da edição (professor, aulas, período, regras) vale em qualquer plano.
+ * Se dá para mudar o nome, a sigla, a cor e o ícone de uma disciplina da matéria vinda de [fonte], e
+ * voltar aos da matéria com o Redefinir. O grátis só personaliza as matérias que a pessoa criou. O
+ * resto da edição (professor, aulas, período, regras) vale em qualquer plano.
  */
-fun Plano.personalizacaoDaDisciplina(fonte: FonteMateria): PersonalizacaoDaDisciplina = when (this) {
-    Plano.PRO -> PersonalizacaoDaDisciplina(nomeESigla = true, corEIcone = true)
-    Plano.GRATIS -> PersonalizacaoDaDisciplina(nomeESigla = fonte == FonteMateria.USUARIO, corEIcone = false)
-}
+fun Plano.podePersonalizarDisciplina(fonte: FonteMateria): Boolean =
+    this == Plano.PRO || fonte == FonteMateria.USUARIO
