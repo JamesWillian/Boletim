@@ -21,6 +21,7 @@ import androidx.compose.material.icons.outlined.Contrast
 import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.Interests
 import androidx.compose.material.icons.outlined.LightMode
+import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -38,9 +39,11 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.jammes.boletim.BuildConfig
 import app.jammes.boletim.domain.model.Configuracoes
 import app.jammes.boletim.domain.model.DisciplinaDomain
 import app.jammes.boletim.domain.model.EstiloDasAbas
+import app.jammes.boletim.domain.model.Plano
 import app.jammes.boletim.domain.model.Tema
 import app.jammes.boletim.presentation.contexto.ContextoViewModel
 import app.jammes.boletim.presentation.ui.aluno.LinhaDeEscolha
@@ -49,10 +52,12 @@ import app.jammes.boletim.presentation.ui.anoletivo.Cartao
 import app.jammes.boletim.presentation.ui.anoletivo.Divisoria
 import app.jammes.boletim.presentation.ui.anoletivo.MolduraAjustes
 import app.jammes.boletim.presentation.ui.anoletivo.TituloDaSecao
+import app.jammes.boletim.presentation.ui.backup.LinhaComChave
 import app.jammes.boletim.presentation.ui.components.AbaDisciplina
 import app.jammes.boletim.presentation.ui.components.BORDA
 import app.jammes.boletim.presentation.ui.components.LARGURA_ABERTA
 import app.jammes.boletim.presentation.ui.components.siglaDoNome
+import app.jammes.boletim.presentation.ui.plano.PlanoViewModel
 import app.jammes.boletim.presentation.ui.theme.CoresDisciplina
 import app.jammes.boletim.presentation.ui.theme.Espacos
 import app.jammes.boletim.presentation.ui.theme.IconesDisciplina
@@ -60,7 +65,8 @@ import app.jammes.boletim.presentation.ui.theme.IconesDisciplina
 /**
  * As configurações do app, abertas pelo perfil: o tema e o estilo das abas laterais. No mesmo
  * painel dos ajustes do ano, mas sem Salvar: cada escolha vale na hora, e o tema novo já pinta a
- * própria tela. As abas não aparecem aqui, então o estilo delas vem com uma prévia ao lado.
+ * própria tela. As abas não aparecem aqui, então o estilo delas vem com uma prévia ao lado. No build
+ * de debug, embaixo, a chave "Pro de teste".
  *
  * Usa os ViewModels presos à Activity: o das configurações já está carregado (foi dele que o tema
  * saiu), e o do contexto tem as disciplinas do ano aberto, para a prévia.
@@ -71,6 +77,7 @@ fun ConfiguracoesScreen(
     modifier: Modifier = Modifier,
     viewModel: ConfiguracoesViewModel = hiltViewModel(LocalActivity.current as ViewModelStoreOwner),
     contexto: ContextoViewModel = hiltViewModel(LocalActivity.current as ViewModelStoreOwner),
+    plano: PlanoViewModel = hiltViewModel(),
 ) {
     val configuracoes by viewModel.configuracoes.collectAsStateWithLifecycle()
     val disciplinas by contexto.disciplinas.collectAsStateWithLifecycle()
@@ -104,6 +111,16 @@ fun ConfiguracoesScreen(
                     viewModel.escolherEstiloDasAbas(estilo)
                 },
             )
+            if (BuildConfig.DEBUG) {
+                val planoAtual by plano.plano.collectAsStateWithLifecycle()
+                SecaoProDeTeste(
+                    ligado = planoAtual == Plano.PRO,
+                    onMudar = { ligado ->
+                        haptico.performHapticFeedback(if (ligado) HapticFeedbackType.ToggleOn else HapticFeedbackType.ToggleOff)
+                        plano.escolherProDeTeste(ligado)
+                    },
+                )
+            }
         }
     }
 }
@@ -167,6 +184,26 @@ private fun SecaoAbas(
                     )
                 }
             }
+        }
+    }
+}
+
+/** Só no build de debug: a chave que faz o app agir como Pro, para ver os dois lados dos limites sem comprar. */
+@Composable
+private fun SecaoProDeTeste(
+    ligado: Boolean,
+    onMudar: (Boolean) -> Unit,
+) {
+    Column {
+        TituloDaSecao("Plano", alterada = false)
+        Cartao {
+            LinhaComChave(
+                titulo = "Pro de teste",
+                // Uma linha nos dois casos: o card não muda de altura quando a chave vira
+                resumo = if (ligado) "Sem os limites do grátis" else "Com os limites do grátis",
+                ligada = ligado,
+                onMudar = onMudar,
+            ) { Selo(Icons.Outlined.WorkspacePremium) }
         }
     }
 }

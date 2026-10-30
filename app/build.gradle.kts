@@ -23,9 +23,16 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Os limites do plano grátis. Desligados, todo mundo é Pro: o release fica assim até dar para comprar
+        buildConfigField("boolean", "LIMITES_DO_FREE", "false")
     }
 
     buildTypes {
+        debug {
+            // Os limites valem, e a chave "Pro de teste" das Configurações mostra os dois lados
+            buildConfigField("boolean", "LIMITES_DO_FREE", "true")
+        }
         release {
             isMinifyEnabled = true
             isShrinkResources = true
@@ -47,7 +54,7 @@ android {
     }
     buildFeatures {
         compose = true
-        buildConfig = true // BuildConfig.DEBUG liga os dados de teste
+        buildConfig = true // DEBUG liga os dados de teste; LIMITES_DO_FREE, os limites do plano grátis
     }
 }
 
