@@ -102,9 +102,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.jammes.boletim.domain.model.AjustesAnoLetivo
 import app.jammes.boletim.domain.model.IconeMateria
 import app.jammes.boletim.domain.model.Lancamentos
+import app.jammes.boletim.domain.model.Plano
 import app.jammes.boletim.domain.model.TipoArredondamento
 import app.jammes.boletim.domain.model.TipoMedia
 import app.jammes.boletim.domain.model.TipoPeriodo
+import app.jammes.boletim.domain.model.materiasQueRestam
 import app.jammes.boletim.domain.model.nomeDe
 import app.jammes.boletim.domain.model.nomeFeminino
 import app.jammes.boletim.domain.model.ordinalDe
@@ -116,6 +118,7 @@ import app.jammes.boletim.presentation.ui.components.CarregandoDiscreto
 import app.jammes.boletim.presentation.ui.components.EstadoVazio
 import app.jammes.boletim.presentation.ui.components.SeloDisciplina
 import app.jammes.boletim.presentation.ui.disciplina.formatarNumero
+import app.jammes.boletim.presentation.ui.plano.PlanoViewModel
 import app.jammes.boletim.presentation.ui.theme.CoresDisciplina
 import app.jammes.boletim.presentation.ui.theme.Espacos
 import app.jammes.boletim.presentation.ui.theme.IconesDisciplina
@@ -134,11 +137,13 @@ import kotlin.math.roundToInt
 fun AnoLetivoScreen(
     onVoltar: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: AnoLetivoViewModel = hiltViewModel()
+    viewModel: AnoLetivoViewModel = hiltViewModel(),
+    planoViewModel: PlanoViewModel = hiltViewModel(),
 ) {
 
     val state by viewModel.state.collectAsStateWithLifecycle()
     val salvamento by viewModel.salvamento.collectAsStateWithLifecycle()
+    val plano by planoViewModel.plano.collectAsStateWithLifecycle()
 
     when (val s = state) {
         AnoLetivoUiState.Carregando -> MolduraAjustes(onVoltar = onVoltar, modifier = modifier) { padding ->
@@ -160,6 +165,7 @@ fun AnoLetivoScreen(
 
         is AnoLetivoUiState.Sucesso -> EditorAjustes(
             ajustes = s.ajustes,
+            plano = plano,
             salvamento = salvamento,
             onSalvar = viewModel::salvar,
             onFalhaVista = viewModel::falhaVista,
@@ -182,6 +188,7 @@ private sealed interface Editor : Serializable {
 @Composable
 private fun EditorAjustes(
     ajustes: AjustesAnoLetivo,
+    plano: Plano?, // null enquanto carrega
     salvamento: Salvamento,
     onSalvar: (FormularioAnoLetivo) -> Unit,
     onFalhaVista: () -> Unit,
@@ -363,6 +370,7 @@ private fun EditorAjustes(
             marcadas = form.materias,
             novas = novas,
             existentes = nomesUsados + form.materiasNovas.map { it.nome },
+            materiasQueRestam = plano?.materiasQueRestam(ajustes.materias, form.materiasNovas.size),
             onMudar = { form = form.copy(materias = it) },
             onCriar = { nome, abreviacao -> form = form.comMateriaNova(nome, abreviacao) },
             onDesistir = { form = form.semMateriaNova(it) },

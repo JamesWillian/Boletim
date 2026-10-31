@@ -2,6 +2,7 @@ package app.jammes.boletim.presentation.ui.onboarding
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.jammes.boletim.domain.model.LimiteDoGratisException
 import app.jammes.boletim.domain.model.PerfilAluno
 import app.jammes.boletim.domain.repository.ContextoRepository
 import app.jammes.boletim.domain.usecase.AnoLetivoRepetidoException
@@ -63,8 +64,9 @@ class NovoAnoLetivoViewModel @Inject constructor(
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 _salvando.value = false
-                // O ano repetido a tela já não deixa escolher: sobra o caso de ele ter sido criado no meio
-                _erros.send((e as? AnoLetivoRepetidoException)?.message ?: "Não deu para criar. Tente de novo.")
+                // O ano repetido e o do Pro a tela já não deixa escolher: sobra o caso de algo mudar no meio
+                val motivo = (e as? AnoLetivoRepetidoException)?.message ?: (e as? LimiteDoGratisException)?.message
+                _erros.send(motivo ?: "Não deu para criar. Tente de novo.")
             }
         }
     }

@@ -100,6 +100,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import app.jammes.boletim.domain.model.Etapa
 import app.jammes.boletim.domain.model.MateriaDomain
 import app.jammes.boletim.domain.model.TipoArredondamento
@@ -127,10 +128,14 @@ import app.jammes.boletim.presentation.ui.components.Avatar
 import app.jammes.boletim.presentation.ui.components.DURACAO_SAIDA
 import app.jammes.boletim.presentation.ui.components.DURACAO_TRANSICAO
 import app.jammes.boletim.presentation.ui.components.DialogoDaMateriaNova
+import app.jammes.boletim.presentation.ui.components.EncolherSemPartirPalavra
 import app.jammes.boletim.presentation.ui.components.Pilula
 import app.jammes.boletim.presentation.ui.components.SeloDisciplina
 import app.jammes.boletim.presentation.ui.components.descricaoDoAno
 import app.jammes.boletim.presentation.ui.disciplina.formatarNumero
+import app.jammes.boletim.presentation.ui.plano.EtiquetaPro
+import app.jammes.boletim.presentation.ui.plano.FolhaDoPro
+import app.jammes.boletim.presentation.ui.plano.textoDasQueRestam
 import app.jammes.boletim.presentation.ui.theme.CoresDisciplina
 import app.jammes.boletim.presentation.ui.theme.Espacos
 import app.jammes.boletim.presentation.ui.theme.IconesDisciplina
@@ -642,6 +647,7 @@ internal fun PassoMaterias(
     formulario: FormularioOnboarding,
     materias: List<MateriaDomain>,
     sugeridas: Set<Long>,
+    materiasQueRestam: Int?, // as que ainda cabem no grátis, contando as criadas aqui; null: sem limite
     onMudar: (FormularioOnboarding) -> Unit,
     onVoltar: () -> Unit,
     onContinuar: () -> Unit,
@@ -651,6 +657,7 @@ internal fun PassoMaterias(
     // Como as criadas aqui vão ficar: a cor e o ícone que o cadastro vai dar a elas
     val novas = remember(formulario.materiasNovas, materias) { materiasNovas(formulario.materiasNovas, materias) }
     var criando by rememberSaveable { mutableStateOf(false) }
+    var folhaDoPro by rememberSaveable { mutableStateOf(false) }
     val haptico = LocalHapticFeedback.current
     val deCostume = when (formulario.anoLetivo.serie.etapa) {
         Etapa.FUNDAMENTAL -> "as de costume no Ensino Fundamental"
@@ -698,7 +705,11 @@ internal fun PassoMaterias(
                                 },
                                 modifier = modifier,
                             )
-                            Celula.Outra -> OutraMateria(onClick = { criando = true }, modifier = modifier)
+                            Celula.Outra -> OutraMateria(
+                                restam = materiasQueRestam,
+                                onClick = { if (materiasQueRestam == 0) folhaDoPro = true else criando = true },
+                                modifier = modifier,
+                            )
                         }
                     }
                     if (linha.size == 1) Spacer(Modifier.weight(1f))
@@ -718,6 +729,9 @@ internal fun PassoMaterias(
             onDismiss = { criando = false },
         )
     }
+
+    // Com o Pro desbloqueado, ela fecha sozinha, e a Outra matéria volta a criar
+    if (folhaDoPro) FolhaDoPro(onFechar = { folhaDoPro = false })
 }
 
 private sealed interface Celula {
@@ -726,16 +740,24 @@ private sealed interface Celula {
     data object Outra : Celula
 }
 
+/**
+ * A célula de criar matéria, a última da grade. No grátis, embaixo vai quantas ainda cabem ([restam]);
+ * sem nenhuma, a etiqueta do Pro avisa antes do toque.
+ */
 @Composable
-private fun OutraMateria(onClick: () -> Unit, modifier: Modifier) {
+private fun OutraMateria(restam: Int?, onClick: () -> Unit, modifier: Modifier) {
     val cores = MaterialTheme.colorScheme
     val forma = RoundedCornerShape(14.dp)
+    val soNoPro = restam == 0
     Row(
         modifier = modifier
             .height(56.dp)
             .bordaTracejada(cores.outlineVariant, 14.dp)
             .clip(forma)
-            .clickable(onClickLabel = "Criar uma matéria", onClick = onClick)
+            .clickable(
+                onClickLabel = if (soNoPro) "Ver o Pro, que libera mais matérias" else "Criar uma matéria",
+                onClick = onClick,
+            )
             .padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -745,13 +767,30 @@ private fun OutraMateria(onClick: () -> Unit, modifier: Modifier) {
         ) {
             Icon(Icons.Filled.Add, contentDescription = null, tint = cores.primary, modifier = Modifier.size(20.dp))
         }
-        Text(
-            text = "Outra matéria",
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold,
-            color = cores.primary,
-            modifier = Modifier.padding(horizontal = 10.dp),
-        )
+        // Sempre numa linha só, encolhendo se preciso; o que é do plano vai embaixo
+        Column(Modifier.weight(1f).padding(horizontal = 10.dp)) {
+            Text(
+                text = "Outra matéria",
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = cores.primary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                autoSize = EncolherSemPartirPalavra(minimo = 11.sp, maximo = MaterialTheme.typography.labelLarge.fontSize),
+            )
+            when {
+                // Do tamanho do texto que ela substitui: com a fonte grande, cabe na altura da célula
+                soNoPro -> EtiquetaPro(compacta = true)
+                restam != null -> Text(
+                    text = textoDasQueRestam(restam),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = cores.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    autoSize = EncolherSemPartirPalavra(minimo = 9.sp, maximo = MaterialTheme.typography.labelSmall.fontSize),
+                )
+            }
+        }
     }
 }
 
@@ -794,6 +833,8 @@ private fun MateriaParaMarcar(materia: MateriaDomain, marcada: Boolean, onClick:
             color = if (marcada) cores.onSurface else cores.onSurfaceVariant,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
+            // Como nos cards do Boletim: "Educação / Física" pode quebrar; "Matemáti / ca", não, aí a fonte encolhe
+            autoSize = EncolherSemPartirPalavra(minimo = 11.sp, maximo = MaterialTheme.typography.labelLarge.fontSize),
             modifier = Modifier.weight(1f).padding(horizontal = 10.dp),
         )
         Icon(

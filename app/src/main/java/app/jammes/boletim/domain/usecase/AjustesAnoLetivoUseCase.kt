@@ -4,12 +4,15 @@ import app.jammes.boletim.domain.model.AjustesAnoLetivo
 import app.jammes.boletim.domain.model.AnoLetivoDomain
 import app.jammes.boletim.domain.model.Contexto
 import app.jammes.boletim.domain.model.DisciplinaDomain
+import app.jammes.boletim.domain.model.LimiteDoGratisException
 import app.jammes.boletim.domain.model.MateriaDomain
 import app.jammes.boletim.domain.model.RegraAvaliacaoDomain
+import app.jammes.boletim.domain.model.podeGravarMateriasNovas
 import app.jammes.boletim.domain.repository.AnoLetivoRepository
 import app.jammes.boletim.domain.repository.ContextoRepository
 import app.jammes.boletim.domain.repository.DisciplinaRepository
 import app.jammes.boletim.domain.repository.MateriaRepository
+import app.jammes.boletim.domain.repository.PlanoRepository
 import app.jammes.boletim.domain.repository.RegraAvaliacaoRepository
 import app.jammes.boletim.domain.repository.Transacao
 import jakarta.inject.Inject
@@ -93,6 +96,7 @@ class SalvarAjustesAnoLetivo @Inject constructor(
     private val materiaRepository: MateriaRepository,
     private val disciplinaRepository: DisciplinaRepository,
     private val contextoRepository: ContextoRepository,
+    private val planoRepository: PlanoRepository,
 ) {
     /**
      * Grava os ajustes de uma vez, comparando com o [original] que a tela leu.
@@ -100,6 +104,9 @@ class SalvarAjustesAnoLetivo @Inject constructor(
      * Período ou disciplina que sai do ano é apagado, e as avaliações e faltas iriam junto. Então,
      * se algum deles já tiver lançamentos, nada é gravado e sai [AjusteBloqueadoException]. A tela
      * não deixa chegar aqui assim; a conta é refeita no banco só para garantir.
+     *
+     * As [criadasNaTela] também passam pelo limite do grátis ([podeGravarMateriasNovas]): se não
+     * couberem, nada é gravado e sai [LimiteDoGratisException]. A tela manda para a folha do Pro antes.
      *
      * @param anoLetivo já com os períodos que devem existir, em ordem (id 0 = período novo).
      * @param materiaIds as matérias do cadastro que entram no ano.
@@ -114,6 +121,10 @@ class SalvarAjustesAnoLetivo @Inject constructor(
         criadasNaTela: List<MateriaNova> = emptyList(),
     ) {
         require(anoLetivo.periodo.isNotEmpty()) { "O ano letivo precisa de pelo menos um período" }
+        val cadastro = materiaRepository.observeMaterias().first()
+        if (!planoRepository.plano.first().podeGravarMateriasNovas(cadastro, criadasNaTela.size)) {
+            throw LimiteDoGratisException.deMaterias()
+        }
 
         val ficam = anoLetivo.periodo.map { it.id }.toSet()
         val periodosQueSaem = original.anoLetivo.periodo.filter { it.id !in ficam }

@@ -82,6 +82,8 @@ import app.jammes.boletim.BuildConfig
 import app.jammes.boletim.presentation.ui.backup.RestaurarBackup
 import app.jammes.boletim.R
 import app.jammes.boletim.domain.model.IconeMateria
+import app.jammes.boletim.domain.model.Plano
+import app.jammes.boletim.domain.model.materiasQueRestam
 import app.jammes.boletim.domain.usecase.materiasDoPrimeiroAno
 import app.jammes.boletim.presentation.ui.boletim.formatarMedia
 import app.jammes.boletim.presentation.ui.components.AnelDaMedia
@@ -89,6 +91,8 @@ import app.jammes.boletim.presentation.ui.components.BarraDaMedia
 import app.jammes.boletim.presentation.ui.components.Pilula
 import app.jammes.boletim.presentation.ui.components.SeloDisciplina
 import app.jammes.boletim.presentation.ui.components.descricaoDoAno
+import app.jammes.boletim.presentation.ui.plano.PlanoViewModel
+import app.jammes.boletim.presentation.ui.theme.BoletimColors
 import app.jammes.boletim.presentation.ui.theme.BoletimTheme
 import app.jammes.boletim.presentation.ui.theme.CoresDisciplina
 import app.jammes.boletim.presentation.ui.theme.Espacos
@@ -97,10 +101,6 @@ import java.time.LocalDate
 
 // Na ordem em que aparecem: do aluno às matérias são os 4 passos numerados
 private enum class Passo { BOAS_VINDAS, ALUNO, DIVISAO, REGRAS, MATERIAS, PRONTO }
-
-// O azul do ícone do app; no escuro, mais fundo, para não ofuscar
-private val GradienteClaro = listOf(Color(0xFF2E7BFF), Color(0xFF0049D9))
-private val GradienteEscuro = listOf(Color(0xFF1F62E8), Color(0xFF0A2F92))
 
 /**
  * O cadastro de um aluno: quatro passos que já vêm preenchidos (aluno, divisão do ano, regras e
@@ -116,9 +116,11 @@ fun OnboardingScreen(
     onFechar: () -> Unit = {},
     onConcluido: () -> Unit = {},
     vm: OnboardingViewModel = hiltViewModel(),
+    planoViewModel: PlanoViewModel = hiltViewModel(),
 ) {
     val salvando by vm.salvando.collectAsStateWithLifecycle()
     val materias by vm.materias.collectAsStateWithLifecycle()
+    val plano by planoViewModel.plano.collectAsStateWithLifecycle()
     // As boas-vindas são só do primeiro uso
     val primeiro = if (novoAluno) Passo.ALUNO else Passo.BOAS_VINDAS
     var passo by rememberSaveable { mutableStateOf(primeiro) }
@@ -150,7 +152,7 @@ fun OnboardingScreen(
                     onComecar = { passo = Passo.ALUNO },
                     onCarregarDadosDeTeste = if (BuildConfig.DEBUG) vm::carregarDadosDeTeste else null,
                 )
-                Passo.ALUNO -> PassoAluno(formulario, { formulario = it }, onVoltar = voltar, onContinuar = avancar)
+                Passo.ALUNO -> PassoAluno(formulario, plano, { formulario = it }, onVoltar = voltar, onContinuar = avancar)
                 Passo.DIVISAO -> PassoDivisao(
                     formulario = formulario.anoLetivo,
                     onMudar = { formulario = formulario.copy(anoLetivo = it) },
@@ -160,7 +162,9 @@ fun OnboardingScreen(
                 )
                 Passo.REGRAS -> PassoRegras(formulario, { formulario = it }, voltar, onPular = pular, onContinuar = avancar)
                 Passo.MATERIAS -> PassoMaterias(
-                    formulario, materias, sugeridas, { formulario = it }, onVoltar = voltar, onContinuar = avancar,
+                    formulario, materias, sugeridas,
+                    materiasQueRestam = plano?.materiasQueRestam(materias, formulario.materiasNovas.size),
+                    onMudar = { formulario = it }, onVoltar = voltar, onContinuar = avancar,
                 )
                 Passo.PRONTO -> PassoPronto(
                     formulario = formulario,
@@ -242,7 +246,7 @@ private fun BoasVindas(onComecar: () -> Unit, onCarregarDadosDeTeste: (() -> Uni
 /** O topo das boas-vindas: pedaços do próprio boletim sobre o azul do ícone. */
 @Composable
 private fun Destaque(modifier: Modifier = Modifier) {
-    val gradiente = if (BoletimTheme.escuro) GradienteEscuro else GradienteClaro
+    val gradiente = if (BoletimTheme.escuro) BoletimColors.GradienteEscuro else BoletimColors.GradienteClaro
     BoxWithConstraints(
         modifier = modifier
             .clip(RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp))
@@ -373,7 +377,7 @@ private fun IconeDoApp(tamanho: Dp) {
         modifier = Modifier
             .size(tamanho)
             .clip(RoundedCornerShape(28))
-            .background(Brush.linearGradient(GradienteClaro)),
+            .background(Brush.linearGradient(BoletimColors.GradienteClaro)),
         contentAlignment = Alignment.Center,
     ) {
         // O desenho tem 108dp e a arte fica nos 72 do meio, como em todo ícone adaptativo
@@ -402,6 +406,7 @@ private fun IconesClarosNaBarraDeStatus() {
 @Composable
 private fun PassoAluno(
     formulario: FormularioOnboarding,
+    plano: Plano?, // null enquanto carrega
     onMudar: (FormularioOnboarding) -> Unit,
     onVoltar: () -> Unit,
     onContinuar: () -> Unit,
@@ -442,7 +447,7 @@ private fun PassoAluno(
             modifier = Modifier.fillMaxWidth().focusRequester(foco),
         )
         EscolhaDaSerie(serie = anoLetivo.serie, onEscolher = { mudarAnoLetivo(anoLetivo.copy(serie = it)) })
-        EscolhaDoAno(ano = anoLetivo.ano, onEscolher = { mudarAnoLetivo(anoLetivo.comAno(it)) })
+        EscolhaDoAno(ano = anoLetivo.ano, plano = plano, onEscolher = { mudarAnoLetivo(anoLetivo.comAno(it)) })
     }
 }
 

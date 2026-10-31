@@ -278,6 +278,13 @@ internal fun nomeNaLista(alunos: List<AlunoDomain>, alunoId: Long): String? {
 
 private fun primeiroNome(nome: String): String = nome.trim().substringBefore(' ')
 
+/**
+ * Os anos letivos que avisam: os do calendário de [hoje]. Os que já passaram não avisam mais nada, e no
+ * Pro pode haver mais de um no mesmo ano (escola e curso, por exemplo): todos avisam.
+ */
+internal fun anosQueAvisam(anos: List<AnoLetivoDomain>, hoje: LocalDate): List<AnoLetivoDomain> =
+    anos.filter { it.ano == hoje.year }
+
 /** O aviso do celular de cada aluno que tem notificação não lida, na ordem do cadastro. */
 internal fun montarAvisos(alunos: List<AlunoDomain>, naoLidas: List<NotificacaoDomain>): List<AvisoDoAluno> {
     val porAluno = naoLidas.groupBy { it.alunoId }
@@ -302,8 +309,8 @@ internal fun avisosComNovidade(pendentes: List<AvisoDoAluno>, naoAvisadas: List<
 // ---------------------------------------------------------------------------
 
 /**
- * O que roda em cada horário das notificações. Gera as de cada aluno, no ano letivo deste ano, e
- * mostra no celular as que ainda não foram avisadas. Devolve quantas notificações novas entraram.
+ * O que roda em cada horário das notificações. Gera as de cada aluno, nos anos letivos deste ano
+ * ([anosQueAvisam]), e mostra no celular as que ainda não foram avisadas. Devolve quantas notificações novas entraram.
  * Com as notificações desligadas, não faz nada.
  */
 class AvisarNotificacoes @Inject constructor(
@@ -322,16 +329,17 @@ class AvisarNotificacoes @Inject constructor(
 
         var novas = 0
         for (aluno in alunos) {
-            // O ano letivo do calendário de hoje; os anos que já passaram não avisam mais nada
-            val ano = anoLetivoRepository.observeByAluno(aluno.id).first()
-                .firstOrNull { it.ano == agora.year } ?: continue
-            val dados = AnoParaNotificar(
-                alunoId = aluno.id,
-                anoLetivo = ano,
-                disciplinas = disciplinaRepository.observeBoletim(ano.id).first(),
-                regras = regraRepository.observeByAnoLetivo(ano.id).first(),
-            )
-            novas += notificacaoRepository.inserir(gerarNotificacoes(dados, agora.toLocalDateTime(), criadaEm))
+            val anos = anosQueAvisam(anoLetivoRepository.observeByAluno(aluno.id).first(), agora.toLocalDate())
+            for (ano in anos) {
+                val dados = AnoParaNotificar(
+                    alunoId = aluno.id,
+                    anoLetivo = ano,
+                    disciplinas = disciplinaRepository.observeBoletim(ano.id).first(),
+                    regras = regraRepository.observeByAnoLetivo(ano.id).first(),
+                )
+                // As chaves levam os ids do ano (período, disciplina, avaliação): dois anos não se misturam
+                novas += notificacaoRepository.inserir(gerarNotificacoes(dados, agora.toLocalDateTime(), criadaEm))
+            }
         }
 
         avisarNoCelular(alunos)

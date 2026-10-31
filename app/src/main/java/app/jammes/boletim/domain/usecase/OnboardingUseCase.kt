@@ -1,17 +1,23 @@
 package app.jammes.boletim.domain.usecase
 
 import app.jammes.boletim.domain.model.AlunoDomain
+import app.jammes.boletim.domain.model.CriacaoDoAno
 import app.jammes.boletim.domain.model.Etapa
 import app.jammes.boletim.domain.model.FonteMateria
 import app.jammes.boletim.domain.model.IconeMateria
+import app.jammes.boletim.domain.model.LimiteDoGratisException
 import app.jammes.boletim.domain.model.MateriaDomain
 import app.jammes.boletim.domain.model.PeriodoDomain
 import app.jammes.boletim.domain.model.RegraAvaliacaoDomain
 import app.jammes.boletim.domain.model.TipoPeriodo
+import app.jammes.boletim.domain.model.criacaoDoAno
 import app.jammes.boletim.domain.model.periodoAoAbrir
+import app.jammes.boletim.domain.model.podeCriarAluno
+import app.jammes.boletim.domain.model.podeGravarMateriasNovas
 import app.jammes.boletim.domain.repository.AlunoRepository
 import app.jammes.boletim.domain.repository.ContextoRepository
 import app.jammes.boletim.domain.repository.MateriaRepository
+import app.jammes.boletim.domain.repository.PlanoRepository
 import app.jammes.boletim.domain.repository.Transacao
 import jakarta.inject.Inject
 import kotlinx.coroutines.flow.first
@@ -130,14 +136,25 @@ class ComecarBoletim @Inject constructor(
     private val materiaRepository: MateriaRepository,
     private val gravarAnoLetivoNovo: GravarAnoLetivoNovo,
     private val contextoRepository: ContextoRepository,
+    private val planoRepository: PlanoRepository,
 ) {
     /**
      * O fim do onboarding: cria o aluno e o primeiro ano letivo dele, do jeito que o [primeiro] diz.
      * Grava tudo de uma vez e só então salva o Contexto, no período de [hoje]: com ele salvo, o app
      * sai do onboarding e abre o boletim.
+     *
+     * Se o plano não deixa criar mais um aluno ([podeCriarAluno]), as matérias novas
+     * ([podeGravarMateriasNovas]) ou o ano letivo ([criacaoDoAno]), sai [LimiteDoGratisException] sem
+     * gravar nada (as telas já mandam para a folha do Pro antes de chegar aqui).
      */
     suspend operator fun invoke(primeiro: PrimeiroAno, hoje: LocalDate = LocalDate.now()) {
+        val plano = planoRepository.plano.first()
         val cadastro = materiaRepository.observeMaterias().first()
+        if (!plano.podeCriarAluno(alunoRepository.observeAluno().first().size)) throw LimiteDoGratisException.deAlunos()
+        if (!plano.podeGravarMateriasNovas(cadastro, primeiro.materiasNovas.size)) throw LimiteDoGratisException.deMaterias()
+        // O aluno é novo: ainda não tem nenhum ano
+        if (plano.criacaoDoAno(primeiro.ano, emptySet(), hoje) != CriacaoDoAno.LIBERADA) throw LimiteDoGratisException.deAnos()
+
         val marcadas = cadastro.filter { it.id in primeiro.materiaIds }
 
         val (alunoId, anoLetivo) = transacao {

@@ -4,17 +4,21 @@ import app.jammes.boletim.domain.model.AlunoComAno
 import app.jammes.boletim.domain.model.AlunoDomain
 import app.jammes.boletim.domain.model.AnoLetivoDomain
 import app.jammes.boletim.domain.model.Contexto
+import app.jammes.boletim.domain.model.CriacaoDoAno
+import app.jammes.boletim.domain.model.LimiteDoGratisException
 import app.jammes.boletim.domain.model.MateriaDomain
 import app.jammes.boletim.domain.model.PerfilAluno
 import app.jammes.boletim.domain.model.PeriodoDomain
 import app.jammes.boletim.domain.model.RegraAvaliacaoDomain
 import app.jammes.boletim.domain.model.TipoPeriodo
+import app.jammes.boletim.domain.model.criacaoDoAno
 import app.jammes.boletim.domain.model.periodoAoAbrir
 import app.jammes.boletim.domain.repository.AlunoRepository
 import app.jammes.boletim.domain.repository.AnoLetivoRepository
 import app.jammes.boletim.domain.repository.ContextoRepository
 import app.jammes.boletim.domain.repository.DisciplinaRepository
 import app.jammes.boletim.domain.repository.MateriaRepository
+import app.jammes.boletim.domain.repository.PlanoRepository
 import app.jammes.boletim.domain.repository.RegraAvaliacaoRepository
 import app.jammes.boletim.domain.repository.Transacao
 import jakarta.inject.Inject
@@ -204,14 +208,17 @@ class CriarAnoLetivo @Inject constructor(
     private val materiaRepository: MateriaRepository,
     private val gravarAnoLetivoNovo: GravarAnoLetivoNovo,
     private val contextoRepository: ContextoRepository,
+    private val planoRepository: PlanoRepository,
 ) {
     /**
      * Cria um ano letivo para o aluno com os [periodos] escolhidos, do [tipo] dado; o resto vai no
      * padrão: a [REGRA_PADRAO] e as [MATERIAS_DO_ANO_NOVO] primeiras matérias do cadastro. Depois abre
      * esse ano no app, no período de [hoje], para os ajustes mostrarem ele.
      *
-     * Grava tudo de uma vez: se algo falhar no meio, não sobra um ano pela metade. Se o aluno já tiver
-     * esse ano, sai [AnoLetivoRepetidoException] sem gravar nada (a tela não deixa chegar aqui assim).
+     * Grava tudo de uma vez: se algo falhar no meio, não sobra um ano pela metade. Um ano que o aluno
+     * já tem o Pro cria de novo (a tela avisa antes), e o grátis não: sai [AnoLetivoRepetidoException].
+     * Se o plano não libera o ano ([criacaoDoAno]), sai [LimiteDoGratisException]. Nos dois casos nada
+     * é gravado (a tela não deixa chegar aqui assim).
      */
     suspend operator fun invoke(
         alunoId: Long,
@@ -221,8 +228,12 @@ class CriarAnoLetivo @Inject constructor(
         periodos: List<PeriodoDomain>, // ainda sem ano letivo (id 0), como os [periodosPadrao]
         hoje: LocalDate = LocalDate.now(),
     ) {
-        if (anoLetivoRepository.observeByAluno(alunoId).first().any { it.ano == ano }) {
-            throw AnoLetivoRepetidoException(ano)
+        val existentes = anoLetivoRepository.observeByAluno(alunoId).first().map { it.ano }.toSet()
+        when (planoRepository.plano.first().criacaoDoAno(ano, existentes, hoje)) {
+            // Repetido, só no Pro: escola e curso no mesmo ano, por exemplo
+            CriacaoDoAno.LIBERADA, CriacaoDoAno.REPETIDA -> Unit
+            CriacaoDoAno.JA_EXISTE -> throw AnoLetivoRepetidoException(ano)
+            CriacaoDoAno.SO_NO_PRO -> throw LimiteDoGratisException.deAnos()
         }
         val materias = materiaRepository.observeMaterias().first().take(MATERIAS_DO_ANO_NOVO)
         val criado = transacao { gravarAnoLetivoNovo(anoLetivoNovo(alunoId, ano, serie, tipo, periodos), materias) }

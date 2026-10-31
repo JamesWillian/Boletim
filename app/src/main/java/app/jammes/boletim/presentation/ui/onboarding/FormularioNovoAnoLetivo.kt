@@ -1,14 +1,18 @@
 package app.jammes.boletim.presentation.ui.onboarding
 
+import app.jammes.boletim.domain.model.CriacaoDoAno
 import app.jammes.boletim.domain.model.Etapa
 import app.jammes.boletim.domain.model.PeriodoDomain
+import app.jammes.boletim.domain.model.Plano
 import app.jammes.boletim.domain.model.TipoPeriodo
+import app.jammes.boletim.domain.model.criacaoDoAno
 import app.jammes.boletim.domain.usecase.periodosPadrao
 import app.jammes.boletim.presentation.ui.anoletivo.DatasPeriodo
 import app.jammes.boletim.presentation.ui.anoletivo.FormularioAnoLetivo
 import app.jammes.boletim.presentation.ui.anoletivo.periodoSeguinte
 import app.jammes.boletim.presentation.ui.anoletivo.problemasDasDatas
 import java.io.Serializable
+import java.time.LocalDate
 
 /** A série escolhida nos chips. Cada etapa conta do seu jeito: "9º Ano" no Fundamental, "1ª Série" no Médio. */
 sealed interface Serie : Serializable {
@@ -71,22 +75,42 @@ data class FormularioNovoAnoLetivo(
 }
 
 /**
- * O ano que o formulário já traz: o do calendário ([atual]), ou o seguinte ao mais recente dos
- * [existentes] quando esse já foi criado (um ano que o aluno já tem não pode ser criado de novo).
+ * Se o [plano] cria agora um ano letivo em [ano] sem aviso, para um aluno com os [existentes]: um ano
+ * que ele libera e que o aluno ainda não tem. É o que a sugestão procura; o ano repetido do Pro também
+ * dá para criar, mas com aviso.
  */
-internal fun anoSugerido(existentes: Set<Int>, atual: Int): Int =
-    maxOf(atual, (existentes.maxOrNull() ?: 0) + 1)
+internal fun Plano.liberaAno(ano: Int, existentes: Set<Int>, hoje: LocalDate): Boolean =
+    criacaoDoAno(ano, existentes, hoje) == CriacaoDoAno.LIBERADA
+
+/**
+ * O ano que o formulário já traz: o do calendário, ou o seguinte ao mais recente dos [existentes]
+ * quando esse já foi criado (um ano que o aluno já tem não pode ser criado de novo). Se o [plano] não
+ * libera esse, o primeiro que ele libera entre o atual e o seguinte.
+ */
+internal fun anoSugerido(existentes: Set<Int>, hoje: LocalDate, plano: Plano): Int {
+    val seguinteAoMaisRecente = maxOf(hoje.year, (existentes.maxOrNull() ?: 0) + 1)
+    return listOf(seguinteAoMaisRecente, hoje.year, hoje.year + 1)
+        .firstOrNull { plano.liberaAno(it, existentes, hoje) }
+        ?: seguinteAoMaisRecente
+}
 
 /**
  * Os anos para escolher: o passado, o atual e o próximo, que cobrem quem cadastra atrasado e quem já
  * prepara o seguinte. Quando o aluno já tem o próximo, o [anoSugerido] passa deles e entra no fim.
  */
-internal fun anosParaEscolher(existentes: Set<Int>, atual: Int): List<Int> =
-    (listOf(atual - 1, atual, atual + 1) + anoSugerido(existentes, atual)).distinct()
+internal fun anosParaEscolher(existentes: Set<Int>, hoje: LocalDate, plano: Plano): List<Int> =
+    (listOf(hoje.year - 1, hoje.year, hoje.year + 1) + anoSugerido(existentes, hoje, plano)).distinct()
 
-/** "2026 já existe", "2025 e 2026 já existem": por que esses anos não dão para escolher. null sem nenhum. */
+/**
+ * "2026 já existe", "2025 e 2026 já existem": os anos que o aluno já tem, que no grátis não dão para
+ * escolher. null sem nenhum.
+ */
 internal fun anosQueJaExistem(anos: List<Int>): String? = when (anos.size) {
     0 -> null
     1 -> "${anos.single()} já existe"
     else -> anos.dropLast(1).joinToString(", ") + " e ${anos.last()} já existem"
 }
+
+/** O aviso de um ano que o aluno já tem, quando o Pro cria outro igual. */
+internal fun avisoDeAnoRepetido(nome: String, ano: Int): String =
+    "$nome já tem um ano letivo em $ano. Use a série para diferenciar os dois."

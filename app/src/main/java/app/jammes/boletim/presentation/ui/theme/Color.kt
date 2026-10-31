@@ -12,6 +12,11 @@ object BoletimColors {
     val OnPrimary         = Color(0xFFFFFFFF)
     val OnSecondary       = Color(0xFFFFFFFF)
 
+    // O azul do fundo do ícone (ic_launcher_background), em diagonal; no escuro, mais fundo, para não
+    // ofuscar. É o fundo das boas-vindas e o da arte da folha do Pro
+    val GradienteClaro = listOf(Color(0xFF2E7BFF), Color(0xFF0049D9))
+    val GradienteEscuro = listOf(Color(0xFF1F62E8), Color(0xFF0A2F92))
+
 }
 
 /**

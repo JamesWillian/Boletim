@@ -33,7 +33,11 @@ import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,7 +51,14 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import app.jammes.boletim.domain.model.CriacaoDoAno
+import app.jammes.boletim.domain.model.Plano
+import app.jammes.boletim.domain.model.criacaoDoAno
 import app.jammes.boletim.presentation.ui.components.Avatar
+import app.jammes.boletim.presentation.ui.components.EncolherSemPartirPalavra
+import app.jammes.boletim.presentation.ui.plano.EtiquetaPro
+import app.jammes.boletim.presentation.ui.plano.FolhaDoPro
 import app.jammes.boletim.presentation.ui.theme.Espacos
 import java.time.LocalDate
 
@@ -173,24 +184,47 @@ private fun CirculoDaSerie(texto: String, selecionado: Boolean, tamanho: Dp, onC
 /**
  * O ano letivo, nos [anosParaEscolher]. Os [existentes], que o aluno já tem, aparecem apagados e não
  * dá para escolher: o título da seção diz por quê. No onboarding o aluno ainda não tem nenhum.
+ *
+ * Os anos que o [plano] não libera levam a etiqueta do Pro, e o toque abre a folha dele em vez de
+ * escolher. No Pro, os [existentes] também dão para escolher: ele repete o ano, e a tela avisa. Enquanto
+ * o plano carrega (null), nenhum leva a etiqueta e os existentes ficam apagados: quem cria o ano confere
+ * de novo.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun EscolhaDoAno(ano: Int, onEscolher: (Int) -> Unit, existentes: Set<Int> = emptySet()) {
-    val atual = remember { LocalDate.now().year }
-    val anos = remember(existentes) { anosParaEscolher(existentes, atual) }
+internal fun EscolhaDoAno(ano: Int, plano: Plano?, onEscolher: (Int) -> Unit, existentes: Set<Int> = emptySet()) {
+    val hoje = remember { LocalDate.now() }
+    val anos = remember(existentes, plano) { anosParaEscolher(existentes, hoje, plano ?: Plano.PRO) }
+    var folhaDoPro by rememberSaveable { mutableStateOf(false) }
 
     TituloDaSecao("Ano letivo", detalhe = anosQueJaExistem(anos.filter { it in existentes }))
     SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
         anos.forEachIndexed { i, opcao ->
+            val criacao = plano?.criacaoDoAno(opcao, existentes, hoje)
+            val soNoPro = criacao == CriacaoDoAno.SO_NO_PRO
             SegmentedButton(
                 selected = ano == opcao,
-                onClick = { onEscolher(opcao) },
+                onClick = { if (soNoPro) folhaDoPro = true else onEscolher(opcao) },
                 shape = SegmentedButtonDefaults.itemShape(index = i, count = anos.size),
-                enabled = opcao !in existentes,
+                enabled = opcao !in existentes || criacao == CriacaoDoAno.REPETIDA,
             ) {
-                Text(opcao.toString())
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // A etiqueta é medida antes: com a fonte grande, o ano encolhe para ela caber
+                    Text(
+                        text = opcao.toString(),
+                        maxLines = 1,
+                        autoSize = EncolherSemPartirPalavra(minimo = 11.sp, maximo = MaterialTheme.typography.labelLarge.fontSize),
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    if (soNoPro) {
+                        Spacer(Modifier.width(Espacos.xs))
+                        EtiquetaPro(compacta = true)
+                    }
+                }
             }
         }
     }
+
+    // Com o Pro desbloqueado, ela fecha sozinha, e os anos perdem a etiqueta
+    if (folhaDoPro) FolhaDoPro(onFechar = { folhaDoPro = false })
 }

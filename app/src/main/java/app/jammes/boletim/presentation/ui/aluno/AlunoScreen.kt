@@ -101,6 +101,8 @@ import app.jammes.boletim.presentation.ui.components.DURACAO_TRANSICAO
 import app.jammes.boletim.presentation.ui.components.EstadoVazio
 import app.jammes.boletim.presentation.ui.components.SeloDisciplina
 import app.jammes.boletim.presentation.ui.components.descricaoDoAno
+import app.jammes.boletim.presentation.ui.plano.EtiquetaPro
+import app.jammes.boletim.presentation.ui.plano.FolhaDoPro
 import app.jammes.boletim.presentation.ui.theme.Espacos
 
 /**
@@ -110,6 +112,8 @@ import app.jammes.boletim.presentation.ui.theme.Espacos
  * Editar o aluno, trocar de aluno e trocar de ano abrem uma página dentro do próprio card, que cresce
  * ou encolhe até ela. O voltar do sistema volta à página anterior (o início, ou a edição do aluno na
  * exclusão dele), e no início fecha. Um aluno ou um ano novo têm tela própria, com os passos do onboarding.
+ * No grátis, o aluno novo é do Pro quando já há um, e o ano novo quando o deste ano já existe: o Novo
+ * aluno e o Criar novo ano letivo abrem a folha do Pro no lugar dos passos.
  *
  * O dialog ocupa a janela toda e o card fica no alto, perto da identificação que o abriu. Assim a
  * janela não muda de tamanho a cada quadro enquanto o card anima; o toque fora dele é tratado aqui.
@@ -133,6 +137,8 @@ fun AlunoScreen(
     // O perfil no toque em Excluir. O app troca de aluno (ou volta ao onboarding) e só depois apaga:
     // até o perfil fechar, o card continua como estava, sem mostrar o outro aluno nem números zerados
     var naExclusao by remember { mutableStateOf<RetratoDoPerfil?>(null) }
+    // rememberSaveable: aberta, a folha do Pro volta depois de girar a tela
+    var folhaDoPro by rememberSaveable { mutableStateOf(false) }
     val haptico = LocalHapticFeedback.current
     // O detector de toque do fundo não reinicia: assim ele chama sempre o onFechar atual
     val fechar by rememberUpdatedState(onFechar)
@@ -192,6 +198,8 @@ fun AlunoScreen(
                         pagina = pagina,
                         perfil = perfil,
                         resumo = naExclusao?.resumo ?: resumo,
+                        novoAlunoSoNoPro = s.novoAlunoSoNoPro,
+                        novoAnoSoNoPro = s.novoAnoSoNoPro,
                         mudando = mudando,
                         onAbrir = { pagina = it },
                         onFechar = onFechar,
@@ -218,8 +226,8 @@ fun AlunoScreen(
                             naExclusao = RetratoDoPerfil(perfil, resumo)
                             viewModel.excluirAluno()
                         },
-                        onNovoAnoLetivo = onNovoAnoLetivo,
-                        onNovoAluno = onNovoAluno,
+                        onNovoAnoLetivo = { if (s.novoAnoSoNoPro) folhaDoPro = true else onNovoAnoLetivo() },
+                        onNovoAluno = { if (s.novoAlunoSoNoPro) folhaDoPro = true else onNovoAluno() },
                         onBackup = onBackup,
                         onConfiguracoes = onConfiguracoes,
                     )
@@ -227,6 +235,9 @@ fun AlunoScreen(
             }
         }
     }
+
+    // Com o Pro desbloqueado, ela fecha sozinha, e as linhas perdem a etiqueta
+    if (folhaDoPro) FolhaDoPro(onFechar = { folhaDoPro = false })
 }
 
 /**
@@ -263,6 +274,8 @@ private fun PaginasDoPerfil(
     pagina: Pagina,
     perfil: PerfilAluno,
     resumo: ResumoDoAluno?, // o que o aluno aberto tem; null enquanto carrega
+    novoAlunoSoNoPro: Boolean,
+    novoAnoSoNoPro: Boolean,
     mudando: Boolean, // uma troca ou criação em andamento: os toques esperam ela acabar
     onAbrir: (Pagina) -> Unit,
     onFechar: () -> Unit,
@@ -294,6 +307,8 @@ private fun PaginasDoPerfil(
         when (atual) {
             Pagina.Inicio -> PaginaInicio(
                 perfil = perfil,
+                novoAlunoSoNoPro = novoAlunoSoNoPro,
+                novoAnoSoNoPro = novoAnoSoNoPro,
                 onFechar = onFechar,
                 onAbrir = onAbrir,
                 onNovoAnoLetivo = onNovoAnoLetivo,
@@ -339,6 +354,8 @@ private fun PaginasDoPerfil(
 @Composable
 private fun PaginaInicio(
     perfil: PerfilAluno,
+    novoAlunoSoNoPro: Boolean,
+    novoAnoSoNoPro: Boolean,
     onFechar: () -> Unit,
     onAbrir: (Pagina) -> Unit,
     onNovoAnoLetivo: () -> Unit,
@@ -399,15 +416,18 @@ private fun PaginaInicio(
                 Divisoria()
                 LinhaQueAbre(
                     titulo = "Novo aluno",
-                    rotuloDoClique = "Cadastrar um aluno",
+                    rotuloDoClique = if (novoAlunoSoNoPro) "Ver o Pro, que libera mais alunos" else "Cadastrar um aluno",
                     onClick = onNovoAluno,
+                    // A etiqueta no lugar da seta avisa antes do toque que este abre a folha do Pro
+                    fim = etiquetaSe(novoAlunoSoNoPro),
                 ) { Selo(Icons.Outlined.PersonAdd) }
             }
             Cartao {
                 LinhaQueAbre(
                     titulo = "Criar novo ano letivo",
-                    rotuloDoClique = "Criar um ano letivo",
+                    rotuloDoClique = if (novoAnoSoNoPro) "Ver o Pro, que libera mais anos letivos" else "Criar um ano letivo",
                     onClick = onNovoAnoLetivo,
+                    fim = etiquetaSe(novoAnoSoNoPro),
                 ) { Selo(Icons.Outlined.EditCalendar) }
                 Divisoria()
                 LinhaQueAbre(
@@ -441,6 +461,14 @@ private fun PaginaInicio(
 }
 
 private const val URL_PRIVACIDADE = "https://jameswillian.github.io/Boletim/privacidade/"
+
+/** O fim de uma linha que abre a folha do Pro: a etiqueta no lugar da seta. null deixa a seta. */
+private fun etiquetaSe(soNoPro: Boolean): (@Composable () -> Unit)? =
+    if (soNoPro) {
+        { EtiquetaPro() }
+    } else {
+        null
+    }
 
 /**
  * O nome do aluno aberto, para corrigir, e embaixo a exclusão dele, que a página seguinte confirma.

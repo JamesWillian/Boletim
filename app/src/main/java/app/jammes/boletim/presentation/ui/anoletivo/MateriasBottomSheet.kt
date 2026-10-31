@@ -42,9 +42,14 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.jammes.boletim.domain.model.materiasQueRestam
 import app.jammes.boletim.presentation.ui.components.DialogoDaMateriaNova
 import app.jammes.boletim.presentation.ui.components.Pilula
 import app.jammes.boletim.presentation.ui.components.SeloDisciplina
+import app.jammes.boletim.presentation.ui.plano.EtiquetaPro
+import app.jammes.boletim.presentation.ui.plano.FolhaDoPro
+import app.jammes.boletim.presentation.ui.plano.PlanoViewModel
+import app.jammes.boletim.presentation.ui.plano.textoDasQueRestam
 import app.jammes.boletim.presentation.ui.theme.CoresDisciplina
 import app.jammes.boletim.presentation.ui.theme.Espacos
 import app.jammes.boletim.presentation.ui.theme.IconesDisciplina
@@ -53,7 +58,8 @@ import kotlinx.coroutines.launch
 /**
  * Quais matérias o aluno tem no ano: um switch em cada. As que já têm avaliações ou faltas ficam
  * presas com um cadeado, porque tirá-las apagaria esses lançamentos. No fim da lista, "Nova matéria"
- * abre o mesmo diálogo do onboarding: a criada entra ligada, e no cadastro só no Salvar.
+ * abre o mesmo diálogo do onboarding: a criada entra ligada, e no cadastro só no Salvar. No grátis,
+ * embaixo dela vai quantas ainda cabem; sem nenhuma, ela abre a folha do Pro.
  *
  * Cada toque já vai para o formulário da tela, e quem grava é o Salvar dela; "Pronto" só fecha. Aberto
  * sem a tela (o [MateriasDoAnoSheet]), o botão é que grava: ele vira [textoDoBotao] e chama [onBotao].
@@ -65,6 +71,7 @@ internal fun MateriasBottomSheet(
     marcadas: Set<Long>, // as que entram no ano
     novas: List<LinhaMateria>, // criadas aqui: entram no ano junto com as marcadas
     existentes: List<String>, // os nomes que uma nova não pode repetir
+    materiasQueRestam: Int?, // as que ainda cabem no grátis, contando as novas; null: sem limite
     onMudar: (Set<Long>) -> Unit,
     onCriar: (nome: String, abreviacao: String) -> Unit,
     onDesistir: (nome: String) -> Unit,
@@ -76,6 +83,7 @@ internal fun MateriasBottomSheet(
     val scope = rememberCoroutineScope()
     val haptico = LocalHapticFeedback.current
     var criando by rememberSaveable { mutableStateOf(false) }
+    var folhaDoPro by rememberSaveable { mutableStateOf(false) }
 
     // Esconde com a animação e só então avisa a tela, que tira o sheet da composição
     fun fechar() {
@@ -163,7 +171,10 @@ internal fun MateriasBottomSheet(
                         )
                         Divisoria()
                     }
-                    LinhaNovaMateria(onClick = { criando = true })
+                    LinhaNovaMateria(
+                        restam = materiasQueRestam,
+                        onClick = { if (materiasQueRestam == 0) folhaDoPro = true else criando = true },
+                    )
                 }
             }
 
@@ -186,6 +197,9 @@ internal fun MateriasBottomSheet(
             onDismiss = { criando = false },
         )
     }
+
+    // Com o Pro desbloqueado, ela fecha sozinha, e a Nova matéria volta a criar
+    if (folhaDoPro) FolhaDoPro(onFechar = { folhaDoPro = false })
 }
 
 /**
@@ -197,9 +211,11 @@ internal fun MateriasBottomSheet(
 internal fun MateriasDoAnoSheet(
     onFechar: () -> Unit,
     viewModel: MateriasDoAnoViewModel = hiltViewModel(),
+    planoViewModel: PlanoViewModel = hiltViewModel(),
 ) {
     LaunchedEffect(Unit) { viewModel.abrir() }
     val ajustes by viewModel.ajustes.collectAsStateWithLifecycle()
+    val plano by planoViewModel.plano.collectAsStateWithLifecycle()
     val salvamento by viewModel.salvamento.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -224,6 +240,7 @@ internal fun MateriasDoAnoSheet(
         marcadas = form.materias,
         novas = novas,
         existentes = nomesUsados + form.materiasNovas.map { it.nome },
+        materiasQueRestam = plano?.materiasQueRestam(lido.materias, form.materiasNovas.size),
         onMudar = { form = form.copy(materias = it) },
         onCriar = { nome, abreviacao -> form = form.comMateriaNova(nome, abreviacao) },
         onDesistir = { form = form.semMateriaNova(it) },
@@ -290,14 +307,22 @@ private fun LinhaDaMateria(
     }
 }
 
-/** A última linha da lista, com o mesmo tamanho das outras e a cor de ação. */
+/**
+ * A última linha da lista, com o mesmo tamanho das outras e a cor de ação. No grátis, embaixo vai
+ * quantas ainda cabem ([restam]); sem nenhuma, a etiqueta do Pro no fim avisa antes do toque.
+ */
 @Composable
-private fun LinhaNovaMateria(onClick: () -> Unit) {
+private fun LinhaNovaMateria(restam: Int?, onClick: () -> Unit) {
+    val soNoPro = restam == 0
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
-            .clickable(onClickLabel = "Criar uma matéria", role = Role.Button, onClick = onClick)
+            .clickable(
+                onClickLabel = if (soNoPro) "Ver o Pro, que libera mais matérias" else "Criar uma matéria",
+                role = Role.Button,
+                onClick = onClick,
+            )
             .padding(horizontal = Espacos.l, vertical = Espacos.s),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -307,10 +332,20 @@ private fun LinhaNovaMateria(onClick: () -> Unit) {
             tamanho = 32.dp,
         )
         Spacer(Modifier.width(Espacos.m))
-        Text(
-            text = "Nova matéria",
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.primary,
-        )
+        Column(Modifier.weight(1f)) {
+            Text(
+                text = "Nova matéria",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            if (restam != null && restam > 0) {
+                Text(
+                    text = textoDasQueRestam(restam),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        if (soNoPro) EtiquetaPro()
     }
 }

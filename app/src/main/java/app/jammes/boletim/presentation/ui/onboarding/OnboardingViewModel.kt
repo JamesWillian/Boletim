@@ -3,6 +3,7 @@ package app.jammes.boletim.presentation.ui.onboarding
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.jammes.boletim.data.local.DadosDeTeste
+import app.jammes.boletim.domain.model.LimiteDoGratisException
 import app.jammes.boletim.domain.model.MateriaDomain
 import app.jammes.boletim.domain.repository.DicasRepository
 import app.jammes.boletim.domain.repository.MateriaRepository
@@ -63,7 +64,8 @@ class OnboardingViewModel @Inject constructor(
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 _salvando.value = false
-                _erros.send("Não deu para salvar. Tente de novo.")
+                // O limite do grátis o perfil já não deixa alcançar: sobra o caso de o Pro sair no meio do cadastro
+                _erros.send((e as? LimiteDoGratisException)?.message ?: "Não deu para salvar. Tente de novo.")
             }
         }
     }

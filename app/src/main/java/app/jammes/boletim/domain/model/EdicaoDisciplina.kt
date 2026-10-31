@@ -12,4 +12,11 @@ data class EdicaoDisciplina(
     val anoLetivo: AnoLetivoDomain?, // com os períodos, em ordem
     val regraDoAno: RegraAvaliacaoDomain, // a padrão, que vale para as disciplinas sem regra própria
     val regraPropria: RegraAvaliacaoDomain?, // a só desta disciplina, no lugar da do ano; null: segue a do ano
-)
+) {
+    /**
+     * De onde veio a matéria, que diz se o grátis personaliza a disciplina ([podePersonalizarDisciplina]).
+     * Sem a matéria, como uma criada pela pessoa: o plano não trava o que não dá para conferir.
+     */
+    val fonteDaMateria: FonteMateria
+        get() = materia?.fonte ?: FonteMateria.USUARIO
+}

@@ -1,6 +1,7 @@
 package app.jammes.boletim.presentation.ui.onboarding
 
 import app.jammes.boletim.domain.model.Etapa
+import app.jammes.boletim.domain.model.Plano
 import app.jammes.boletim.domain.model.TipoPeriodo
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -90,24 +91,61 @@ class FormularioNovoAnoLetivoTest {
     // Ano --------------------------------------------------------------------------------------
 
     @Test fun `ano sugerido e o do calendario quando o aluno so tem anos passados`() {
-        assertEquals(2026, anoSugerido(existentes = setOf(2024), atual = 2026))
+        assertEquals(2026, anoSugerido(existentes = setOf(2024), hoje = MARCO, plano = Plano.PRO))
     }
 
     @Test fun `ano sugerido e o seguinte ao mais recente quando o do calendario ja existe`() {
-        assertEquals(2027, anoSugerido(existentes = setOf(2024, 2026), atual = 2026))
+        assertEquals(2027, anoSugerido(existentes = setOf(2024, 2026), hoje = MARCO, plano = Plano.PRO))
     }
 
     @Test fun `sem nenhum ano a sugestao e o do calendario`() {
-        assertEquals(2026, anoSugerido(existentes = emptySet(), atual = 2026))
+        assertEquals(2026, anoSugerido(existentes = emptySet(), hoje = MARCO, plano = Plano.PRO))
+        assertEquals(2026, anoSugerido(existentes = emptySet(), hoje = MARCO, plano = Plano.GRATIS))
+    }
+
+    @Test fun `no gratis, a sugestao fica no ano atual quando o seguinte ao mais recente e do Pro`() {
+        // O aluno já tem o próximo, de quando o Pro valia: o 2028 do Pro não é sugerido
+        assertEquals(2026, anoSugerido(existentes = setOf(2027), hoje = MARCO, plano = Plano.GRATIS))
+    }
+
+    @Test fun `no gratis, em dezembro, a sugestao e o ano seguinte`() {
+        assertEquals(2027, anoSugerido(existentes = setOf(2026), hoje = DEZEMBRO, plano = Plano.GRATIS))
     }
 
     @Test fun `os anos para escolher sao o passado, o atual e o proximo`() {
-        assertEquals(listOf(2025, 2026, 2027), anosParaEscolher(existentes = emptySet(), atual = 2026))
-        assertEquals(listOf(2025, 2026, 2027), anosParaEscolher(existentes = setOf(2026), atual = 2026))
+        assertEquals(listOf(2025, 2026, 2027), anosParaEscolher(existentes = emptySet(), hoje = MARCO, plano = Plano.PRO))
+        assertEquals(listOf(2025, 2026, 2027), anosParaEscolher(existentes = setOf(2026), hoje = MARCO, plano = Plano.PRO))
     }
 
     @Test fun `quando o aluno ja tem o proximo, o sugerido entra no fim`() {
-        assertEquals(listOf(2025, 2026, 2027, 2028), anosParaEscolher(existentes = setOf(2027), atual = 2026))
+        assertEquals(
+            listOf(2025, 2026, 2027, 2028),
+            anosParaEscolher(existentes = setOf(2027), hoje = MARCO, plano = Plano.PRO),
+        )
+    }
+
+    @Test fun `no gratis, o sugerido do Pro nao entra no fim`() {
+        assertEquals(
+            listOf(2025, 2026, 2027),
+            anosParaEscolher(existentes = setOf(2027), hoje = MARCO, plano = Plano.GRATIS),
+        )
+    }
+
+    @Test fun `o gratis so libera o ano atual, e o Pro tambem o passado`() {
+        assertFalse(Plano.GRATIS.liberaAno(2025, existentes = emptySet(), hoje = MARCO))
+        assertTrue(Plano.GRATIS.liberaAno(2026, existentes = emptySet(), hoje = MARCO))
+        assertTrue(Plano.PRO.liberaAno(2025, existentes = emptySet(), hoje = MARCO))
+    }
+
+    @Test fun `o ano repetido do Pro nao e liberado sem aviso, entao a sugestao nao cai nele`() {
+        assertFalse(Plano.PRO.liberaAno(2026, existentes = setOf(2026), hoje = MARCO))
+    }
+
+    @Test fun `o aviso do ano repetido diz de quem e o ano e como diferenciar`() {
+        assertEquals(
+            "James já tem um ano letivo em 2026. Use a série para diferenciar os dois.",
+            avisoDeAnoRepetido("James", 2026),
+        )
     }
 
     @Test fun `os anos que ja existem dizem por que nao da para escolher`() {
@@ -115,5 +153,10 @@ class FormularioNovoAnoLetivoTest {
         assertEquals("2026 já existe", anosQueJaExistem(listOf(2026)))
         assertEquals("2025 e 2026 já existem", anosQueJaExistem(listOf(2025, 2026)))
         assertEquals("2025, 2026 e 2027 já existem", anosQueJaExistem(listOf(2025, 2026, 2027)))
+    }
+
+    private companion object {
+        val MARCO: LocalDate = LocalDate.of(2026, 3, 10)
+        val DEZEMBRO: LocalDate = LocalDate.of(2026, 12, 1)
     }
 }

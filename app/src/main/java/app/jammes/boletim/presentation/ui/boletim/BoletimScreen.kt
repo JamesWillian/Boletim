@@ -35,7 +35,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.TextAutoSize
-import androidx.compose.foundation.text.modifiers.TextAutoSizeLayoutScope
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.outlined.ViewAgenda
@@ -74,11 +73,8 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -96,6 +92,7 @@ import app.jammes.boletim.presentation.ui.components.AnelDaMedia
 import app.jammes.boletim.presentation.ui.components.CarregandoDiscreto
 import app.jammes.boletim.presentation.ui.components.ChavesCompartilhadas
 import app.jammes.boletim.presentation.ui.components.DURACAO_TRANSICAO
+import app.jammes.boletim.presentation.ui.components.EncolherSemPartirPalavra
 import app.jammes.boletim.presentation.ui.components.SeloDisciplina
 import app.jammes.boletim.presentation.ui.components.elementoCompartilhado
 import app.jammes.boletim.presentation.ui.components.limitesCompartilhados
@@ -606,39 +603,6 @@ private val TAMANHO_NA_LINHA = 40.dp
 // Do tamanho do estilo para baixo, de 1 em 1sp. O piso de 12sp só chega com tela estreita e fonte
 // grande juntas, e mesmo assim o número aparece inteiro
 private fun encolherAte(tamanho: TextUnit) = TextAutoSize.StepBased(minFontSize = 12.sp, maxFontSize = tamanho, stepSize = 1.sp)
-
-/**
- * Como o [TextAutoSize.StepBased], mas também encolhe quando a quebra de linha parte uma palavra no
- * meio: só vale quebrar entre palavras. Desce de meio em meio sp a partir do [maximo]; no [minimo],
- * fica com o que der (uma palavra enorme ainda pode partir ou ganhar reticências).
- */
-private data class EncolherSemPartirPalavra(
-    private val minimo: TextUnit,
-    private val maximo: TextUnit,
-) : TextAutoSize {
-    override fun TextAutoSizeLayoutScope.getFontSize(constraints: Constraints, text: AnnotatedString): TextUnit {
-        var tamanho = maximo.value
-        while (tamanho > minimo.value) {
-            val layout = performLayout(constraints, text, tamanho.sp)
-            if (!layout.passouDoEspaco() && !layout.partiuPalavra()) return tamanho.sp
-            tamanho -= 0.5f
-        }
-        return minimo
-    }
-
-    // Linhas a mais que o maxLines viram reticências na última
-    private fun TextLayoutResult.passouDoEspaco() =
-        hasVisualOverflow || (lineCount > 0 && isLineEllipsized(lineCount - 1))
-
-    // Letra dos dois lados de uma quebra: a palavra foi partida. Espaço, hífen ou barra, não
-    private fun TextLayoutResult.partiuPalavra(): Boolean {
-        val texto = layoutInput.text.text
-        return (0 until lineCount - 1).any { linha ->
-            val fim = getLineEnd(linha)
-            fim in 1 until texto.length && texto[fim - 1].isLetterOrDigit() && texto[fim].isLetterOrDigit()
-        }
-    }
-}
 
 /**
  * Troca a média rolando, como um contador: o número novo entra por baixo empurrando o antigo para

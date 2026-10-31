@@ -3,6 +3,7 @@ package app.jammes.boletim.presentation.ui.anoletivo
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.jammes.boletim.domain.model.AjustesAnoLetivo
+import app.jammes.boletim.domain.model.LimiteDoGratisException
 import app.jammes.boletim.domain.repository.ContextoRepository
 import app.jammes.boletim.domain.usecase.AjusteBloqueadoException
 import app.jammes.boletim.domain.usecase.ObterAjustesAnoLetivo
@@ -64,6 +65,8 @@ class AnoLetivoViewModel @Inject constructor(
                 salvarAjustes(ajustes, gravacao.anoLetivo, gravacao.regra, gravacao.materiaIds, gravacao.materiasNovas)
                 Salvamento.Salvo
             } catch (e: AjusteBloqueadoException) {
+                Salvamento.Falhou(e.message ?: "Não deu para salvar")
+            } catch (e: LimiteDoGratisException) {
                 Salvamento.Falhou(e.message ?: "Não deu para salvar")
             }
         }

@@ -410,6 +410,15 @@ class NotificacoesUseCaseTest {
         assertEquals(listOf(1L), novos.map { it.alunoId })
     }
 
+    @Test fun `todos os anos letivos do calendario de hoje avisam, e os passados nao`() {
+        // No Pro, o mesmo aluno pode ter dois anos em 2026: escola e curso
+        val escola = ano().copy(id = 1, ano = 2026)
+        val curso = ano().copy(id = 2, ano = 2026, serie = "Inglês")
+        val passado = ano().copy(id = 3, ano = 2025)
+
+        assertEquals(listOf(escola, curso), anosQueAvisam(listOf(passado, escola, curso), LocalDate.of(2026, 10, 30)))
+    }
+
     @Test fun `sem nada novo, o horario nao poe nada na barra`() {
         val pendentes = montarAvisos(listOf(aluno(1, "James")), listOf(notificacao(1, alunoId = 1)))
 

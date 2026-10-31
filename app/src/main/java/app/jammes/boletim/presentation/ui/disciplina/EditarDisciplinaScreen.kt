@@ -46,6 +46,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -63,6 +64,8 @@ import app.jammes.boletim.domain.model.RegraAvaliacaoDomain
 import app.jammes.boletim.domain.model.TipoArredondamento
 import app.jammes.boletim.domain.model.TipoMedia
 import app.jammes.boletim.domain.model.intervalo
+import app.jammes.boletim.presentation.ui.plano.EtiquetaPro
+import app.jammes.boletim.presentation.ui.plano.FolhaDoPro
 import app.jammes.boletim.domain.usecase.CalcularFrequencia
 import app.jammes.boletim.presentation.ui.anoletivo.BarraDeSalvar
 import app.jammes.boletim.presentation.ui.anoletivo.Cartao
@@ -97,6 +100,9 @@ import java.time.LocalDate
  * mesmo, com "Redefinir" para voltar aos da matéria), o total de aulas e o período, e as regras de
  * média próprias da disciplina, que valem no lugar das do ano (cada um no seu sheet). Tudo vai para
  * uma cópia, e a barra de baixo, que só aparece quando algo mudou, grava tudo junto.
+ *
+ * No grátis, numa matéria do app, o nome, a sigla, a cor e o ícone são do Pro: aparecem como estão,
+ * com a etiqueta dele, e o toque abre a folha do Pro. O professor e o resto continuam livres.
  */
 @Composable
 fun EditarDisciplinaScreen(
@@ -129,8 +135,10 @@ fun EditarDisciplinaScreen(
 
         is EdicaoDisciplinaUiState.Sucesso -> EditorDaDisciplina(
             edicao = s.edicao,
+            personalizavel = s.personalizavel,
             salvamento = salvamento,
             onSalvar = viewModel::salvar,
+            onFalhaVista = viewModel::falhaVista,
             onVoltar = onVoltar,
             modifier = modifier,
         )
@@ -145,8 +153,10 @@ private enum class Editor { NOME, TOTAL_DE_AULAS, PERIODO, REGRAS }
 @Composable
 private fun EditorDaDisciplina(
     edicao: EdicaoDisciplina,
+    personalizavel: Boolean, // false: o nome, a sigla, a cor e o ícone são do Pro
     salvamento: Salvamento,
     onSalvar: (FormularioDisciplina) -> Unit,
+    onFalhaVista: () -> Unit,
     onVoltar: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -158,6 +168,9 @@ private fun EditorDaDisciplina(
     // O sheet aberto; null = nenhum. Fica aqui, fora da lista, como nos ajustes do ano
     var editor by rememberSaveable { mutableStateOf<Editor?>(null) }
     var confirmandoDescarte by rememberSaveable { mutableStateOf(false) }
+    // Com o Pro desbloqueado nela, a folha fecha sozinha, e as seções do Pro se abrem sem sair da tela
+    var folhaDoPro by rememberSaveable { mutableStateOf(false) }
+    val abrirFolhaDoPro = { folhaDoPro = true }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val haptico = LocalHapticFeedback.current
@@ -192,9 +205,16 @@ private fun EditorDaDisciplina(
     }
 
     LaunchedEffect(salvamento) {
-        if (salvamento == Salvamento.Salvo) {
-            haptico.performHapticFeedback(HapticFeedbackType.Confirm)
-            onVoltar()
+        when (val s = salvamento) {
+            Salvamento.Salvo -> {
+                haptico.performHapticFeedback(HapticFeedbackType.Confirm)
+                onVoltar()
+            }
+            is Salvamento.Falhou -> {
+                snackbarHostState.showSnackbar(s.motivo)
+                onFalhaVista()
+            }
+            else -> Unit
         }
     }
 
@@ -232,6 +252,7 @@ private fun EditorDaDisciplina(
                     cor = form.cor,
                     icone = form.icone,
                     alterada = alteracoes.disciplina > 0,
+                    nomeBloqueado = !personalizavel,
                     onEditar = { editor = Editor.NOME },
                 )
             }
@@ -240,7 +261,9 @@ private fun EditorDaDisciplina(
                     cor = form.cor,
                     daMateria = materia?.cor,
                     alterada = alteracoes.cor > 0,
+                    bloqueada = !personalizavel,
                     onEscolher = { form = form.copy(cor = it) },
+                    onPro = abrirFolhaDoPro,
                 )
             }
             item(key = "icone") {
@@ -249,7 +272,9 @@ private fun EditorDaDisciplina(
                     cor = form.cor,
                     daMateria = materia?.icone,
                     alterada = alteracoes.icone > 0,
+                    bloqueada = !personalizavel,
                     onEscolher = { form = form.copy(icone = it) },
+                    onPro = abrirFolhaDoPro,
                 )
             }
             item(key = "aulas") {
@@ -282,6 +307,8 @@ private fun EditorDaDisciplina(
             nome = form.nome,
             abreviacao = form.abreviacao,
             professor = form.professor,
+            nomeBloqueado = !personalizavel,
+            onPro = abrirFolhaDoPro,
             onAplicar = { nome, abreviacao, professor ->
                 form = form.copy(nome = nome, abreviacao = abreviacao, professor = professor)
             },
@@ -312,6 +339,9 @@ private fun EditorDaDisciplina(
         null -> Unit
     }
 
+    // Depois dos sheets: aberta pelo nome, a folha fica por cima do sheet dele
+    if (folhaDoPro) FolhaDoPro(onFechar = { folhaDoPro = false })
+
     if (confirmandoDescarte) {
         ConfirmarDescarte(
             onDescartar = {
@@ -327,7 +357,8 @@ private fun EditorDaDisciplina(
 
 /**
  * A capa da disciplina, tingida como no detalhe: o selo, o nome, a sigla das abas e o professor, já
- * com a cor e o ícone escolhidos embaixo. Tocar abre o sheet do nome, da sigla e do professor.
+ * com a cor e o ícone escolhidos embaixo. Tocar abre o sheet do nome, da sigla e do professor; com o
+ * [nomeBloqueado], o sheet só muda o professor.
  */
 @Composable
 private fun SecaoDisciplina(
@@ -337,6 +368,7 @@ private fun SecaoDisciplina(
     cor: Int,
     icone: IconeMateria,
     alterada: Boolean,
+    nomeBloqueado: Boolean,
     onEditar: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -357,7 +389,10 @@ private fun SecaoDisciplina(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(onClickLabel = "Editar o nome, a sigla e o professor", onClick = onEditar)
+                    .clickable(
+                        onClickLabel = if (nomeBloqueado) "Editar o professor" else "Editar o nome, a sigla e o professor",
+                        onClick = onEditar,
+                    )
                     .padding(start = 20.dp, end = Espacos.m, top = 20.dp, bottom = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -426,22 +461,29 @@ private fun SecaoCor(
     cor: Int,
     daMateria: Int?, // a cor da matéria; null quando ela não foi encontrada
     alterada: Boolean,
+    bloqueada: Boolean, // do Pro: as cores aparecem apagadas, e o toque abre a folha
     onEscolher: (Int) -> Unit,
+    onPro: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier) {
         TituloDaSecao("Cor", alterada = alterada) {
-            Redefinir(
-                visivel = daMateria != null && cor != daMateria,
-                rotuloDoClique = "Voltar à cor da matéria",
-                onClick = { daMateria?.let(onEscolher) },
-            )
+            if (bloqueada) {
+                EtiquetaDaSecao(onPro)
+            } else {
+                Redefinir(
+                    visivel = daMateria != null && cor != daMateria,
+                    rotuloDoClique = "Voltar à cor da matéria",
+                    onClick = { daMateria?.let(onEscolher) },
+                )
+            }
         }
         Cartao {
             SeletorDeCor(
                 selecionada = cor,
-                onSelecionar = onEscolher,
+                onSelecionar = if (bloqueada) { _ -> onPro() } else onEscolher,
                 contentPadding = PaddingValues(Espacos.l),
+                modifier = Modifier.alpha(if (bloqueada) ALFA_DO_BLOQUEIO else 1f),
             )
         }
     }
@@ -453,28 +495,48 @@ private fun SecaoIcone(
     cor: Int,
     daMateria: IconeMateria?, // o ícone da matéria; null quando ela não foi encontrada
     alterada: Boolean,
+    bloqueada: Boolean, // do Pro: os ícones aparecem apagados, e o toque abre a folha
     onEscolher: (IconeMateria) -> Unit,
+    onPro: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier) {
         TituloDaSecao("Ícone", alterada = alterada) {
-            Redefinir(
-                visivel = daMateria != null && icone != daMateria,
-                rotuloDoClique = "Voltar ao ícone da matéria",
-                onClick = { daMateria?.let(onEscolher) },
-            )
+            if (bloqueada) {
+                EtiquetaDaSecao(onPro)
+            } else {
+                Redefinir(
+                    visivel = daMateria != null && icone != daMateria,
+                    rotuloDoClique = "Voltar ao ícone da matéria",
+                    onClick = { daMateria?.let(onEscolher) },
+                )
+            }
         }
         Cartao {
             SeletorDeIcone(
                 selecionado = icone,
                 // Na cor escolhida em cima: cada opção já aparece como o selo vai ficar
                 cor = CoresDisciplina.de(cor),
-                onSelecionar = onEscolher,
+                onSelecionar = if (bloqueada) { _ -> onPro() } else onEscolher,
                 contentPadding = PaddingValues(Espacos.l),
+                modifier = Modifier.alpha(if (bloqueada) ALFA_DO_BLOQUEIO else 1f),
             )
         }
     }
 }
+
+/** A etiqueta do Pro na ponta do título, no lugar do "Redefinir". O toque abre a folha. */
+@Composable
+private fun EtiquetaDaSecao(onPro: () -> Unit) {
+    EtiquetaPro(
+        modifier = Modifier
+            .clip(CircleShape)
+            .clickable(onClickLabel = "Ver o Pro", role = Role.Button, onClick = onPro),
+    )
+}
+
+// As opções do Pro aparecem, mas apagadas: dá para ver o que ele libera
+private const val ALFA_DO_BLOQUEIO = 0.4f
 
 /** O total de aulas e o período da disciplina, cada um abrindo o seu sheet. */
 @Composable

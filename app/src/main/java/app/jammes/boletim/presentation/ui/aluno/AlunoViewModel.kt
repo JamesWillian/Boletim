@@ -5,10 +5,14 @@ import androidx.lifecycle.viewModelScope
 import app.jammes.boletim.domain.model.AlunoComAno
 import app.jammes.boletim.domain.model.AnoLetivoDomain
 import app.jammes.boletim.domain.model.PerfilAluno
+import app.jammes.boletim.domain.model.Plano
 import app.jammes.boletim.domain.model.ResumoDoAluno
 import app.jammes.boletim.domain.model.periodoAoAbrir
+import app.jammes.boletim.domain.model.podeCriarAlgumAno
+import app.jammes.boletim.domain.model.podeCriarAluno
 import app.jammes.boletim.domain.repository.AlunoRepository
 import app.jammes.boletim.domain.repository.ContextoRepository
+import app.jammes.boletim.domain.repository.PlanoRepository
 import app.jammes.boletim.domain.usecase.ExcluirAluno
 import app.jammes.boletim.domain.usecase.ObterPerfilAluno
 import app.jammes.boletim.domain.usecase.RenomearAluno
@@ -19,6 +23,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
@@ -30,8 +35,27 @@ import java.time.LocalDate
 sealed interface AlunoUiState {
     data object Carregando : AlunoUiState
     data object NaoEncontrado : AlunoUiState
-    data class Sucesso(val perfil: PerfilAluno) : AlunoUiState
+    data class Sucesso(
+        val perfil: PerfilAluno,
+        val novoAlunoSoNoPro: Boolean = false, // o grátis já tem o aluno dele: o Novo aluno abre a folha do Pro
+        val novoAnoSoNoPro: Boolean = false, // o grátis não tem mais ano para criar: o Criar novo ano letivo também
+    ) : AlunoUiState
 }
+
+/**
+ * O que o perfil mostra: o [perfil] do aluno aberto e, pelo [plano], se um aluno novo ou um ano letivo
+ * novo, em [hoje], são do Pro.
+ */
+internal fun estadoDoPerfil(perfil: PerfilAluno?, plano: Plano, hoje: LocalDate): AlunoUiState =
+    if (perfil == null) {
+        AlunoUiState.NaoEncontrado
+    } else {
+        AlunoUiState.Sucesso(
+            perfil = perfil,
+            novoAlunoSoNoPro = !plano.podeCriarAluno(perfil.alunos.size),
+            novoAnoSoNoPro = !plano.podeCriarAlgumAno(perfil.anosLetivos.map { it.ano }.toSet(), hoje),
+        )
+    }
 
 /**
  * Andamento de uma troca ou de uma mudança no aluno. Trocou e Excluiu fecham o perfil; Renomeou volta
@@ -50,15 +74,16 @@ sealed interface Mudanca {
 class AlunoViewModel @Inject constructor(
     private val contextoRepo: ContextoRepository,
     alunoRepo: AlunoRepository,
+    planoRepo: PlanoRepository,
     obterPerfil: ObterPerfilAluno,
     private val renomearAluno: RenomearAluno,
     private val excluirAluno: ExcluirAluno,
 ): ViewModel() {
 
-    val state: StateFlow<AlunoUiState> = obterPerfil(contextoRepo.contexto.filterNotNull())
-        .map { perfil ->
-            if (perfil == null) AlunoUiState.NaoEncontrado else AlunoUiState.Sucesso(perfil)
-        }
+    val state: StateFlow<AlunoUiState> = combine(
+        obterPerfil(contextoRepo.contexto.filterNotNull()),
+        planoRepo.plano,
+    ) { perfil, plano -> estadoDoPerfil(perfil, plano, LocalDate.now()) }
         .stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5_000),
