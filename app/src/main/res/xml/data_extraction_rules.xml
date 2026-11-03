@@ -1,19 +1,21 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample data extraction rules file; uncomment and customize as necessary.
-   See https://developer.android.com/about/versions/12/backup-restore#xml-changes
-   for details.
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   O backup do Android 12 em diante: o da nuvem (o Auto Backup na conta Google) e a cópia direto de
+   um aparelho para outro, ao configurar o novo. Até o Android 11 valem as regras de
+   backup_rules.xml, e as duas mudam juntas.
+
+   Sem nenhum <include>, cada um leva quase tudo do app: o banco e as preferências. Fica de fora,
+   nos dois, o plano (o DataStore "plano", do PlanoPreferences): quem diz se a conta comprou o Pro é
+   a Google Play, quando o app abre no aparelho novo. Restaurado de um backup, o Pro valeria sem a
+   compra, como numa conta Google diferente ou depois de um estorno.
+
+   https://developer.android.com/about/versions/12/backup-restore#xml-changes
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
-        -->
+        <exclude domain="file" path="datastore/plano.preferences_pb" />
     </cloud-backup>
-    <!--
     <device-transfer>
-        <include .../>
-        <exclude .../>
+        <exclude domain="file" path="datastore/plano.preferences_pb" />
     </device-transfer>
-    -->
 </data-extraction-rules>

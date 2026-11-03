@@ -1,13 +1,15 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample backup rules file; uncomment and customize as necessary.
-   See https://developer.android.com/guide/topics/data/autobackup
-   for details.
-   Note: This file is ignored for devices older than API 31
-   See https://developer.android.com/about/versions/12/backup-restore
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   O Auto Backup até o Android 11; do 12 em diante valem as regras de data_extraction_rules.xml, e
+   as duas mudam juntas.
+
+   Sem nenhum <include>, o backup leva quase tudo do app: o banco e as preferências. Fica de fora
+   o plano (o DataStore "plano", do PlanoPreferences): quem diz se a conta comprou o Pro é a Google
+   Play, quando o app abre no aparelho novo. Restaurado de um backup, o Pro valeria sem a compra,
+   como numa conta Google diferente ou depois de um estorno.
+
+   https://developer.android.com/identity/data/autobackup
 -->
 <full-backup-content>
-    <!--
-   <include domain="sharedpref" path="."/>
-   <exclude domain="sharedpref" path="device.xml"/>
--->
+    <exclude domain="file" path="datastore/plano.preferences_pb" />
 </full-backup-content>

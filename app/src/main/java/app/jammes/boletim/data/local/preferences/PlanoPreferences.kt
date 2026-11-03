@@ -14,8 +14,14 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import java.io.IOException
 
+/**
+ * O nome do DataStore do plano, que vira o arquivo files/datastore/plano.preferences_pb. As regras de
+ * backup (res/xml) deixam esse arquivo de fora: quem diz se a conta comprou o Pro é a Google Play.
+ */
+internal const val DATASTORE_DO_PLANO = "plano"
+
 // Separado das configurações: o plano não é uma escolha da pessoa
-private val Context.dataStore by preferencesDataStore(name = "plano")
+private val Context.dataStore by preferencesDataStore(name = DATASTORE_DO_PLANO)
 
 @Singleton
 class PlanoPreferences @Inject constructor(
