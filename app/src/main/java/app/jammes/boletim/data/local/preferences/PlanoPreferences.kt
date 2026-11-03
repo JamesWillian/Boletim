@@ -23,6 +23,7 @@ class PlanoPreferences @Inject constructor(
 ) {
     private object Keys {
         val PRO_DE_TESTE = booleanPreferencesKey("pro_de_teste")
+        val PRO_COMPRADO = booleanPreferencesKey("pro_comprado")
     }
 
     /** A chave "Pro de teste" das Configurações do debug. */
@@ -34,6 +35,21 @@ class PlanoPreferences @Inject constructor(
     suspend fun salvarProDeTeste(ligado: Boolean) {
         context.dataStore.edit { prefs ->
             if (ligado) prefs[Keys.PRO_DE_TESTE] = true else prefs.remove(Keys.PRO_DE_TESTE)
+        }
+    }
+
+    /**
+     * A compra do Pro confirmada pela Play, guardada para o app abrir já no Pro, mesmo quando a Play não
+     * responde (sem rede, por exemplo). Quem muda é só a loja, com o que a Play confirmou.
+     */
+    val comprado: Flow<Boolean> = context.dataStore.data
+        .catch { e -> if (e is IOException) emit(emptyPreferences()) else throw e }
+        .map { it[Keys.PRO_COMPRADO] == true }
+        .distinctUntilChanged()
+
+    suspend fun salvarComprado(comprado: Boolean) {
+        context.dataStore.edit { prefs ->
+            if (comprado) prefs[Keys.PRO_COMPRADO] = true else prefs.remove(Keys.PRO_COMPRADO)
         }
     }
 }

@@ -17,6 +17,7 @@ hilt = "2.59.2"
 hiltNavigationCompose = "1.2.0"
 navigationCompose = "2.9.8"
 vico = "3.2.3" # A 3.3 já vem compilada com Kotlin 2.4 (stdlib 2.4.10), e o Hilt não lê os metadados dela
+billing = "9.1.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -52,6 +53,8 @@ hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref
 hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
 hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 
+# Billing #
+billing-ktx = { group = "com.android.billingclient", name = "billing-ktx", version.ref = "billing" }
 
 # Testes #
 junit = { group = "junit", name = "junit", version.ref = "junit" }

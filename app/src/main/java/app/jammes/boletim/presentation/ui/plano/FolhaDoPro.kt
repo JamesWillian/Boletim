@@ -78,6 +78,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.jammes.boletim.R
 import app.jammes.boletim.domain.model.ALUNOS_NO_GRATIS
 import app.jammes.boletim.domain.model.MATERIAS_PROPRIAS_NO_GRATIS
+import app.jammes.boletim.domain.model.OfertaDoPro
 import app.jammes.boletim.domain.model.Plano
 import app.jammes.boletim.presentation.ui.theme.BoletimColors
 import app.jammes.boletim.presentation.ui.theme.BoletimTheme
@@ -86,13 +87,6 @@ import kotlinx.coroutines.launch
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin
-
-/** O preço do Pro como a loja informa. Numa promoção, vêm também o [precoCheio] e o [desconto], em %. */
-data class OfertaDoPro(
-    val preco: String,
-    val precoCheio: String? = null,
-    val desconto: Int? = null,
-)
 
 /**
  * A folha do Pro, que abre quando um limite do grátis barra algo: a arte, a frase, o grátis lado a
