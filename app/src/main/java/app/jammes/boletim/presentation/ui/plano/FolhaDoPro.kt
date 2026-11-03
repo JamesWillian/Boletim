@@ -32,6 +32,7 @@ import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Remove
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -42,6 +43,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
@@ -92,7 +94,9 @@ import kotlin.math.sin
  * A folha do Pro, que abre quando um limite do grátis barra algo: a arte, a frase, o grátis lado a
  * lado com o Pro e a compra, que fica sempre à vista embaixo.
  *
- * O botão desbloqueia o Pro pelo [PlanoViewModel], e com o Pro valendo a folha fecha sozinha.
+ * O preço vem da Google Play, e o botão abre a compra dela, pelo [PlanoViewModel]. Quando a Play
+ * confirma o pagamento, o plano vira Pro e a folha fecha sozinha. Uma compra pendente, uma loja fora do
+ * ar ou um "Restaurar compra" sem nada para restaurar ganham um aviso embaixo do botão.
  * [onFechar] avisa a tela que ela saiu, por qualquer caminho: o X, o arrastar, o voltar ou o Pro.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -102,6 +106,8 @@ fun FolhaDoPro(
     viewModel: PlanoViewModel = hiltViewModel(),
 ) {
     val plano by viewModel.plano.collectAsStateWithLifecycle()
+    val oferta by viewModel.oferta.collectAsStateWithLifecycle()
+    val estadoDaLoja by viewModel.estadoDaLoja.collectAsStateWithLifecycle()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val escopo = rememberCoroutineScope()
     val haptico = LocalHapticFeedback.current
@@ -118,6 +124,10 @@ fun FolhaDoPro(
             fecharAtual()
         }
     }
+    // O aviso era desta folha: aberta de novo, ela começa sem ele
+    DisposableEffect(viewModel) {
+        onDispose { viewModel.avisoVisto() }
+    }
 
     ModalBottomSheet(
         onDismissRequest = onFechar,
@@ -127,14 +137,13 @@ fun FolhaDoPro(
         dragHandle = null, // a alça fica na arte, em branco sobre o azul
     ) {
         ConteudoDaFolha(
-            // Sem a loja ainda, não há preço: o cartão mostra só o plano
-            oferta = null,
+            oferta = oferta,
+            estadoDaLoja = estadoDaLoja,
             onDesbloquear = {
                 haptico.performHapticFeedback(HapticFeedbackType.Confirm)
                 viewModel.desbloquear()
             },
-            // Nem compra para restaurar
-            onRestaurar = null,
+            onRestaurar = viewModel::restaurar,
             onFechar = fechar,
         )
     }
@@ -142,9 +151,10 @@ fun FolhaDoPro(
 
 @Composable
 private fun ConteudoDaFolha(
-    oferta: OfertaDoPro?, // null enquanto a loja não informa o preço
+    oferta: OfertaDoPro?, // null enquanto a loja não informa o preço: o cartão mostra só o plano
+    estadoDaLoja: EstadoDaLoja,
     onDesbloquear: () -> Unit,
-    onRestaurar: (() -> Unit)?, // null: sem o "Restaurar compra"
+    onRestaurar: () -> Unit,
     onFechar: () -> Unit,
 ) {
     Column(Modifier.fillMaxWidth()) {
@@ -162,6 +172,7 @@ private fun ConteudoDaFolha(
         }
         Compra(
             oferta = oferta,
+            estadoDaLoja = estadoDaLoja,
             onDesbloquear = onDesbloquear,
             onRestaurar = onRestaurar,
             modifier = Modifier.padding(start = Espacos.l, end = Espacos.l, top = Espacos.l),
@@ -468,20 +479,31 @@ private fun Novidades(modifier: Modifier = Modifier) {
 @Composable
 private fun Compra(
     oferta: OfertaDoPro?,
+    estadoDaLoja: EstadoDaLoja,
     onDesbloquear: () -> Unit,
-    onRestaurar: (() -> Unit)?,
+    onRestaurar: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         CartaoDoPreco(oferta)
         Spacer(Modifier.height(Espacos.m))
-        BotaoDourado(texto = "Desbloquear o Pro", onClick = onDesbloquear)
-        if (onRestaurar != null) {
-            TextButton(onClick = onRestaurar, modifier = Modifier.padding(vertical = Espacos.xs)) {
-                Text("Restaurar compra", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        } else {
-            Spacer(Modifier.height(Espacos.l))
+        BotaoDourado(texto = "Desbloquear o Pro", ocupado = estadoDaLoja.ocupada, onClick = onDesbloquear)
+        // O que aconteceu na última compra ou restauração: pendente, loja fora do ar, nada para restaurar
+        estadoDaLoja.aviso?.let { aviso ->
+            Text(
+                text = textoDoAviso(aviso),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(top = Espacos.s),
+            )
+        }
+        TextButton(
+            onClick = onRestaurar,
+            enabled = !estadoDaLoja.ocupada,
+            modifier = Modifier.padding(vertical = Espacos.xs),
+        ) {
+            Text("Restaurar compra", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -549,18 +571,23 @@ private fun SeloDoDesconto(desconto: Int) {
     )
 }
 
+/** O botão da compra. [ocupado]: a loja está trabalhando, e ele mostra a roda no lugar do texto. */
 @Composable
-private fun BotaoDourado(texto: String, onClick: () -> Unit) {
+private fun BotaoDourado(texto: String, ocupado: Boolean, onClick: () -> Unit) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(56.dp)
             .clip(CircleShape)
             .background(Brush.horizontalGradient(OURO))
-            .clickable(role = Role.Button, onClick = onClick),
+            .clickable(enabled = !ocupado, role = Role.Button, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text(texto, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = TINTA_DO_OURO)
+        if (ocupado) {
+            CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp, color = TINTA_DO_OURO)
+        } else {
+            Text(texto, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = TINTA_DO_OURO)
+        }
     }
 }
 

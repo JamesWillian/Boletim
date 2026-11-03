@@ -23,6 +23,7 @@ import app.jammes.boletim.presentation.contexto.ContextoViewModel
 import app.jammes.boletim.presentation.navigation.AppNavGraph
 import app.jammes.boletim.presentation.navigation.AppRoot
 import app.jammes.boletim.presentation.ui.configuracoes.ConfiguracoesViewModel
+import app.jammes.boletim.presentation.ui.plano.PlanoViewModel
 import app.jammes.boletim.presentation.ui.theme.BoletimTheme
 import app.jammes.boletim.presentation.ui.theme.temaEscuro
 import dagger.hilt.android.AndroidEntryPoint
@@ -34,6 +35,8 @@ class MainActivity : ComponentActivity() {
     private val contextoVm: ContextoViewModel by viewModels()
     // O tema sai daqui, antes de tudo; o AppRoot pega o mesmo, para o estilo das abas
     private val configuracoesVm: ConfiguracoesViewModel by viewModels()
+    // A loja do Pro: a cada volta ao app, confere as compras da conta da Play
+    private val planoVm: PlanoViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splash = installSplashScreen() // antes do super.onCreate, como a biblioteca pede
@@ -78,6 +81,13 @@ class MainActivity : ComponentActivity() {
         // Aberto pelo toque num aviso do celular. Só na primeira criação: girar a tela recria a
         // Activity com o mesmo intent, e o pedido já foi atendido
         if (savedInstanceState == null) atenderAviso(intent)
+    }
+
+    // Pega o que mudou com o app fora da tela: uma compra em outro aparelho, um pagamento pendente que
+    // foi aprovado, um estorno. É também a volta da tela de pagamento da Play
+    override fun onResume() {
+        super.onResume()
+        planoVm.sincronizar()
     }
 
     // Com o app já aberto, o toque no aviso chega aqui, na mesma Activity
