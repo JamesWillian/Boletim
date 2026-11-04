@@ -7,15 +7,18 @@ import android.app.backup.FullBackupDataOutput
 import android.os.Build
 import android.os.ParcelFileDescriptor
 import app.jammes.boletim.data.local.preferences.ConfiguracoesPreferences
+import app.jammes.boletim.data.local.preferences.arquivoDasConfiguracoes
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 
 /**
  * O Auto Backup do Android, com a chave "Backup automático no Google" das configurações. Ligada, o
  * backup é o de sempre: os arquivos do app, pelas regras de backup_rules e data_extraction_rules.
- * Desligada, o que vai para a nuvem sai vazio, e no próximo envio ele toma o lugar da cópia que
- * estava lá (o Google guarda só a mais recente). A cópia direto de um aparelho para outro, por cabo
- * ou Wi-Fi ao configurar o aparelho novo, continua: ela não passa pela conta Google.
+ * Desligada, vão para a nuvem só as preferências, sem nenhum dado escolar: esse envio toma o lugar
+ * da cópia que estava lá (o Google guarda só a mais recente), e a escolha de deixar desligado volta
+ * junto numa reinstalação. Mandar nada não serve: o Google recusa um backup vazio, e a cópia antiga
+ * continua na conta. A cópia direto de um aparelho para outro, por cabo ou Wi-Fi ao configurar o
+ * aparelho novo, continua levando tudo: ela não passa pela conta Google.
  *
  * O sistema roda o backup com o app fechado, num modo em que a BoletimApp não é criada: sem ela não
  * há Hilt, e a preferência é lida direto.
@@ -25,6 +28,8 @@ class BoletimBackupAgent : BackupAgent() {
     override fun onFullBackup(data: FullBackupDataOutput) {
         if (entraNoBackup(backupAutomatico = backupAutomaticoLigado(), deAparelhoParaAparelho = deAparelhoParaAparelho(data))) {
             super.onFullBackup(data)
+        } else {
+            fullBackupFile(applicationContext.arquivoDasConfiguracoes(), data)
         }
     }
 
@@ -43,6 +48,6 @@ class BoletimBackupAgent : BackupAgent() {
     override fun onRestore(data: BackupDataInput?, appVersionCode: Int, newState: ParcelFileDescriptor?) = Unit
 }
 
-/** Se os arquivos do app vão neste backup: sempre na cópia entre aparelhos, e na nuvem só com a chave ligada. */
+/** Se todos os arquivos do app vão neste backup: sempre na cópia entre aparelhos, e na nuvem só com a chave ligada. */
 internal fun entraNoBackup(backupAutomatico: Boolean, deAparelhoParaAparelho: Boolean): Boolean =
     backupAutomatico || deAparelhoParaAparelho

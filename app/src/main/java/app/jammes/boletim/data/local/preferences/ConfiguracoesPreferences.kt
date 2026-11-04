@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import androidx.datastore.preferences.preferencesDataStoreFile
 import app.jammes.boletim.domain.model.Configuracoes
 import app.jammes.boletim.domain.model.DisposicaoDoBoletim
 import app.jammes.boletim.domain.model.EstiloDasAbas
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import java.io.File
 import java.io.IOException
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -27,7 +29,12 @@ import java.time.format.DateTimeParseException
 import java.time.temporal.ChronoUnit
 
 // Separado do contexto, como as dicas: são preferências da pessoa, não do aluno aberto
-private val Context.dataStore by preferencesDataStore(name = "configuracoes")
+private const val NOME_DO_DATASTORE = "configuracoes"
+
+private val Context.dataStore by preferencesDataStore(name = NOME_DO_DATASTORE)
+
+/** O arquivo das preferências: é o que vai para a nuvem com o backup automático desligado. */
+internal fun Context.arquivoDasConfiguracoes(): File = preferencesDataStoreFile(NOME_DO_DATASTORE)
 
 @Singleton
 class ConfiguracoesPreferences @Inject constructor(
