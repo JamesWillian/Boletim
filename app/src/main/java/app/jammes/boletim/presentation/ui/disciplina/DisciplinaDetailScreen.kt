@@ -268,7 +268,10 @@ fun DisciplinaDetailScreen(
                         // Num período, a avaliação fica nele; no ano inteiro, o formulário pergunta
                         escolherPeriodo = detalhe.periodoId == null,
                         tipoPeriodo = detalhe.tipoPeriodo,
-                        onDismiss = { avaliacaoAbertaId = null },
+                        onDismiss = {
+                            avaliacaoAbertaId = null
+                            viewModel.formularioDeAvaliacaoFechou()
+                        },
                         // Um toque curto confirma no dedo que a avaliação foi gravada ou apagada
                         onSalvar = { avaliacao ->
                             haptico.performHapticFeedback(HapticFeedbackType.Confirm)

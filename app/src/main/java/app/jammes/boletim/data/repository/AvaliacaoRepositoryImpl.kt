@@ -27,6 +27,8 @@ class AvaliacaoRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun contarComNota(): Int = avaliacaoDao.contarComNota()
+
     override suspend fun upsert(avaliacao: AvaliacaoDomain): Long {
         val avaliacaoEntity = avaliacao.toEntity()
 

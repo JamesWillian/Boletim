@@ -93,6 +93,7 @@ dependencies {
     implementation(libs.hilt.navigation.compose)
 
     implementation(libs.billing.ktx)
+    implementation(libs.play.review.ktx)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -33,6 +34,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
@@ -45,6 +47,7 @@ import androidx.compose.material.icons.outlined.PersonOff
 import androidx.compose.material.icons.outlined.PersonRemove
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.SettingsBackupRestore
+import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material.icons.outlined.SwitchAccount
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -437,6 +440,8 @@ private fun PaginaInicio(
                     onClick = { onAbrir(Pagina.TrocarAnoLetivo) },
                 ) { Selo(Icons.Outlined.EventRepeat) }
             }
+            // runCatching nos toques daqui: sem navegador no aparelho, não fazem nada em vez de fechar o app
+            val uriHandler = LocalUriHandler.current
             Cartao {
                 LinhaQueAbre(
                     titulo = "Backup e Restauração",
@@ -449,9 +454,22 @@ private fun PaginaInicio(
                     rotuloDoClique = "Abrir as configurações do app",
                     onClick = onConfiguracoes,
                 ) { Selo(Icons.Outlined.Settings) }
+                Divisoria()
+                LinhaQueAbre(
+                    titulo = "Avaliar o app",
+                    rotuloDoClique = "Avaliar o app na Play Store",
+                    onClick = { runCatching { uriHandler.openUri(URL_DA_LOJA) } },
+                    // Este sai do app: o ícone de abrir fora, no lugar da seta
+                    fim = {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    },
+                ) { Selo(Icons.Outlined.StarOutline) }
             }
-            // runCatching: sem navegador no aparelho, o toque não faz nada em vez de fechar o app
-            val uriHandler = LocalUriHandler.current
             TextButton(
                 onClick = { runCatching { uriHandler.openUri(URL_PRIVACIDADE) } },
                 modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -461,6 +479,9 @@ private fun PaginaInicio(
 }
 
 private const val URL_PRIVACIDADE = "https://jameswillian.github.io/Boletim/privacidade/"
+
+// O id escrito aqui, e não o packageName: na variante "minificado" ele termina em .min
+private const val URL_DA_LOJA = "https://play.google.com/store/apps/details?id=app.jammes.boletim"
 
 /** O fim de uma linha que abre a folha do Pro: a etiqueta no lugar da seta. null deixa a seta. */
 private fun etiquetaSe(soNoPro: Boolean): (@Composable () -> Unit)? =

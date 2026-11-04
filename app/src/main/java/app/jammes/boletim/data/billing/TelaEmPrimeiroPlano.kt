@@ -8,8 +8,9 @@ import jakarta.inject.Singleton
 import java.lang.ref.WeakReference
 
 /**
- * A Activity em primeiro plano. A compra da Play só abre por cima de uma tela, e assim a loja chega
- * nela sem a Activity passar pelo ViewModel nem pelo domínio. A BoletimApp registra no onCreate.
+ * A Activity em primeiro plano. A compra e o cartão de avaliação da Play só abrem por cima de uma tela,
+ * e assim a loja chega nela sem a Activity passar pelo ViewModel nem pelo domínio. A BoletimApp registra
+ * no onCreate.
  *
  * Fica numa WeakReference: guardar a Activity em si prenderia ela na memória depois de fechada.
  */

@@ -22,7 +22,7 @@ class BoletimApp: Application() {
 
     override fun onCreate() {
         super.onCreate()
-        // A loja do Pro abre a compra por cima da tela que estiver à vista
+        // A Play abre a compra do Pro e o cartão de avaliação por cima da tela que estiver à vista
         registerActivityLifecycleCallbacks(telaEmPrimeiroPlano)
         criarCanalDosAvisos(this)
         // Marca o próximo horário agora e a cada mudança na chave ou nos horários

@@ -26,4 +26,7 @@ interface AvaliacaoDao {
 
     @Query("SELECT * FROM avaliacao WHERE periodo_id = :periodoId ORDER BY data, id")
     fun observarPorPeriodo(periodoId: Long): Flow<List<AvaliacaoEntity>>
+
+    @Query("SELECT COUNT(*) FROM avaliacao WHERE nota IS NOT NULL")
+    suspend fun contarComNota(): Int
 }

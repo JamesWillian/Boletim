@@ -7,6 +7,8 @@ import androidx.navigation.toRoute
 import app.jammes.boletim.domain.model.AvaliacaoDomain
 import app.jammes.boletim.domain.model.DisciplinaDetalhe
 import app.jammes.boletim.domain.model.FaltaDomain
+import app.jammes.boletim.domain.model.RegraAvaliacaoDomain
+import app.jammes.boletim.domain.model.StatusDisciplina
 import app.jammes.boletim.domain.model.TipoAvaliacao
 import app.jammes.boletim.domain.model.intervalo
 import app.jammes.boletim.domain.model.periodoDe
@@ -15,9 +17,11 @@ import app.jammes.boletim.domain.repository.ContextoRepository
 import app.jammes.boletim.domain.repository.DisciplinaRepository
 import app.jammes.boletim.domain.repository.FaltaRepository
 import app.jammes.boletim.domain.usecase.ObterDisciplinaDetalhe
+import app.jammes.boletim.domain.usecase.PedirAvaliacaoNaLoja
 import app.jammes.boletim.presentation.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jakarta.inject.Inject
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.filterNotNull
@@ -33,6 +37,17 @@ sealed interface DisciplinaUiState {
     data class Sucesso(val detalhe: DisciplinaDetalhe) : DisciplinaUiState
 }
 
+/**
+ * Se gravar esta avaliação é um bom momento para pedir a avaliação na loja: ela ganhou nota, e a nota
+ * não ficou abaixo da mínima. A final fica de fora: depois dela a tela já pergunta se a disciplina acabou.
+ */
+internal fun horaDePedirAvaliacaoNaLoja(avaliacao: AvaliacaoDomain, regra: RegraAvaliacaoDomain): Boolean {
+    val nota = avaliacao.nota
+    if (nota == null || avaliacao.tipo == TipoAvaliacao.FINAL) return false
+    val status = statusDaNota(nota, avaliacao.notaMaxima, regra, avaliacao.tipo)
+    return status != StatusDisciplina.ABAIXO && status != StatusDisciplina.REPROVADO
+}
+
 @HiltViewModel
 class DisciplinaViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
@@ -41,6 +56,7 @@ class DisciplinaViewModel @Inject constructor(
     private val avaliacaoRepo: AvaliacaoRepository,
     private val faltaRepo: FaltaRepository,
     private val disciplinaRepo: DisciplinaRepository,
+    private val pedirAvaliacaoNaLoja: PedirAvaliacaoNaLoja,
 ): ViewModel() {
 
     // Argumentos da rota que abriu a tela. Cada disciplina aberta ganha seu próprio ViewModel,
@@ -88,15 +104,33 @@ class DisciplinaViewModel @Inject constructor(
         )
     }
 
+    // O pedido de avaliação na loja espera o formulário fechar, porque "Outra" grava sem fechar. Vale
+    // a última gravada, que é a nota que a pessoa acabou de ver
+    private var pedirAoFechar = false
+    private var ultimaGravacao: Job? = null
+
     /**
      * Grava a avaliação. A final é do ano: gravada com a tela num período, a tela passa para o ano
      * letivo inteiro, que é onde ela aparece (no grupo dela) e muda a média.
      */
     fun salvar(avaliacao: AvaliacaoDomain) {
-        val numPeriodo = (state.value as? DisciplinaUiState.Sucesso)?.detalhe?.periodoId != null
-        viewModelScope.launch {
+        val detalhe = (state.value as? DisciplinaUiState.Sucesso)?.detalhe
+        val numPeriodo = detalhe?.periodoId != null
+        pedirAoFechar = detalhe != null && horaDePedirAvaliacaoNaLoja(avaliacao, detalhe.regra)
+        ultimaGravacao = viewModelScope.launch {
             avaliacaoRepo.upsert(avaliacao)
             if (avaliacao.tipo == TipoAvaliacao.FINAL && numPeriodo) contextoRepo.selecionarPeriodo(null)
+        }
+    }
+
+    /** O formulário da avaliação fechou: se for a hora, a loja mostra o cartão de avaliação do app. */
+    fun formularioDeAvaliacaoFechou() {
+        if (!pedirAoFechar) return
+        pedirAoFechar = false
+        val gravacao = ultimaGravacao
+        viewModelScope.launch {
+            gravacao?.join() // a nota recém-lançada entra na conta
+            pedirAvaliacaoNaLoja()
         }
     }
 

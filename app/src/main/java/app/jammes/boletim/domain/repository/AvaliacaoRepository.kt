@@ -7,6 +7,10 @@ interface AvaliacaoRepository {
 
     fun observeByDisciplina(disciplinaId: Long): Flow<List<AvaliacaoDomain>>
     fun observeByPeriodo(periodoId: Long): Flow<List<AvaliacaoDomain>>
+
+    /** Quantas avaliações já têm nota, somando todos os alunos e todas as matérias. */
+    suspend fun contarComNota(): Int
+
     suspend fun upsert(avaliacao: AvaliacaoDomain): Long
     suspend fun delete(avaliacao: AvaliacaoDomain)
 }
