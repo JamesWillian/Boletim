@@ -19,6 +19,9 @@ navigationCompose = "2.9.8"
 vico = "3.2.3" # A 3.3 já vem compilada com Kotlin 2.4 (stdlib 2.4.10), e o Hilt não lê os metadados dela
 billing = "9.1.0"
 playReview = "2.0.2"
+firebaseBom = "35.1.0"
+googleServices = "4.5.0"
+firebaseCrashlyticsPlugin = "3.0.8"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -60,6 +63,10 @@ billing-ktx = { group = "com.android.billingclient", name = "billing-ktx", versi
 # Avaliação na loja #
 play-review-ktx = { group = "com.google.android.play", name = "review-ktx", version.ref = "playReview" }
 
+# Firebase #
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
+firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics" } # Os relatórios de falhas
+
 # Testes #
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
@@ -72,4 +79,6 @@ kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", versi
 kotlin-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 androidx-room = { id = "androidx.room", version.ref = "room" } # Exporta o schema de cada versão do banco
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" } # Lê o app/google-services.json
+firebase-crashlytics = { id = "com.google.firebase.crashlytics", version.ref = "firebaseCrashlyticsPlugin" } # Envia o mapping do R8 no build
 

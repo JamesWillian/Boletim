@@ -5,6 +5,8 @@ plugins {
     alias(libs.plugins.kotlin.ksp)
     alias(libs.plugins.hilt)
     alias(libs.plugins.androidx.room)
+    alias(libs.plugins.google.services)
+    alias(libs.plugins.firebase.crashlytics)
 }
 
 android {
@@ -26,12 +28,17 @@ android {
 
         // Os limites do plano grátis. Desligados, todo mundo é Pro: o release fica assim até dar para comprar
         buildConfigField("boolean", "LIMITES_DO_FREE", "false")
+
+        // Os relatórios de falhas do Crashlytics, no meta-data do manifesto
+        manifestPlaceholders["crashlyticsLigado"] = true
     }
 
     buildTypes {
         debug {
             // Os limites valem, e a chave "Pro de teste" das Configurações mostra os dois lados
             buildConfigField("boolean", "LIMITES_DO_FREE", "true")
+            // Tem o mesmo pacote do release: as falhas do desenvolvimento ficam fora do painel
+            manifestPlaceholders["crashlyticsLigado"] = false
         }
         release {
             isMinifyEnabled = true
@@ -94,6 +101,9 @@ dependencies {
 
     implementation(libs.billing.ktx)
     implementation(libs.play.review.ktx)
+
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.crashlytics)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

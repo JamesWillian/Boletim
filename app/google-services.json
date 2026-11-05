@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "703901834983",
+    "project_id": "boletim-escolar-7e47f",
+    "storage_bucket": "boletim-escolar-7e47f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:703901834983:android:da80d9c029bbb081ebcc42",
+        "android_client_info": {
+          "package_name": "app.jammes.boletim"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDdDcIxnS5kgw-YnKPTDSutFPxQcOhImlY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:703901834983:android:248b2599017354bdebcc42",
+        "android_client_info": {
+          "package_name": "app.jammes.boletim.min"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDdDcIxnS5kgw-YnKPTDSutFPxQcOhImlY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

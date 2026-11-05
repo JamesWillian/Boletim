@@ -9,6 +9,9 @@
     <!-- O despertador na hora certa. Vem liberada até o Android 13; do 14 em diante, vem desligada
          (Alarmes e lembretes, nas configurações do app), e o despertador pode atrasar -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <!-- Os relatórios de falhas do Crashlytics saem pela internet. As bibliotecas do Google já trazem
+         esta permissão; declarada aqui, ela fica à vista -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:name=".BoletimApp"
@@ -53,6 +56,11 @@
                 <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
             </intent-filter>
         </receiver>
+
+        <!-- Os relatórios de falhas: o build type decide, e no debug ficam desligados -->
+        <meta-data
+            android:name="firebase_crashlytics_collection_enabled"
+            android:value="${crashlyticsLigado}" />
     </application>
 
 </manifest>
