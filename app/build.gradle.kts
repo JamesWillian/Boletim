@@ -31,6 +31,8 @@ android {
 
         // Os relatórios de falhas do Crashlytics, no meta-data do manifesto
         manifestPlaceholders["crashlyticsLigado"] = true
+        // Os números de uso do Analytics, no outro meta-data: true desliga a coleta
+        manifestPlaceholders["analyticsDesligado"] = false
     }
 
     buildTypes {
@@ -39,6 +41,8 @@ android {
             buildConfigField("boolean", "LIMITES_DO_FREE", "true")
             // Tem o mesmo pacote do release: as falhas do desenvolvimento ficam fora do painel
             manifestPlaceholders["crashlyticsLigado"] = false
+            // Pelo mesmo motivo, o uso durante o desenvolvimento não entra nos números
+            manifestPlaceholders["analyticsDesligado"] = true
         }
         release {
             isMinifyEnabled = true
@@ -104,6 +108,7 @@ dependencies {
 
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.analytics)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

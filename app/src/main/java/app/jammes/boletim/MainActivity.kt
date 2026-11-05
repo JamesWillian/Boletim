@@ -18,6 +18,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.jammes.boletim.avisos.AberturaPeloAviso
+import app.jammes.boletim.domain.repository.RegistroDeUso
 import app.jammes.boletim.presentation.contexto.ContextoUiState
 import app.jammes.boletim.presentation.contexto.ContextoViewModel
 import app.jammes.boletim.presentation.navigation.AppNavGraph
@@ -27,6 +28,7 @@ import app.jammes.boletim.presentation.ui.plano.PlanoViewModel
 import app.jammes.boletim.presentation.ui.theme.BoletimTheme
 import app.jammes.boletim.presentation.ui.theme.temaEscuro
 import dagger.hilt.android.AndroidEntryPoint
+import jakarta.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -37,6 +39,8 @@ class MainActivity : ComponentActivity() {
     private val configuracoesVm: ConfiguracoesViewModel by viewModels()
     // A loja do Pro: a cada volta ao app, confere as compras da conta da Play
     private val planoVm: PlanoViewModel by viewModels()
+    // Conta as telas abertas: é o AppRoot que sabe qual tela está na frente
+    @Inject lateinit var registroDeUso: RegistroDeUso
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splash = installSplashScreen() // antes do super.onCreate, como a biblioteca pede
@@ -69,7 +73,7 @@ class MainActivity : ComponentActivity() {
 
             BoletimTheme(darkTheme = escuro) {
 //                AppNavGraph()
-                AppRoot()
+                AppRoot(onTelaAberta = registroDeUso::telaAberta)
 //                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
 //                    BoletimScreen(
 //                        modifier = Modifier.padding(innerPadding)

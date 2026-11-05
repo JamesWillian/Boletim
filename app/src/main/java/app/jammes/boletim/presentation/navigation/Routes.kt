@@ -55,3 +55,10 @@ object Routes {
     @Serializable data object ConfiguracoesDasNotificacoes
     @Serializable data object Aluno
 }
+
+/**
+ * O nome da tela no registro de uso, tirado do modelo da rota: `…Routes.Boletim.Disciplina/{disciplinaId}`
+ * vira `Boletim.Disciplina`. O modelo só tem os nomes dos argumentos, nunca os valores.
+ */
+fun nomeDaTela(rota: String): String =
+    rota.substringAfter("Routes.").substringBefore('/').substringBefore('?')

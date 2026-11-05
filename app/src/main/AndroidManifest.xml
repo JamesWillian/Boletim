@@ -9,9 +9,20 @@
     <!-- O despertador na hora certa. Vem liberada até o Android 13; do 14 em diante, vem desligada
          (Alarmes e lembretes, nas configurações do app), e o despertador pode atrasar -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-    <!-- Os relatórios de falhas do Crashlytics saem pela internet. As bibliotecas do Google já trazem
-         esta permissão; declarada aqui, ela fica à vista -->
+    <!-- Os relatórios de falhas do Crashlytics e os números de uso do Analytics saem pela internet. As
+         bibliotecas do Google já trazem esta permissão; declarada aqui, ela fica à vista -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- O Analytics traz estas permissões, mas o app não tem anúncios: fica sem o ID de publicidade e
+         sem as medições de anúncios do Android -->
+    <uses-permission
+        android:name="com.google.android.gms.permission.AD_ID"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.ACCESS_ADSERVICES_AD_ID"
+        tools:node="remove" />
+    <uses-permission
+        android:name="android.permission.ACCESS_ADSERVICES_ATTRIBUTION"
+        tools:node="remove" />
 
     <application
         android:name=".BoletimApp"
@@ -61,6 +72,23 @@
         <meta-data
             android:name="firebase_crashlytics_collection_enabled"
             android:value="${crashlyticsLigado}" />
+
+        <!-- Os números de uso: o build type decide, e no debug a coleta fica desligada -->
+        <meta-data
+            android:name="firebase_analytics_collection_deactivated"
+            android:value="${analyticsDesligado}" />
+        <!-- Sem anúncios: nada de ID de publicidade nem de dados para personalizar anúncios -->
+        <meta-data
+            android:name="google_analytics_adid_collection_enabled"
+            android:value="false" />
+        <meta-data
+            android:name="google_analytics_default_allow_ad_personalization_signals"
+            android:value="false" />
+        <!-- O app tem uma Activity só, e a contagem automática chamaria tudo de MainActivity: quem conta
+             as telas é a moldura do app (ContarTela) -->
+        <meta-data
+            android:name="google_analytics_automatic_screen_reporting_enabled"
+            android:value="false" />
     </application>
 
 </manifest>

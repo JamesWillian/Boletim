@@ -66,6 +66,7 @@ play-review-ktx = { group = "com.google.android.play", name = "review-ktx", vers
 # Firebase #
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
 firebase-crashlytics = { group = "com.google.firebase", name = "firebase-crashlytics" } # Os relatórios de falhas
+firebase-analytics = { group = "com.google.firebase", name = "firebase-analytics" } # Os números de uso
 
 # Testes #
 junit = { group = "junit", name = "junit", version.ref = "junit" }

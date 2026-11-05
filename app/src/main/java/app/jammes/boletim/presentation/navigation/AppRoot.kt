@@ -3,8 +3,11 @@ package app.jammes.boletim.presentation.navigation
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModelStoreOwner
@@ -28,7 +31,7 @@ import java.util.UUID
  * ```
  */
 @Composable
-fun AppRoot() {
+fun AppRoot(onTelaAberta: (String) -> Unit) {
     val owner = LocalActivity.current as ViewModelStoreOwner
     val contextoVm: ContextoViewModel = hiltViewModel(owner)
     val state by contextoVm.state.collectAsStateWithLifecycle()
@@ -44,6 +47,7 @@ fun AppRoot() {
             // excluir o último aluno. O ViewModel fica na Activity, e o de uma vez anterior ainda
             // estaria "salvando", com o botão do fim travado
             val vez = rememberSaveable { UUID.randomUUID().toString() }
+            ContarTela(chave = vez, nome = "Onboarding", onContar = onTelaAberta)
             OnboardingScreen(vm = hiltViewModel(owner, key = "onboarding-$vez"))
         }
 
@@ -63,8 +67,24 @@ fun AppRoot() {
                 estiloDasAbas = (configuracoes ?: Configuracoes()).estiloDasAbas,
                 temNotificacoesNovas = temNotificacoesNovas,
                 irParaNotificacoes = contextoVm.irParaNotificacoes,
-                onSelecionarPeriodo = { periodo -> contextoVm.trocarPeriodo(periodo?.id) }
+                onSelecionarPeriodo = { periodo -> contextoVm.trocarPeriodo(periodo?.id) },
+                onTelaAberta = onTelaAberta,
             )
+        }
+    }
+}
+
+/**
+ * Conta a tela [nome] no registro de uso, uma vez por [chave]. Girar o celular recria a Activity com a
+ * mesma tela aberta: a chave guardada evita contar de novo.
+ */
+@Composable
+fun ContarTela(chave: String, nome: String, onContar: (String) -> Unit) {
+    var contada by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(chave) {
+        if (chave != contada) {
+            contada = chave
+            onContar(nome)
         }
     }
 }

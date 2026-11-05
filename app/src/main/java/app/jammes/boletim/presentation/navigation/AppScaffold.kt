@@ -63,6 +63,7 @@ fun AppScaffold(
     temNotificacoesNovas: Boolean, // o ponto azul no sino
     irParaNotificacoes: Flow<Unit>, // o toque num aviso do celular
     onSelecionarPeriodo: (PeriodoDomain?) -> Unit, // null: o ano letivo inteiro
+    onTelaAberta: (String) -> Unit, // o nome da tela, para o registro de uso
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
 ) {
@@ -76,6 +77,9 @@ fun AppScaffold(
     }
 
     val topo by navController.currentBackStackEntryAsState()
+    // Cada entrada na pilha é uma tela aberta, mesmo se for a volta para uma que já estava lá
+    topo?.let { ContarTela(chave = it.id, nome = nomeDaTela(it.destination.route.orEmpty()), onContar = onTelaAberta) }
+
     // O perfil do aluno é um dialog, aberto por cima: a moldura segue a tela de baixo. Sem isso, as
     // abas sairiam enquanto ele está aberto
     val entradaAtual = if (topo?.destination is DialogNavigator.Destination) {
