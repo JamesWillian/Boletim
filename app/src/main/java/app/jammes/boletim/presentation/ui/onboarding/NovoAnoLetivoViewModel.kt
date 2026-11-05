@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import app.jammes.boletim.domain.model.LimiteDoGratisException
 import app.jammes.boletim.domain.model.PerfilAluno
 import app.jammes.boletim.domain.repository.ContextoRepository
+import app.jammes.boletim.domain.repository.RegistroDeFalhas
 import app.jammes.boletim.domain.usecase.AnoLetivoRepetidoException
 import app.jammes.boletim.domain.usecase.CriarAnoLetivo
 import app.jammes.boletim.domain.usecase.ObterPerfilAluno
@@ -27,6 +28,7 @@ class NovoAnoLetivoViewModel @Inject constructor(
     contextoRepo: ContextoRepository,
     obterPerfil: ObterPerfilAluno,
     private val criarAnoLetivo: CriarAnoLetivo,
+    private val registroDeFalhas: RegistroDeFalhas,
 ) : ViewModel() {
 
     /** O aluno aberto, que ganha o ano novo, com os anos que ele já tem; null enquanto carrega. */
@@ -66,6 +68,7 @@ class NovoAnoLetivoViewModel @Inject constructor(
                 _salvando.value = false
                 // O ano repetido e o do Pro a tela já não deixa escolher: sobra o caso de algo mudar no meio
                 val motivo = (e as? AnoLetivoRepetidoException)?.message ?: (e as? LimiteDoGratisException)?.message
+                if (motivo == null) registroDeFalhas.registrar(e)
                 _erros.send(motivo ?: "Não deu para criar. Tente de novo.")
             }
         }

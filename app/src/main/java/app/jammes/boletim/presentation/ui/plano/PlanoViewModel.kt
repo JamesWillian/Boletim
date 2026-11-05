@@ -7,6 +7,7 @@ import app.jammes.boletim.domain.model.Plano
 import app.jammes.boletim.domain.model.ResultadoDaCompra
 import app.jammes.boletim.domain.repository.LojaDoPro
 import app.jammes.boletim.domain.repository.PlanoRepository
+import app.jammes.boletim.domain.repository.RegistroDeFalhas
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jakarta.inject.Inject
 import kotlinx.coroutines.CancellationException
@@ -49,6 +50,7 @@ internal fun avisoDaRestauracao(achou: Boolean?): AvisoDaLoja? = when (achou) {
 class PlanoViewModel @Inject constructor(
     private val repo: PlanoRepository,
     private val loja: LojaDoPro,
+    private val registroDeFalhas: RegistroDeFalhas,
 ) : ViewModel() {
 
     /** null até a primeira leitura. */
@@ -101,6 +103,7 @@ class PlanoViewModel @Inject constructor(
                 acao()
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
+                registroDeFalhas.registrar(e)
                 AvisoDaLoja.INDISPONIVEL
             }
             _estadoDaLoja.value = EstadoDaLoja(aviso = aviso)

@@ -7,6 +7,7 @@ import app.jammes.boletim.domain.model.LimiteDoGratisException
 import app.jammes.boletim.domain.model.MateriaDomain
 import app.jammes.boletim.domain.repository.DicasRepository
 import app.jammes.boletim.domain.repository.MateriaRepository
+import app.jammes.boletim.domain.repository.RegistroDeFalhas
 import app.jammes.boletim.domain.usecase.ComecarBoletim
 import dagger.hilt.android.lifecycle.HiltViewModel
 import jakarta.inject.Inject
@@ -26,6 +27,7 @@ class OnboardingViewModel @Inject constructor(
     private val comecarBoletim: ComecarBoletim,
     private val dadosDeTeste: DadosDeTeste,
     private val dicasRepository: DicasRepository,
+    private val registroDeFalhas: RegistroDeFalhas,
     materiaRepository: MateriaRepository,
 ) : ViewModel() {
 
@@ -65,6 +67,7 @@ class OnboardingViewModel @Inject constructor(
                 if (e is CancellationException) throw e
                 _salvando.value = false
                 // O limite do grátis o perfil já não deixa alcançar: sobra o caso de o Pro sair no meio do cadastro
+                if (e !is LimiteDoGratisException) registroDeFalhas.registrar(e)
                 _erros.send((e as? LimiteDoGratisException)?.message ?: "Não deu para salvar. Tente de novo.")
             }
         }

@@ -21,6 +21,7 @@ import app.jammes.boletim.domain.model.BackupComSenha
 import app.jammes.boletim.domain.model.BackupInvalidoException
 import app.jammes.boletim.domain.model.BackupLido
 import app.jammes.boletim.domain.repository.BackupRepository
+import app.jammes.boletim.domain.repository.RegistroDeFalhas
 import dagger.hilt.android.qualifiers.ApplicationContext
 import jakarta.inject.Inject
 import kotlinx.coroutines.Dispatchers
@@ -36,6 +37,7 @@ class BackupRepositoryImpl @Inject constructor(
     @ApplicationContext private val context: Context,
     private val db: AppDatabase,
     private val dao: BackupDao,
+    private val registroDeFalhas: RegistroDeFalhas,
 ) : BackupRepository {
 
     override suspend fun exportar(destino: String, senha: String?) {
@@ -76,6 +78,7 @@ class BackupRepositoryImpl @Inject constructor(
             // A transação já desfez tudo: os dados de antes continuam
             throw BackupInvalidoException(BACKUP_ALTERADO)
         } catch (e: SQLiteException) {
+            registroDeFalhas.registrar(e)
             throw IOException("Os dados não foram gravados", e) // sem espaço no aparelho, por exemplo
         }
     }

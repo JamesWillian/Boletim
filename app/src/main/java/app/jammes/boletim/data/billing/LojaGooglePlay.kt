@@ -6,6 +6,7 @@ import app.jammes.boletim.data.local.preferences.PlanoPreferences
 import app.jammes.boletim.domain.model.OfertaDoPro
 import app.jammes.boletim.domain.model.ResultadoDaCompra
 import app.jammes.boletim.domain.repository.LojaDoPro
+import app.jammes.boletim.domain.repository.RegistroDeFalhas
 import com.android.billingclient.api.AcknowledgePurchaseParams
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingClient.BillingResponseCode
@@ -51,12 +52,17 @@ class LojaGooglePlay @Inject constructor(
     @ApplicationContext context: Context,
     private val tela: TelaEmPrimeiroPlano,
     private val prefs: PlanoPreferences,
+    private val registroDeFalhas: RegistroDeFalhas,
 ) : LojaDoPro {
 
     // Vive o tanto que o app vive: as compras que chegam pelo listener são guardadas aqui. Um erro
-    // nesses trabalhos de fundo não derruba o app: fica no log, e a próxima sincronização tenta de novo
+    // nesses trabalhos de fundo não derruba o app: fica no log e no registro, e a próxima sincronização
+    // tenta de novo
     private val escopo = CoroutineScope(
-        SupervisorJob() + Dispatchers.Default + CoroutineExceptionHandler { _, e -> Log.e(TAG, "A loja falhou", e) }
+        SupervisorJob() + Dispatchers.Default + CoroutineExceptionHandler { _, e ->
+            Log.e(TAG, "A loja falhou", e)
+            registroDeFalhas.registrar(e)
+        }
     )
 
     private val cliente: BillingClient = BillingClient.newBuilder(context)
