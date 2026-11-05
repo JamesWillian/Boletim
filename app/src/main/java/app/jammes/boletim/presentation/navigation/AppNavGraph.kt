@@ -84,7 +84,7 @@ fun AppNavGraph() {
             modifier = Modifier.padding(paddingValues)
         ) {
             composable<Routes.Materia> {
-                MateriaScreen()
+                MateriaScreen(onVoltar = { navController.popBackStack() })
             }
             composable<Routes.AnoLetivo> {
                 AnoLetivoScreen(onVoltar = { navController.popBackStack() })
@@ -98,6 +98,7 @@ fun AppNavGraph() {
                     onContextoTrocado = { navController.popBackStack() },
                     onNovoAnoLetivo = { navController.navigate(Routes.NovoAnoLetivo) },
                     onNovoAluno = { navController.navigate(Routes.NovoAluno) },
+                    onMaterias = { navController.navigate(Routes.Materia) },
                     onBackup = { navController.navigate(Routes.Backup) },
                     onConfiguracoes = { navController.navigate(Routes.Configuracoes) },
                 )

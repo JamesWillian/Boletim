@@ -12,7 +12,7 @@ import org.junit.Test
 import java.time.LocalDate
 import kotlin.time.Instant
 
-/** O estado do perfil: o aluno aberto e, pelo plano, se o Novo aluno e o Criar novo ano letivo abrem a folha do Pro. */
+/** O estado do perfil: o aluno aberto e, pelo plano, se o Novo aluno e o Novo ano letivo abrem a folha do Pro. */
 class AlunoViewModelTest {
 
     @Test fun `no gratis, com um aluno, o novo aluno e do Pro`() {

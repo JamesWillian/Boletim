@@ -3,8 +3,6 @@ package app.jammes.boletim.domain.usecase
 import app.jammes.boletim.domain.model.AlunoDomain
 import app.jammes.boletim.domain.model.CriacaoDoAno
 import app.jammes.boletim.domain.model.Etapa
-import app.jammes.boletim.domain.model.FonteMateria
-import app.jammes.boletim.domain.model.IconeMateria
 import app.jammes.boletim.domain.model.LimiteDoGratisException
 import app.jammes.boletim.domain.model.MateriaDomain
 import app.jammes.boletim.domain.model.PeriodoDomain
@@ -21,7 +19,6 @@ import app.jammes.boletim.domain.repository.PlanoRepository
 import app.jammes.boletim.domain.repository.Transacao
 import jakarta.inject.Inject
 import kotlinx.coroutines.flow.first
-import java.text.Normalizer
 import java.time.LocalDate
 import kotlin.time.Clock
 
@@ -51,73 +48,13 @@ internal fun materiasDoPrimeiroAno(etapa: Etapa?, materias: List<MateriaDomain>)
     return materias.filter { it.nome in deCostume }.ifEmpty { materias.take(MATERIAS_DO_ANO_NOVO) }
 }
 
-// O ícone de uma matéria nova, pelo começo de uma palavra do nome (sem acentos: "Música" e
-// "Musical" dão no mesmo). Sem nenhuma, fica o padrão
-private val ICONES_POR_PALAVRA = listOf(
-    "music" to IconeMateria.NOTA_MUSICAL,
-    "robot" to IconeMateria.ROBO,
-    "program" to IconeMateria.CODIGO,
-    "informat" to IconeMateria.COMPUTADOR,
-    "tecnolog" to IconeMateria.COMPUTADOR,
-    "redac" to IconeMateria.REDACAO,
-    "literat" to IconeMateria.REDACAO,
-    "financ" to IconeMateria.DINHEIRO,
-    "econom" to IconeMateria.DINHEIRO,
-    "teatro" to IconeMateria.TEATRO,
-    "desenho" to IconeMateria.REGUA,
-    "espanhol" to IconeMateria.IDIOMA,
-    "frances" to IconeMateria.IDIOMA,
-)
-
-/** O ícone que o nome sugere: "Educação Musical" ganha a nota musical, "Robótica" o robô. */
-internal fun iconeSugerido(nome: String): IconeMateria {
-    val palavras = Normalizer.normalize(nome.lowercase(), Normalizer.Form.NFD)
-        .replace(MARCAS_DE_ACENTO, "")
-        .split(' ', '-')
-    return ICONES_POR_PALAVRA.firstOrNull { (comeco, _) -> palavras.any { it.startsWith(comeco) } }?.second
-        ?: IconeMateria.PADRAO
-}
-
-private val MARCAS_DE_ACENTO = Regex("\\p{M}")
-
-/**
- * Uma matéria criada no onboarding ou nas matérias do ano, como foi digitada: o nome e a sigla.
- * É Serializable porque fica nos formulários, que o rememberSaveable guarda.
- */
-data class MateriaNova(
-    val nome: String,
-    val abreviacao: String? = null, // null ou vazia: sai do nome
-) : java.io.Serializable
-
-/**
- * As matérias criadas no onboarding ou nas matérias do ano, ainda sem id. Cada uma pega a menor cor
- * que o [cadastro] ainda não usa (as padrão deixam umas livres), para não repetir a de outra aba, e o
- * [iconeSugerido]. Sem sigla digitada, ela sai das três primeiras letras do nome, a mesma que o campo
- * mostra de exemplo.
- */
-internal fun materiasNovas(novas: List<MateriaNova>, cadastro: List<MateriaDomain>): List<MateriaDomain> {
-    val usadas = cadastro.map { it.cor }.toSet()
-    val livres = generateSequence(0) { it + 1 }.filter { it !in usadas }.iterator()
-    return novas.map { nova ->
-        val nome = nova.nome.trim()
-        MateriaDomain(
-            nome = nome,
-            abreviacao = nova.abreviacao?.trim()?.takeIf { it.isNotEmpty() }?.uppercase()
-                ?: nome.filter { it.isLetterOrDigit() }.take(3).uppercase(),
-            cor = livres.next(),
-            icone = iconeSugerido(nome),
-            fonte = FonteMateria.USUARIO,
-        )
-    }
-}
-
 // ---------------------------------------------------------------------------
 // Caso de uso
 // ---------------------------------------------------------------------------
 
 /**
  * O que o onboarding escolheu. Os períodos e a regra ainda não têm ano letivo (id 0); as matérias são
- * as do cadastro marcadas ([materiaIds]) e as criadas ali ([materiasNovas], com o nome e a sigla).
+ * as do cadastro marcadas ([materiaIds]) e as criadas ali ([materiasNovas], ainda sem id).
  */
 data class PrimeiroAno(
     val nome: String,
@@ -127,7 +64,7 @@ data class PrimeiroAno(
     val periodos: List<PeriodoDomain>,
     val regra: RegraAvaliacaoDomain,
     val materiaIds: Set<Long>,
-    val materiasNovas: List<MateriaNova> = emptyList(),
+    val materiasNovas: List<MateriaDomain> = emptyList(),
 )
 
 class ComecarBoletim @Inject constructor(
@@ -160,7 +97,7 @@ class ComecarBoletim @Inject constructor(
         val (alunoId, anoLetivo) = transacao {
             val alunoId = alunoRepository.upsert(AlunoDomain(nome = primeiro.nome.trim(), criadoEm = Clock.System.now()))
             // As novas entram no cadastro aqui, junto com o resto: desistir no meio não deixa sobra
-            val criadas = materiasNovas(primeiro.materiasNovas, cadastro).map { it.copy(id = materiaRepository.upsert(it)) }
+            val criadas = primeiro.materiasNovas.map { it.copy(id = materiaRepository.upsert(it)) }
             val novo = anoLetivoNovo(alunoId, primeiro.ano, primeiro.serie, primeiro.tipoPeriodo, primeiro.periodos)
             alunoId to gravarAnoLetivoNovo(novo, marcadas + criadas, primeiro.regra)
         }

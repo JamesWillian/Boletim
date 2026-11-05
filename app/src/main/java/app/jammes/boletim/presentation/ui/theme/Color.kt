@@ -86,6 +86,9 @@ object CoresDisciplina {
     )
     fun de(indice: Int) = paleta[indice % paleta.size]
 
+    /** A primeira cor que ninguém usa, para uma matéria nova não repetir a de outra aba; todas usadas, a primeira. */
+    fun primeiraLivre(usadas: Collection<Int>): Int = paleta.indices.firstOrNull { it !in usadas } ?: 0
+
     // O nome de cada cor, na mesma ordem da paleta: é o que o leitor de tela diz no seletor de cor
     private val nomes = listOf(
         "Vermelho", "Azul", "Verde", "Laranja", "Roxo", "Azul ciano", "Rosa", "Roxo escuro", "Índigo",

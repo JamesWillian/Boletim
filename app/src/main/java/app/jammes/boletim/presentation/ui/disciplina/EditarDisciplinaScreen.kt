@@ -46,7 +46,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -64,7 +63,6 @@ import app.jammes.boletim.domain.model.RegraAvaliacaoDomain
 import app.jammes.boletim.domain.model.TipoArredondamento
 import app.jammes.boletim.domain.model.TipoMedia
 import app.jammes.boletim.domain.model.intervalo
-import app.jammes.boletim.presentation.ui.plano.EtiquetaPro
 import app.jammes.boletim.presentation.ui.plano.FolhaDoPro
 import app.jammes.boletim.domain.usecase.CalcularFrequencia
 import app.jammes.boletim.presentation.ui.anoletivo.BarraDeSalvar
@@ -85,8 +83,8 @@ import app.jammes.boletim.presentation.ui.boletim.formatarMedia
 import app.jammes.boletim.presentation.ui.components.CarregandoDiscreto
 import app.jammes.boletim.presentation.ui.components.EstadoVazio
 import app.jammes.boletim.presentation.ui.components.SeloDisciplina
-import app.jammes.boletim.presentation.ui.components.SeletorDeCor
-import app.jammes.boletim.presentation.ui.components.SeletorDeIcone
+import app.jammes.boletim.presentation.ui.components.SecaoDaCor
+import app.jammes.boletim.presentation.ui.components.SecaoDoIcone
 import app.jammes.boletim.presentation.ui.components.siglaDaDisciplina
 import app.jammes.boletim.presentation.ui.theme.CoresDisciplina
 import app.jammes.boletim.presentation.ui.theme.Espacos
@@ -466,26 +464,19 @@ private fun SecaoCor(
     onPro: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier) {
-        TituloDaSecao("Cor", alterada = alterada) {
-            if (bloqueada) {
-                EtiquetaDaSecao(onPro)
-            } else {
-                Redefinir(
-                    visivel = daMateria != null && cor != daMateria,
-                    rotuloDoClique = "Voltar à cor da matéria",
-                    onClick = { daMateria?.let(onEscolher) },
-                )
-            }
-        }
-        Cartao {
-            SeletorDeCor(
-                selecionada = cor,
-                onSelecionar = if (bloqueada) { _ -> onPro() } else onEscolher,
-                contentPadding = PaddingValues(Espacos.l),
-                modifier = Modifier.alpha(if (bloqueada) ALFA_DO_BLOQUEIO else 1f),
-            )
-        }
+    SecaoDaCor(
+        cor = cor,
+        onEscolher = onEscolher,
+        modifier = modifier,
+        alterada = alterada,
+        bloqueada = bloqueada,
+        onPro = onPro,
+    ) {
+        Redefinir(
+            visivel = daMateria != null && cor != daMateria,
+            rotuloDoClique = "Voltar à cor da matéria",
+            onClick = { daMateria?.let(onEscolher) },
+        )
     }
 }
 
@@ -500,43 +491,22 @@ private fun SecaoIcone(
     onPro: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier) {
-        TituloDaSecao("Ícone", alterada = alterada) {
-            if (bloqueada) {
-                EtiquetaDaSecao(onPro)
-            } else {
-                Redefinir(
-                    visivel = daMateria != null && icone != daMateria,
-                    rotuloDoClique = "Voltar ao ícone da matéria",
-                    onClick = { daMateria?.let(onEscolher) },
-                )
-            }
-        }
-        Cartao {
-            SeletorDeIcone(
-                selecionado = icone,
-                // Na cor escolhida em cima: cada opção já aparece como o selo vai ficar
-                cor = CoresDisciplina.de(cor),
-                onSelecionar = if (bloqueada) { _ -> onPro() } else onEscolher,
-                contentPadding = PaddingValues(Espacos.l),
-                modifier = Modifier.alpha(if (bloqueada) ALFA_DO_BLOQUEIO else 1f),
-            )
-        }
+    SecaoDoIcone(
+        icone = icone,
+        cor = cor,
+        onEscolher = onEscolher,
+        modifier = modifier,
+        alterada = alterada,
+        bloqueada = bloqueada,
+        onPro = onPro,
+    ) {
+        Redefinir(
+            visivel = daMateria != null && icone != daMateria,
+            rotuloDoClique = "Voltar ao ícone da matéria",
+            onClick = { daMateria?.let(onEscolher) },
+        )
     }
 }
-
-/** A etiqueta do Pro na ponta do título, no lugar do "Redefinir". O toque abre a folha. */
-@Composable
-private fun EtiquetaDaSecao(onPro: () -> Unit) {
-    EtiquetaPro(
-        modifier = Modifier
-            .clip(CircleShape)
-            .clickable(onClickLabel = "Ver o Pro", role = Role.Button, onClick = onPro),
-    )
-}
-
-// As opções do Pro aparecem, mas apagadas: dá para ver o que ele libera
-private const val ALFA_DO_BLOQUEIO = 0.4f
 
 /** O total de aulas e o período da disciplina, cada um abrindo o seu sheet. */
 @Composable

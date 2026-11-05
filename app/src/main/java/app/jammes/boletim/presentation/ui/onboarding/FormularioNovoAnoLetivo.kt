@@ -43,7 +43,7 @@ internal fun datasPadrao(ano: Int, tipo: TipoPeriodo): List<DatasPeriodo> =
 
 /**
  * Os campos de um ano letivo novo: a série, o ano e como ele se divide. O onboarding começa por eles,
- * e o "Criar novo ano letivo" do perfil é só eles, nas mesmas peças de tela. É Serializable para o
+ * e o "Novo ano letivo" do perfil é só eles, nas mesmas peças de tela. É Serializable para o
  * rememberSaveable.
  */
 data class FormularioNovoAnoLetivo(

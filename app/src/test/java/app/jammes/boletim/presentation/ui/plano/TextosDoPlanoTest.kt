@@ -11,6 +11,11 @@ class TextosDoPlanoTest {
         assertEquals("Restam 3 grátis", textoDasQueRestam(3))
     }
 
+    @Test fun `sem nenhuma gratis, o botao de criar materia leva ao Pro`() {
+        assertEquals("Criar uma matéria", rotuloDaMateriaNova(soNoPro = false))
+        assertEquals("Ver o Pro, que libera mais matérias", rotuloDaMateriaNova(soNoPro = true))
+    }
+
     @Test fun `sem compra na conta, o aviso diz para trocar a conta da Play Store`() {
         assertEquals(
             "Nenhuma compra do Pro nesta conta da Google Play. Se comprou com outra, troque a conta na Play Store.",

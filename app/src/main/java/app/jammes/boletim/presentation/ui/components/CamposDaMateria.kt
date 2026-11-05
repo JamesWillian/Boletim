@@ -1,23 +1,31 @@
 package app.jammes.boletim.presentation.ui.components
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import app.jammes.boletim.domain.usecase.semAcentos
+import app.jammes.boletim.presentation.ui.plano.EtiquetaPro
 import app.jammes.boletim.presentation.ui.theme.Espacos
 
 /**
  * O nome de uma matéria ou disciplina, com até [TAMANHO_DO_NOME] caracteres e o contador embaixo.
- * É o mesmo na edição da disciplina e na matéria nova. Com [erro], o campo fica vermelho e o texto
+ * É o mesmo na edição da disciplina e no sheet da matéria. Com [erro], o campo fica vermelho e o texto
  * aparece antes do contador.
  */
 @Composable
@@ -85,6 +93,63 @@ internal fun CampoDaSigla(
         keyboardActions = keyboardActions,
         modifier = modifier.fillMaxWidth()
     )
+}
+
+/**
+ * O nome e a sigla que não dá para mudar: aparecem como estão, apagados. Vazia, a sigla que as abas tiram
+ * do nome. Com [onPro] (no grátis, a disciplina de uma matéria do app), quem libera é o Pro: eles ganham a
+ * etiqueta dele, e o toque chama [onPro].
+ */
+@Composable
+internal fun NomeESiglaBloqueados(nome: String, abreviacao: String, onPro: (() -> Unit)? = null) {
+    CampoBloqueado(valor = nome, rotulo = "Nome", onPro = onPro)
+    CampoBloqueado(valor = abreviacao.ifEmpty { siglaDoNome(nome) }, rotulo = "Sigla", onPro = onPro)
+}
+
+/**
+ * Um campo que não dá para mudar: mostra o valor, apagado. Com [onPro], a etiqueta do Pro vai no fim; o
+ * campo desligado não recebe o toque, então quem recebe é a camada por cima.
+ */
+@Composable
+private fun CampoBloqueado(valor: String, rotulo: String, onPro: (() -> Unit)?) {
+    val cores = MaterialTheme.colorScheme
+    val forma = RoundedCornerShape(12.dp)
+    Box {
+        OutlinedTextField(
+            value = valor,
+            onValueChange = {},
+            enabled = false,
+            label = { Text(rotulo) },
+            // O lugar do ícone tem 48dp, e a etiqueta é mais larga: sem a folga, ela encosta na borda
+            trailingIcon = if (onPro != null) {
+                { EtiquetaPro(Modifier.padding(end = 12.dp), compacta = true) }
+            } else {
+                null
+            },
+            singleLine = true,
+            shape = forma,
+            colors = OutlinedTextFieldDefaults.colors(
+                disabledTextColor = cores.onSurfaceVariant,
+                disabledLabelColor = cores.onSurfaceVariant,
+                disabledBorderColor = cores.outlineVariant,
+            ),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        if (onPro != null) {
+            Box(
+                Modifier
+                    .matchParentSize()
+                    .clip(forma)
+                    .clickable(onClickLabel = "Ver o Pro", onClick = onPro)
+            )
+        }
+    }
+}
+
+/** O nome já está na lista (do cadastro ou criado aqui), sem ligar para maiúsculas, acentos e espaços. */
+internal fun nomeRepetido(nome: String, existentes: List<String>): Boolean {
+    val procurado = nome.trim().semAcentos()
+    return existentes.any { it.trim().semAcentos() == procurado }
 }
 
 /** O nome como fica no campo: o que passa de [TAMANHO_DO_NOME] caracteres não entra. */

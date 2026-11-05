@@ -2,6 +2,7 @@ package app.jammes.boletim.presentation.ui.aluno
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -34,6 +35,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.LibraryBooks
 import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Check
@@ -42,6 +44,7 @@ import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.EditCalendar
 import androidx.compose.material.icons.outlined.EventRepeat
 import androidx.compose.material.icons.outlined.ManageAccounts
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.PersonAdd
 import androidx.compose.material.icons.outlined.PersonOff
 import androidx.compose.material.icons.outlined.PersonRemove
@@ -51,6 +54,7 @@ import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material.icons.outlined.SwitchAccount
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -77,9 +81,11 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -88,6 +94,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.jammes.boletim.BuildConfig
+import app.jammes.boletim.R
 import app.jammes.boletim.domain.model.AlunoComAno
 import app.jammes.boletim.domain.model.AlunoDomain
 import app.jammes.boletim.domain.model.AnoLetivoDomain
@@ -98,6 +106,7 @@ import app.jammes.boletim.domain.usecase.nomeDoAluno
 import app.jammes.boletim.presentation.ui.anoletivo.Cartao
 import app.jammes.boletim.presentation.ui.anoletivo.Divisoria
 import app.jammes.boletim.presentation.ui.anoletivo.LinhaQueAbre
+import app.jammes.boletim.presentation.ui.anoletivo.SetaDeAbrir
 import app.jammes.boletim.presentation.ui.components.Avatar
 import app.jammes.boletim.presentation.ui.components.DURACAO_SAIDA
 import app.jammes.boletim.presentation.ui.components.DURACAO_TRANSICAO
@@ -112,11 +121,12 @@ import app.jammes.boletim.presentation.ui.theme.Espacos
  * Perfil do aluno, aberto como dialog ao tocar na identificação do topo. Em cima, o aluno e o ano
  * abertos no app, como no card de identificação; embaixo, o que dá para fazer com eles.
  *
- * Editar o aluno, trocar de aluno e trocar de ano abrem uma página dentro do próprio card, que cresce
- * ou encolhe até ela. O voltar do sistema volta à página anterior (o início, ou a edição do aluno na
+ * As opções do aluno e as do ano letivo ficam em dois grupos que abrem ali mesmo, um de cada vez. Editar
+ * o aluno, trocar de aluno e trocar de ano abrem uma página dentro do próprio card, que cresce ou encolhe
+ * até ela. O voltar do sistema volta à página anterior (o início, ou a edição do aluno na
  * exclusão dele), e no início fecha. Um aluno ou um ano novo têm tela própria, com os passos do onboarding.
  * No grátis, o aluno novo é do Pro quando já há um, e o ano novo quando o deste ano já existe: o Novo
- * aluno e o Criar novo ano letivo abrem a folha do Pro no lugar dos passos.
+ * aluno e o Novo ano letivo abrem a folha do Pro no lugar dos passos.
  *
  * O dialog ocupa a janela toda e o card fica no alto, perto da identificação que o abriu. Assim a
  * janela não muda de tamanho a cada quadro enquanto o card anima; o toque fora dele é tratado aqui.
@@ -127,6 +137,7 @@ fun AlunoScreen(
     onContextoTrocado: () -> Unit, // aluno ou ano trocado: o que estava aberto era do anterior
     onNovoAnoLetivo: () -> Unit, // abre a criação do ano, nos passos do onboarding que fazem o ano
     onNovoAluno: () -> Unit, // abre o cadastro, que é o onboarding a partir do passo do aluno
+    onMaterias: () -> Unit, // fecha o perfil e abre o cadastro de matérias
     onBackup: () -> Unit, // fecha o perfil e abre o backup e a restauração
     onConfiguracoes: () -> Unit, // fecha o perfil e abre as configurações do app
     modifier: Modifier = Modifier,
@@ -137,6 +148,8 @@ fun AlunoScreen(
     val mudanca by viewModel.mudanca.collectAsStateWithLifecycle()
     // rememberSaveable: a página aberta sobrevive a girar a tela
     var pagina by rememberSaveable { mutableStateOf(Pagina.Inicio) }
+    // O grupo aberto no início. Fica aqui, fora da página: ao voltar de uma opção, ele continua aberto
+    var grupoAberto by rememberSaveable { mutableStateOf<GrupoDoPerfil?>(null) }
     // O perfil no toque em Excluir. O app troca de aluno (ou volta ao onboarding) e só depois apaga:
     // até o perfil fechar, o card continua como estava, sem mostrar o outro aluno nem números zerados
     var naExclusao by remember { mutableStateOf<RetratoDoPerfil?>(null) }
@@ -199,12 +212,14 @@ fun AlunoScreen(
                 CartaoDoPerfil(cartao) {
                     PaginasDoPerfil(
                         pagina = pagina,
+                        grupoAberto = grupoAberto,
                         perfil = perfil,
                         resumo = naExclusao?.resumo ?: resumo,
                         novoAlunoSoNoPro = s.novoAlunoSoNoPro,
                         novoAnoSoNoPro = s.novoAnoSoNoPro,
                         mudando = mudando,
                         onAbrir = { pagina = it },
+                        onAlternarGrupo = { grupo -> grupoAberto = if (grupoAberto == grupo) null else grupo },
                         onFechar = onFechar,
                         onEscolherAluno = { escolhido ->
                             // O que já está aberto não muda nada: só fecha
@@ -231,6 +246,7 @@ fun AlunoScreen(
                         },
                         onNovoAnoLetivo = { if (s.novoAnoSoNoPro) folhaDoPro = true else onNovoAnoLetivo() },
                         onNovoAluno = { if (s.novoAlunoSoNoPro) folhaDoPro = true else onNovoAluno() },
+                        onMaterias = onMaterias,
                         onBackup = onBackup,
                         onConfiguracoes = onConfiguracoes,
                     )
@@ -255,6 +271,9 @@ private enum class Pagina {
         get() = if (this == ExcluirAluno) EditarAluno else Inicio
 }
 
+/** Os grupos do início que abrem ali mesmo, um de cada vez. */
+private enum class GrupoDoPerfil { ALUNO, ANO_LETIVO }
+
 /** O que o card mostrava no toque em Excluir. */
 private data class RetratoDoPerfil(val perfil: PerfilAluno, val resumo: ResumoDoAluno?)
 
@@ -275,12 +294,14 @@ private fun CartaoDoPerfil(
 @Composable
 private fun PaginasDoPerfil(
     pagina: Pagina,
+    grupoAberto: GrupoDoPerfil?,
     perfil: PerfilAluno,
     resumo: ResumoDoAluno?, // o que o aluno aberto tem; null enquanto carrega
     novoAlunoSoNoPro: Boolean,
     novoAnoSoNoPro: Boolean,
     mudando: Boolean, // uma troca ou criação em andamento: os toques esperam ela acabar
     onAbrir: (Pagina) -> Unit,
+    onAlternarGrupo: (GrupoDoPerfil) -> Unit,
     onFechar: () -> Unit,
     onEscolherAluno: (AlunoComAno) -> Unit,
     onEscolherAno: (AnoLetivoDomain) -> Unit,
@@ -288,6 +309,7 @@ private fun PaginasDoPerfil(
     onExcluirAluno: () -> Unit,
     onNovoAnoLetivo: () -> Unit,
     onNovoAluno: () -> Unit,
+    onMaterias: () -> Unit,
     onBackup: () -> Unit,
     onConfiguracoes: () -> Unit,
 ) {
@@ -310,12 +332,15 @@ private fun PaginasDoPerfil(
         when (atual) {
             Pagina.Inicio -> PaginaInicio(
                 perfil = perfil,
+                grupoAberto = grupoAberto,
                 novoAlunoSoNoPro = novoAlunoSoNoPro,
                 novoAnoSoNoPro = novoAnoSoNoPro,
                 onFechar = onFechar,
                 onAbrir = onAbrir,
+                onAlternarGrupo = onAlternarGrupo,
                 onNovoAnoLetivo = onNovoAnoLetivo,
                 onNovoAluno = onNovoAluno,
+                onMaterias = onMaterias,
                 onBackup = onBackup,
                 onConfiguracoes = onConfiguracoes,
             )
@@ -357,12 +382,15 @@ private fun PaginasDoPerfil(
 @Composable
 private fun PaginaInicio(
     perfil: PerfilAluno,
+    grupoAberto: GrupoDoPerfil?,
     novoAlunoSoNoPro: Boolean,
     novoAnoSoNoPro: Boolean,
     onFechar: () -> Unit,
     onAbrir: (Pagina) -> Unit,
+    onAlternarGrupo: (GrupoDoPerfil) -> Unit,
     onNovoAnoLetivo: () -> Unit,
     onNovoAluno: () -> Unit,
+    onMaterias: () -> Unit,
     onBackup: () -> Unit,
     onConfiguracoes: () -> Unit,
 ) {
@@ -402,7 +430,13 @@ private fun PaginaInicio(
         }
 
         CorpoDaPagina(Arrangement.spacedBy(Espacos.s)) {
-            Cartao {
+            GrupoQueAbre(
+                titulo = "Aluno",
+                resumo = "Editar, trocar ou cadastrar",
+                icone = Icons.Outlined.Person,
+                aberto = grupoAberto == GrupoDoPerfil.ALUNO,
+                onAlternar = { onAlternarGrupo(GrupoDoPerfil.ALUNO) },
+            ) {
                 LinhaQueAbre(
                     titulo = "Editar aluno",
                     resumo = "Mudar o nome ou excluir",
@@ -425,9 +459,15 @@ private fun PaginaInicio(
                     fim = etiquetaSe(novoAlunoSoNoPro),
                 ) { Selo(Icons.Outlined.PersonAdd) }
             }
-            Cartao {
+            GrupoQueAbre(
+                titulo = "Ano letivo",
+                resumo = "Criar ou trocar",
+                icone = Icons.Outlined.CalendarMonth,
+                aberto = grupoAberto == GrupoDoPerfil.ANO_LETIVO,
+                onAlternar = { onAlternarGrupo(GrupoDoPerfil.ANO_LETIVO) },
+            ) {
                 LinhaQueAbre(
-                    titulo = "Criar novo ano letivo",
+                    titulo = "Novo ano letivo",
                     rotuloDoClique = if (novoAnoSoNoPro) "Ver o Pro, que libera mais anos letivos" else "Criar um ano letivo",
                     onClick = onNovoAnoLetivo,
                     fim = etiquetaSe(novoAnoSoNoPro),
@@ -439,6 +479,14 @@ private fun PaginaInicio(
                     rotuloDoClique = "Escolher outro ano letivo",
                     onClick = { onAbrir(Pagina.TrocarAnoLetivo) },
                 ) { Selo(Icons.Outlined.EventRepeat) }
+            }
+            Cartao {
+                LinhaQueAbre(
+                    titulo = "Matérias",
+                    resumo = "Criar, editar ou excluir",
+                    rotuloDoClique = "Abrir as matérias",
+                    onClick = onMaterias,
+                ) { Selo(Icons.AutoMirrored.Outlined.LibraryBooks) }
             }
             // runCatching nos toques daqui: sem navegador no aparelho, não fazem nada em vez de fechar o app
             val uriHandler = LocalUriHandler.current
@@ -474,9 +522,51 @@ private fun PaginaInicio(
                 onClick = { runCatching { uriHandler.openUri(URL_PRIVACIDADE) } },
                 modifier = Modifier.align(Alignment.CenterHorizontally),
             ) { Text("Política de Privacidade") }
+            Text(
+                text = textoDaVersao(stringResource(R.string.app_name), BuildConfig.VERSION_NAME),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+            )
         }
     }
 }
+
+/**
+ * Um grupo do início que abre ali mesmo: a linha com o nome dele, que mostra ou esconde as [opcoes]
+ * embaixo, no mesmo cartão. Uma linha de ponta a ponta separa o grupo, e as opções vêm recuadas, como
+ * numa tabela.
+ */
+@Composable
+private fun GrupoQueAbre(
+    titulo: String,
+    resumo: String,
+    icone: ImageVector,
+    aberto: Boolean,
+    onAlternar: () -> Unit,
+    opcoes: @Composable () -> Unit,
+) {
+    Cartao {
+        LinhaQueAbre(
+            titulo = titulo,
+            resumo = resumo,
+            rotuloDoClique = if (aberto) "Esconder as opções" else "Mostrar as opções",
+            onClick = onAlternar,
+            modifier = Modifier.semantics { stateDescription = if (aberto) "Aberto" else "Fechado" },
+            fim = { SetaDeAbrir(aberta = aberto) },
+        ) { Selo(icone) }
+        AnimatedVisibility(visible = aberto) {
+            Column {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Column(Modifier.padding(start = RECUO_DAS_OPCOES)) {
+                    opcoes()
+                }
+            }
+        }
+    }
+}
+
+private val RECUO_DAS_OPCOES = 18.dp
 
 private const val URL_PRIVACIDADE = "https://jameswillian.github.io/Boletim/privacidade/"
 
@@ -814,6 +904,9 @@ internal fun Selo(icone: ImageVector, cor: Color = MaterialTheme.colorScheme.pri
 private val LARGURA_MAXIMA = 560.dp
 
 // Textos ------------------------------------------------------------------------------------
+
+/** "Boletim Escolar · versão 1.0": o rodapé do início. */
+internal fun textoDaVersao(nomeDoApp: String, versao: String): String = "$nomeDoApp · versão $versao"
 
 /** "2 alunos neste aparelho"; com um só, "1 aluno neste aparelho". */
 internal fun resumoDosAlunos(quantidade: Int): String =

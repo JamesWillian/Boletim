@@ -1,7 +1,7 @@
 package app.jammes.boletim.domain.model
 
 /**
- * De onde a matéria entrou no cadastro. Por enquanto só fica gravada: nenhuma tela mostra.
+ * De onde a matéria entrou no cadastro: a tela de matérias agrupa por ela, e o plano conta e libera por ela.
  *
  * O banco guarda o [codigo], então um código não pode mudar nem ser reaproveitado. Um código que não
  * existe vira [USUARIO]: sem saber de onde a matéria veio, ela é tratada como da pessoa.

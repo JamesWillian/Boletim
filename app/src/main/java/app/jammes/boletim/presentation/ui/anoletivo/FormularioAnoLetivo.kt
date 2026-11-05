@@ -3,12 +3,12 @@ package app.jammes.boletim.presentation.ui.anoletivo
 import app.jammes.boletim.domain.model.AjustesAnoLetivo
 import app.jammes.boletim.domain.model.AnoLetivoDomain
 import app.jammes.boletim.domain.model.Lancamentos
+import app.jammes.boletim.domain.model.MateriaDomain
 import app.jammes.boletim.domain.model.PeriodoDomain
 import app.jammes.boletim.domain.model.RegraAvaliacaoDomain
 import app.jammes.boletim.domain.model.TipoArredondamento
 import app.jammes.boletim.domain.model.TipoMedia
 import app.jammes.boletim.domain.model.TipoPeriodo
-import app.jammes.boletim.domain.usecase.MateriaNova
 import java.io.Serializable
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -27,7 +27,7 @@ data class FormularioAnoLetivo(
     val periodos: Periodos,
     val regras: Regras,
     val materias: Set<Long>, // ids das matérias que entram no ano
-    val materiasNovas: List<MateriaNova> = emptyList(), // criadas aqui: entram no cadastro só no Salvar
+    val materiasNovas: List<MateriaDomain> = emptyList(), // criadas aqui: entram no cadastro só no Salvar
 ) : Serializable {
 
     /** O ano e a série, como estão digitados. */
@@ -121,8 +121,7 @@ data class FormularioAnoLetivo(
     }
 
     // Desistir de uma criada aqui é só tirá-la da lista: ela ainda não existe no cadastro
-    fun comMateriaNova(nome: String, abreviacao: String = "") =
-        copy(materiasNovas = materiasNovas + MateriaNova(nome.trim(), abreviacao.trim().ifEmpty { null }))
+    fun comMateriaNova(materia: MateriaDomain) = copy(materiasNovas = materiasNovas + materia)
     fun semMateriaNova(nome: String) = copy(materiasNovas = materiasNovas.filterNot { it.nome == nome })
 
     /** Quantas coisas mudaram em cada seção, comparando com o [gravado]. */
@@ -240,7 +239,7 @@ class Gravacao(
     val anoLetivo: AnoLetivoDomain,
     val regra: RegraAvaliacaoDomain,
     val materiaIds: Set<Long>,
-    val materiasNovas: List<MateriaNova>,
+    val materiasNovas: List<MateriaDomain>,
 )
 
 enum class ProblemaDatas(val mensagem: String) {

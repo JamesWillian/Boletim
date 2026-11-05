@@ -85,7 +85,6 @@ fun AppNavHost(
                 }
 
                 // Sem as abas
-                composable<Routes.Materia> { MateriaScreen() }
                 // Os ajustes sobem de leve por cima, como uma folha que se abre, e descem ao fechar
                 composable<Routes.AnoLetivo>(
                     enterTransition = { subindo },
@@ -127,6 +126,13 @@ fun AppNavHost(
                             navController.abrirAjustesAnoLetivo()
                         },
                     )
+                }
+                // As matérias sobem como os ajustes
+                composable<Routes.Materia>(
+                    enterTransition = { subindo },
+                    popExitTransition = { descendo },
+                ) {
+                    MateriaScreen(onVoltar = { navController.fecharMaterias() })
                 }
                 // As configurações sobem como os ajustes
                 composable<Routes.Configuracoes>(
@@ -182,6 +188,7 @@ fun AppNavHost(
                         onContextoTrocado = { navController.abrirBoletimGeral() },
                         onNovoAnoLetivo = { navController.abrirNovoAnoLetivo() },
                         onNovoAluno = { navController.abrirNovoAluno() },
+                        onMaterias = { navController.abrirMaterias() },
                         onBackup = { navController.abrirBackup() },
                         onConfiguracoes = { navController.abrirConfiguracoes() },
                     )
@@ -285,6 +292,19 @@ fun NavController.fecharNovoAnoLetivo() {
     popBackStack<Routes.NovoAnoLetivo>(inclusive = true)
 }
 
+/** Fecha o perfil e abre no lugar dele o cadastro de matérias, como o cadastro de outro aluno. */
+fun NavController.abrirMaterias() {
+    navigate(Routes.Materia) {
+        popUpTo<Routes.Aluno> { inclusive = true }
+        launchSingleTop = true
+    }
+}
+
+/** Fecha as matérias. Como nos ajustes, só tira elas da pilha, mesmo se for chamado duas vezes. */
+fun NavController.fecharMaterias() {
+    popBackStack<Routes.Materia>(inclusive = true)
+}
+
 /** Fecha o perfil e abre no lugar dele as configurações, como o cadastro de outro aluno. */
 fun NavController.abrirConfiguracoes() {
     navigate(Routes.Configuracoes) {
@@ -363,13 +383,14 @@ fun NavController.abrirDisciplina(disciplinaId: Long) {
  * O card de identificação some nos ajustes do ano letivo e na edição da disciplina, que têm barra
  * própria (e o card mostraria o ano como está gravado enquanto ele é editado), no cadastro de outro
  * aluno, que ainda não existe, e no de um ano novo, que já tem a prévia de como o card vai ficar, e
- * nas configurações, no backup e nas notificações, que não são de nenhum aluno.
+ * nas matérias, nas configurações, no backup e nas notificações, que não são de nenhum aluno.
  */
 val NavBackStackEntry.mostraIdentificacao: Boolean
     get() = !destination.hasRoute<Routes.AnoLetivo>() &&
         !destination.hasRoute<Routes.EditarDisciplina>() &&
         !destination.hasRoute<Routes.NovoAluno>() &&
         !destination.hasRoute<Routes.NovoAnoLetivo>() &&
+        !destination.hasRoute<Routes.Materia>() &&
         !destination.hasRoute<Routes.Configuracoes>() &&
         !destination.hasRoute<Routes.Backup>() &&
         !destination.hasRoute<Routes.Notificacoes>() &&

@@ -1,8 +1,6 @@
 package app.jammes.boletim.presentation.ui.disciplina
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,7 +16,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -28,14 +25,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import app.jammes.boletim.presentation.ui.components.CampoDaSigla
 import app.jammes.boletim.presentation.ui.components.CampoDoNome
-import app.jammes.boletim.presentation.ui.components.siglaDoNome
-import app.jammes.boletim.presentation.ui.plano.EtiquetaPro
+import app.jammes.boletim.presentation.ui.components.NomeESiglaBloqueados
 import kotlinx.coroutines.launch
 
 /**
@@ -100,9 +95,7 @@ internal fun NomeDaDisciplinaBottomSheet(
             )
 
             if (nomeBloqueado) {
-                CampoDoPro(valor = nomeDigitado, rotulo = "Nome", onPro = onPro)
-                // Vazia, a sigla que as abas tiram do nome
-                CampoDoPro(valor = abreviacaoDigitada.ifEmpty { siglaDoNome(nomeDigitado) }, rotulo = "Sigla", onPro = onPro)
+                NomeESiglaBloqueados(nome = nomeDigitado, abreviacao = abreviacaoDigitada, onPro = onPro)
             } else {
                 CampoDoNome(
                     valor = nomeDigitado,
@@ -149,39 +142,5 @@ internal fun NomeDaDisciplinaBottomSheet(
                 ) { Text("Aplicar") }
             }
         }
-    }
-}
-
-/**
- * Um campo que só o Pro muda: mostra o valor, apagado, com a etiqueta do Pro no fim. O campo desligado
- * não recebe o toque; quem recebe é a camada por cima, que chama [onPro].
- */
-@Composable
-private fun CampoDoPro(valor: String, rotulo: String, onPro: () -> Unit) {
-    val cores = MaterialTheme.colorScheme
-    val forma = RoundedCornerShape(12.dp)
-    Box {
-        OutlinedTextField(
-            value = valor,
-            onValueChange = {},
-            enabled = false,
-            label = { Text(rotulo) },
-            // O lugar do ícone tem 48dp, e a etiqueta é mais larga: sem a folga, ela encosta na borda
-            trailingIcon = { EtiquetaPro(Modifier.padding(end = 12.dp), compacta = true) },
-            singleLine = true,
-            shape = forma,
-            colors = OutlinedTextFieldDefaults.colors(
-                disabledTextColor = cores.onSurfaceVariant,
-                disabledLabelColor = cores.onSurfaceVariant,
-                disabledBorderColor = cores.outlineVariant,
-            ),
-            modifier = Modifier.fillMaxWidth(),
-        )
-        Box(
-            Modifier
-                .matchParentSize()
-                .clip(forma)
-                .clickable(onClickLabel = "Ver o Pro", onClick = onPro)
-        )
     }
 }

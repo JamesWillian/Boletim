@@ -36,8 +36,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.outlined.CalendarMonth
 import androidx.compose.material.icons.outlined.Delete
@@ -128,6 +126,7 @@ import app.jammes.boletim.domain.model.TipoPeriodo
 import app.jammes.boletim.domain.model.intervalo
 import app.jammes.boletim.domain.usecase.impedimentoDoTipo
 import app.jammes.boletim.presentation.ui.anoletivo.LinhaQueAbre
+import app.jammes.boletim.presentation.ui.anoletivo.SetaDeAbrir
 import app.jammes.boletim.presentation.ui.anoletivo.nomeDoPeriodo
 import app.jammes.boletim.presentation.ui.boletim.corDoStatus
 import app.jammes.boletim.presentation.ui.components.OpcaoDoSeletor
@@ -393,7 +392,7 @@ fun AvaliacaoBottomSheet(
                     onClick = { abrir(if (dataAberta) null else Secao.DATA) },
                     resumo = resumoDaData(formulario.data, hoje),
                     aviso = if (tentouGravar && formulario.data == null) "A avaliação precisa de uma data" else null,
-                    fim = { SetaDaSecao(aberta = dataAberta) },
+                    fim = { SetaDeAbrir(aberta = dataAberta) },
                 ) { SeloDoIcone(Icons.Outlined.CalendarMonth) }
                 AnimatedVisibility(visible = dataAberta) {
                     CalendarioNoLugar(
@@ -419,7 +418,7 @@ fun AvaliacaoBottomSheet(
                         comPeso = comPeso,
                         avisoDoTipo = impedimentoAtual?.let { resumoDoImpedimento(formulario.tipo, it) },
                     ),
-                    fim = { SetaDaSecao(aberta = opcoesAbertas) },
+                    fim = { SetaDeAbrir(aberta = opcoesAbertas) },
                 ) { SeloDoIcone(Icons.Outlined.Tune) }
                 AnimatedVisibility(visible = opcoesAbertas) {
                     MaisOpcoes(
@@ -798,16 +797,6 @@ private fun Modifier.borda(cor: () -> Color, espessura: () -> Dp, tracejada: Boo
 @Composable
 private fun SeloDoIcone(icone: ImageVector) {
     SeloDisciplina(cor = MaterialTheme.colorScheme.primary, icone = icone, tamanho = 36.dp)
-}
-
-/** A seta de uma seção que abre ali mesmo: para baixo fechada, para cima aberta. */
-@Composable
-private fun SetaDaSecao(aberta: Boolean) {
-    Icon(
-        imageVector = if (aberta) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-        contentDescription = null,
-        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
 }
 
 /**

@@ -14,6 +14,10 @@ class AlunoScreenTest {
 
     // Textos -----------------------------------------------------------------------------------
 
+    @Test fun `o rodape junta o nome do app e a versao`() {
+        assertEquals("Boletim Escolar · versão 1.0", textoDaVersao("Boletim Escolar", "1.0"))
+    }
+
     @Test fun `resumo dos alunos fala no singular quando ha um so`() {
         assertEquals("1 aluno neste aparelho", resumoDosAlunos(1))
         assertEquals("3 alunos neste aparelho", resumoDosAlunos(3))

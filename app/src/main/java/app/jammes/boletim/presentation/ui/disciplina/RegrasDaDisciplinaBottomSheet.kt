@@ -16,13 +16,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.outlined.Functions
 import androidx.compose.material.icons.outlined.SwapVert
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -53,6 +50,7 @@ import app.jammes.boletim.presentation.ui.anoletivo.FAIXA_DA_MEDIA
 import app.jammes.boletim.presentation.ui.anoletivo.FormularioAnoLetivo
 import app.jammes.boletim.presentation.ui.anoletivo.LinhaQueAbre
 import app.jammes.boletim.presentation.ui.anoletivo.OpcoesDeEscolha
+import app.jammes.boletim.presentation.ui.anoletivo.SetaDeAbrir
 import app.jammes.boletim.presentation.ui.anoletivo.detalheDoArredondamento
 import app.jammes.boletim.presentation.ui.anoletivo.detalheDoCalculo
 import app.jammes.boletim.presentation.ui.anoletivo.exemploDoArredondamento
@@ -191,7 +189,7 @@ internal fun RegrasDaDisciplinaBottomSheet(
                     resumo = resumoDoCalculo(rascunho.tipoMedia),
                     rotuloDoClique = if (calculoAberto) "Fechar o cálculo da média" else "Escolher o cálculo da média",
                     onClick = { alternar(Escolha.CALCULO) },
-                    fim = { SetaDaEscolha(aberta = calculoAberto) },
+                    fim = { SetaDeAbrir(aberta = calculoAberto) },
                 ) {
                     SeloDisciplina(
                         cor = MaterialTheme.colorScheme.primary,
@@ -222,7 +220,7 @@ internal fun RegrasDaDisciplinaBottomSheet(
                     resumo = resumoDoArredondamento(rascunho.arredondamento),
                     rotuloDoClique = if (arredondamentoAberto) "Fechar o arredondamento" else "Escolher o arredondamento",
                     onClick = { alternar(Escolha.ARREDONDAMENTO) },
-                    fim = { SetaDaEscolha(aberta = arredondamentoAberto) },
+                    fim = { SetaDeAbrir(aberta = arredondamentoAberto) },
                 ) {
                     SeloDisciplina(
                         cor = MaterialTheme.colorScheme.primary,
@@ -274,16 +272,6 @@ internal fun RegrasDaDisciplinaBottomSheet(
 
 /** O que abre embaixo da linha dela, um de cada vez. */
 private enum class Escolha { CALCULO, ARREDONDAMENTO }
-
-/** A seta de uma escolha que abre ali mesmo: para baixo fechada, para cima aberta. */
-@Composable
-private fun SetaDaEscolha(aberta: Boolean) {
-    Icon(
-        imageVector = if (aberta) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-        contentDescription = null,
-        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
-}
 
 // Um pouco mais que a animação de abrir uma escolha (expandVertically, com mola)
 private const val DURACAO_PARA_ACOMPANHAR = 600L

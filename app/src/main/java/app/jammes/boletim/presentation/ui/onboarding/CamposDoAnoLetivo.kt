@@ -62,7 +62,7 @@ import app.jammes.boletim.presentation.ui.plano.FolhaDoPro
 import app.jammes.boletim.presentation.ui.theme.Espacos
 import java.time.LocalDate
 
-// As peças do ano letivo que o onboarding e o "Criar novo ano letivo" do perfil mostram iguais: a
+// As peças do ano letivo que o onboarding e o "Novo ano letivo" do perfil mostram iguais: a
 // prévia do topo, a série e o ano. A divisão do ano é um passo inteiro, o PassoDivisao.
 
 /** Como o aluno vai aparecer no topo do app, já enquanto se digita. */

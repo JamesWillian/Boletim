@@ -14,6 +14,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -36,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.jammes.boletim.domain.model.TipoAvaliacao
+import app.jammes.boletim.presentation.ui.theme.Espacos
 import kotlin.math.cos
 import kotlin.math.sin
 
@@ -68,6 +71,25 @@ fun SeloDisciplina(
             contentDescription = null, // o nome da disciplina está sempre ao lado
             tint = cor,
             modifier = Modifier.size(tamanho * 0.55f),
+        )
+    }
+}
+
+/** Um cadeado e a frase que explica o que ele prende. */
+@Composable
+internal fun AvisoComCadeado(texto: String, modifier: Modifier = Modifier) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            imageVector = Icons.Outlined.Lock,
+            contentDescription = null, // a frase ao lado já diz
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(16.dp),
+        )
+        Spacer(Modifier.width(Espacos.s))
+        Text(
+            text = texto,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
 }

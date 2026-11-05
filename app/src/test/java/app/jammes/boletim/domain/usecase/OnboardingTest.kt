@@ -1,7 +1,6 @@
 package app.jammes.boletim.domain.usecase
 
 import app.jammes.boletim.domain.model.Etapa
-import app.jammes.boletim.domain.model.IconeMateria
 import app.jammes.boletim.domain.model.MateriaDomain
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -35,33 +34,6 @@ class OnboardingTest {
         val proprias = (1..7).map { MateriaDomain(id = it.toLong(), nome = "Matéria $it") }
 
         assertEquals(proprias.take(MATERIAS_DO_ANO_NOVO), materiasDoPrimeiroAno(Etapa.MEDIO, proprias))
-    }
-
-    @Test fun `materia nova pega as cores que o cadastro ainda nao usa, em ordem`() {
-        // As padrão usam 0–6, 8, 10, 11, 14, 16 e 17
-        val padrao = PADRAO.zip(listOf(0, 1, 16, 10, 2, 8, 6, 3, 5, 4, 11, 17, 14)) { materia, cor -> materia.copy(cor = cor) }
-
-        val novas = materiasNovas(listOf(MateriaNova("Robótica"), MateriaNova("Música"), MateriaNova("Teatro")), padrao)
-
-        assertEquals(listOf(7, 9, 12), novas.map { it.cor })
-        assertEquals(listOf(0L, 0L, 0L), novas.map { it.id }) // ainda não gravadas
-        assertEquals("ROB", novas.first().abreviacao)
-    }
-
-    @Test fun `a sigla digitada vale, e vazia sai das letras do nome`() {
-        val novas = materiasNovas(
-            listOf(MateriaNova("Robótica", "rbt"), MateriaNova("Ed. Física", " "), MateriaNova("Teatro")),
-            PADRAO,
-        )
-
-        assertEquals(listOf("RBT", "EDF", "TEA"), novas.map { it.abreviacao })
-    }
-
-    @Test fun `o icone da materia nova sai do nome, e sem palavra conhecida fica o padrao`() {
-        assertEquals(IconeMateria.ROBO, iconeSugerido("Robótica"))
-        assertEquals(IconeMateria.NOTA_MUSICAL, iconeSugerido("Educação Musical"))
-        assertEquals(IconeMateria.CODIGO, iconeSugerido("Programação"))
-        assertEquals(IconeMateria.PADRAO, iconeSugerido("Ensino Religioso"))
     }
 }
 

@@ -106,7 +106,6 @@ import app.jammes.boletim.domain.model.MateriaDomain
 import app.jammes.boletim.domain.model.TipoArredondamento
 import app.jammes.boletim.domain.model.TipoMedia
 import app.jammes.boletim.domain.model.TipoPeriodo
-import app.jammes.boletim.domain.usecase.materiasNovas
 import app.jammes.boletim.domain.usecase.periodosPadrao
 import app.jammes.boletim.presentation.ui.anoletivo.DatasPeriodo
 import app.jammes.boletim.presentation.ui.anoletivo.EscolhaBottomSheet
@@ -127,14 +126,16 @@ import app.jammes.boletim.presentation.ui.boletim.formatarMedia
 import app.jammes.boletim.presentation.ui.components.Avatar
 import app.jammes.boletim.presentation.ui.components.DURACAO_SAIDA
 import app.jammes.boletim.presentation.ui.components.DURACAO_TRANSICAO
-import app.jammes.boletim.presentation.ui.components.DialogoDaMateriaNova
 import app.jammes.boletim.presentation.ui.components.EncolherSemPartirPalavra
 import app.jammes.boletim.presentation.ui.components.Pilula
 import app.jammes.boletim.presentation.ui.components.SeloDisciplina
 import app.jammes.boletim.presentation.ui.components.descricaoDoAno
 import app.jammes.boletim.presentation.ui.disciplina.formatarNumero
+import app.jammes.boletim.presentation.ui.materia.MateriaBottomSheet
+import app.jammes.boletim.presentation.ui.materia.materiaNova
 import app.jammes.boletim.presentation.ui.plano.EtiquetaPro
 import app.jammes.boletim.presentation.ui.plano.FolhaDoPro
+import app.jammes.boletim.presentation.ui.plano.rotuloDaMateriaNova
 import app.jammes.boletim.presentation.ui.plano.textoDasQueRestam
 import app.jammes.boletim.presentation.ui.theme.CoresDisciplina
 import app.jammes.boletim.presentation.ui.theme.Espacos
@@ -654,8 +655,7 @@ internal fun PassoMaterias(
 ) {
     val marcadas = formulario.materiasMarcadas(sugeridas)
     val total = formulario.totalDeMaterias(sugeridas)
-    // Como as criadas aqui vão ficar: a cor e o ícone que o cadastro vai dar a elas
-    val novas = remember(formulario.materiasNovas, materias) { materiasNovas(formulario.materiasNovas, materias) }
+    val novas = formulario.materiasNovas
     var criando by rememberSaveable { mutableStateOf(false) }
     var folhaDoPro by rememberSaveable { mutableStateOf(false) }
     val haptico = LocalHapticFeedback.current
@@ -719,13 +719,10 @@ internal fun PassoMaterias(
     }
 
     if (criando) {
-        DialogoDaMateriaNova(
-            titulo = "Outra matéria",
-            existentes = materias.map { it.nome } + formulario.materiasNovas.map { it.nome },
-            onCriar = { nome, abreviacao ->
-                onMudar(formulario.comMateriaNova(nome, abreviacao))
-                criando = false
-            },
+        MateriaBottomSheet(
+            materia = materiaNova(coresUsadas = (materias + novas).map { it.cor }),
+            existentes = (materias + novas).map { it.nome },
+            onSalvar = { onMudar(formulario.comMateriaNova(it)) },
             onDismiss = { criando = false },
         )
     }
@@ -755,7 +752,7 @@ private fun OutraMateria(restam: Int?, onClick: () -> Unit, modifier: Modifier) 
             .bordaTracejada(cores.outlineVariant, 14.dp)
             .clip(forma)
             .clickable(
-                onClickLabel = if (soNoPro) "Ver o Pro, que libera mais matérias" else "Criar uma matéria",
+                onClickLabel = rotuloDaMateriaNova(soNoPro),
                 onClick = onClick,
             )
             .padding(horizontal = 10.dp),

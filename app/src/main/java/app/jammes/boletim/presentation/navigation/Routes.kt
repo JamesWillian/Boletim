@@ -10,7 +10,7 @@ import kotlinx.serialization.Serializable
  * ├── Boletim                  grafo: telas COM as abas de disciplinas
  * │   ├── Geral                BoletimScreen
  * │   └── Disciplina(id)       DisciplinaDetailScreen
- * ├── Materia                  MateriaScreen           ┐ telas SEM as abas
+ * ├── Materia                  MateriaScreen           ┐ telas SEM as abas; o cadastro de matérias, aberta pelo perfil
  * ├── AnoLetivo                AnoLetivoScreen         │
  * ├── EditarDisciplina(id)     EditarDisciplinaScreen  │ aberta pelo Editar do detalhe
  * ├── NovoAluno                OnboardingScreen        │ o cadastro de outro aluno, sem as boas-vindas

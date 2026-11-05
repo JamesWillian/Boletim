@@ -42,13 +42,17 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.jammes.boletim.domain.model.MateriaDomain
 import app.jammes.boletim.domain.model.materiasQueRestam
-import app.jammes.boletim.presentation.ui.components.DialogoDaMateriaNova
+import app.jammes.boletim.presentation.ui.components.AvisoComCadeado
 import app.jammes.boletim.presentation.ui.components.Pilula
 import app.jammes.boletim.presentation.ui.components.SeloDisciplina
+import app.jammes.boletim.presentation.ui.materia.MateriaBottomSheet
+import app.jammes.boletim.presentation.ui.materia.materiaNova
 import app.jammes.boletim.presentation.ui.plano.EtiquetaPro
 import app.jammes.boletim.presentation.ui.plano.FolhaDoPro
 import app.jammes.boletim.presentation.ui.plano.PlanoViewModel
+import app.jammes.boletim.presentation.ui.plano.rotuloDaMateriaNova
 import app.jammes.boletim.presentation.ui.plano.textoDasQueRestam
 import app.jammes.boletim.presentation.ui.theme.CoresDisciplina
 import app.jammes.boletim.presentation.ui.theme.Espacos
@@ -58,7 +62,7 @@ import kotlinx.coroutines.launch
 /**
  * Quais matérias o aluno tem no ano: um switch em cada. As que já têm avaliações ou faltas ficam
  * presas com um cadeado, porque tirá-las apagaria esses lançamentos. No fim da lista, "Nova matéria"
- * abre o mesmo diálogo do onboarding: a criada entra ligada, e no cadastro só no Salvar. No grátis,
+ * abre o sheet da tela de matérias: a criada entra ligada, e no cadastro só no Salvar. No grátis,
  * embaixo dela vai quantas ainda cabem; sem nenhuma, ela abre a folha do Pro.
  *
  * Cada toque já vai para o formulário da tela, e quem grava é o Salvar dela; "Pronto" só fecha. Aberto
@@ -73,7 +77,7 @@ internal fun MateriasBottomSheet(
     existentes: List<String>, // os nomes que uma nova não pode repetir
     materiasQueRestam: Int?, // as que ainda cabem no grátis, contando as novas; null: sem limite
     onMudar: (Set<Long>) -> Unit,
-    onCriar: (nome: String, abreviacao: String) -> Unit,
+    onCriar: (MateriaDomain) -> Unit,
     onDesistir: (nome: String) -> Unit,
     onDismiss: () -> Unit,
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
@@ -119,20 +123,7 @@ internal fun MateriasBottomSheet(
 
             // Uma frase só explica todos os cadeados
             if (linhas.any { it.lancamentos != null }) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Outlined.Lock,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(16.dp),
-                    )
-                    Spacer(Modifier.width(Espacos.s))
-                    Text(
-                        text = "Matérias com avaliações ou faltas não podem ser removidas",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
+                AvisoComCadeado("Matérias com avaliações ou faltas não podem ser removidas")
             }
 
             // Só a lista rola: a contagem em cima e o Pronto embaixo ficam sempre à vista
@@ -187,13 +178,10 @@ internal fun MateriasBottomSheet(
     }
 
     if (criando) {
-        DialogoDaMateriaNova(
-            titulo = "Nova matéria",
+        MateriaBottomSheet(
+            materia = materiaNova(coresUsadas = (linhas + novas).map { it.cor }),
             existentes = existentes,
-            onCriar = { nome, abreviacao ->
-                onCriar(nome, abreviacao)
-                criando = false
-            },
+            onSalvar = onCriar,
             onDismiss = { criando = false },
         )
     }
@@ -232,7 +220,7 @@ internal fun MateriasDoAnoSheet(
     val linhas = remember(lido) { linhasDasMaterias(lido) }
     // O mesmo formulário dos ajustes, só com as matérias mexidas: o resto vai como estava gravado
     var form by rememberSaveable(lido) { mutableStateOf(FormularioAnoLetivo.de(lido)) }
-    val novas = remember(form.materiasNovas, lido) { linhasDasNovas(form.materiasNovas, lido) }
+    val novas = remember(form.materiasNovas) { linhasDasNovas(form.materiasNovas) }
     val nomesUsados = remember(lido, linhas) { (lido.materias.map { it.nome } + linhas.map { it.nome }).distinct() }
 
     MateriasBottomSheet(
@@ -242,7 +230,7 @@ internal fun MateriasDoAnoSheet(
         existentes = nomesUsados + form.materiasNovas.map { it.nome },
         materiasQueRestam = plano?.materiasQueRestam(lido.materias, form.materiasNovas.size),
         onMudar = { form = form.copy(materias = it) },
-        onCriar = { nome, abreviacao -> form = form.comMateriaNova(nome, abreviacao) },
+        onCriar = { form = form.comMateriaNova(it) },
         onDesistir = { form = form.semMateriaNova(it) },
         onDismiss = onFechar,
         sheetState = sheetState,
@@ -319,7 +307,7 @@ private fun LinhaNovaMateria(restam: Int?, onClick: () -> Unit) {
             .fillMaxWidth()
             .heightIn(min = 56.dp)
             .clickable(
-                onClickLabel = if (soNoPro) "Ver o Pro, que libera mais matérias" else "Criar uma matéria",
+                onClickLabel = rotuloDaMateriaNova(soNoPro),
                 role = Role.Button,
                 onClick = onClick,
             )

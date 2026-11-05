@@ -62,7 +62,7 @@ fun Plano.podeGravarMateriasNovas(cadastro: List<MateriaDomain>, novas: Int): Bo
     novas == 0 || podeCriarMateria(cadastro.quantasProprias() + novas - 1)
 
 // As que o grátis conta: todas as criadas pela pessoa, em uso num ano ou não
-private fun List<MateriaDomain>.quantasProprias(): Int = count { it.fonte == FonteMateria.USUARIO }
+private fun List<MateriaDomain>.quantasProprias(): Int = count { it.propria }
 
 /** O que acontece ao escolher um ano para um ano letivo novo. */
 enum class CriacaoDoAno {

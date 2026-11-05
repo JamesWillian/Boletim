@@ -19,6 +19,10 @@ class MateriaRepositoryImpl @Inject constructor(
         return materiaDao.observar().map { it.map { materia -> materia.toDomain() } }
     }
 
+    override fun observeAnosEmUso(): Flow<Map<Long, Int>> {
+        return materiaDao.observarAnosEmUso().map { usos -> usos.associate { it.materiaId to it.anos } }
+    }
+
     override suspend fun upsert(materia: MateriaDomain): Long {
         val materiaEntity = materia.toEntity()
 

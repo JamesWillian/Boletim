@@ -42,6 +42,8 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.EventBusy
@@ -102,6 +104,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.jammes.boletim.domain.model.AjustesAnoLetivo
 import app.jammes.boletim.domain.model.IconeMateria
 import app.jammes.boletim.domain.model.Lancamentos
+import app.jammes.boletim.domain.model.MateriaDomain
 import app.jammes.boletim.domain.model.Plano
 import app.jammes.boletim.domain.model.TipoArredondamento
 import app.jammes.boletim.domain.model.TipoMedia
@@ -111,8 +114,6 @@ import app.jammes.boletim.domain.model.nomeDe
 import app.jammes.boletim.domain.model.nomeFeminino
 import app.jammes.boletim.domain.model.ordinalDe
 import app.jammes.boletim.domain.usecase.arredondarMedia
-import app.jammes.boletim.domain.usecase.MateriaNova
-import app.jammes.boletim.domain.usecase.materiasNovas
 import app.jammes.boletim.presentation.ui.boletim.formatarMedia
 import app.jammes.boletim.presentation.ui.components.CarregandoDiscreto
 import app.jammes.boletim.presentation.ui.components.EstadoVazio
@@ -213,7 +214,7 @@ private fun EditorAjustes(
     val problemas = remember(form.periodos) { problemasDasDatas(form.periodos.visiveis) }
     val bloqueio = remember(form.periodos, ajustes) { form.periodos.bloqueioParaDiminuir(ajustes) }
     val materias = remember(ajustes) { linhasDasMaterias(ajustes) }
-    val novas = remember(form.materiasNovas, ajustes) { linhasDasNovas(form.materiasNovas, ajustes) }
+    val novas = remember(form.materiasNovas) { linhasDasNovas(form.materiasNovas) }
     // Uma matéria nova não repete nenhum destes: os do cadastro e os das disciplinas, que podem ter mudado
     val nomesUsados = remember(ajustes) { (ajustes.materias.map { it.nome } + materias.map { it.nome }).distinct() }
     val alterado = alteracoes.total > 0
@@ -372,7 +373,7 @@ private fun EditorAjustes(
             existentes = nomesUsados + form.materiasNovas.map { it.nome },
             materiasQueRestam = plano?.materiasQueRestam(ajustes.materias, form.materiasNovas.size),
             onMudar = { form = form.copy(materias = it) },
-            onCriar = { nome, abreviacao -> form = form.comMateriaNova(nome, abreviacao) },
+            onCriar = { form = form.comMateriaNova(it) },
             onDesistir = { form = form.semMateriaNova(it) },
             onDismiss = { editor = null },
         )
@@ -412,7 +413,8 @@ internal fun ConfirmarDescarte(
 /**
  * Barra com voltar e título em cima, e a de salvar embaixo; a mesma moldura enquanto carrega e depois.
  * A edição da disciplina usa a mesma, com o título dela. As [acoes] ficam à direita do título, como a
- * engrenagem das notificações.
+ * engrenagem das notificações. A barra de cima muda para [corAoRolar] quando o conteúdo rola por baixo:
+ * quem tem algo fixo embaixo dela, como a busca das matérias, passa a cor do fundo para a barra não destoar.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -423,6 +425,8 @@ internal fun MolduraAjustes(
     snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
     acoes: @Composable RowScope.() -> Unit = {},
     barraDeBaixo: @Composable () -> Unit = {},
+    fab: @Composable () -> Unit = {},
+    corAoRolar: Color = MaterialTheme.colorScheme.surfaceContainer,
     conteudo: @Composable (PaddingValues) -> Unit,
 ) {
     // A barra de cima ganha o tom das superfícies quando a lista rola por baixo dela
@@ -450,12 +454,13 @@ internal fun MolduraAjustes(
                 windowInsets = WindowInsets(0, 0, 0, 0),
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    scrolledContainerColor = corAoRolar,
                 ),
                 scrollBehavior = rolagem,
             )
         },
         bottomBar = barraDeBaixo,
+        floatingActionButton = fab,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
         content = conteudo,
@@ -830,7 +835,7 @@ private fun LinhaDeAjuste(
 /**
  * Uma linha que mostra um ajuste e abre o editor dele: o selo no [inicio], o nome, o [resumo] do
  * valor e a seta. Um [aviso] aparece embaixo, em vermelho. Com [fim], ele fica no lugar da seta
- * (por exemplo, a seta para baixo de uma seção que abre ali mesmo). [corDoTitulo] pinta o nome de
+ * (por exemplo, a [SetaDeAbrir] de uma seção que abre ali mesmo). [corDoTitulo] pinta o nome de
  * uma ação que apaga dados, como excluir o aluno.
  */
 @Composable
@@ -885,6 +890,16 @@ internal fun LinhaQueAbre(
             )
         }
     }
+}
+
+/** A seta de uma seção que abre ali mesmo: para baixo fechada, para cima aberta. */
+@Composable
+internal fun SetaDeAbrir(aberta: Boolean) {
+    Icon(
+        imageVector = if (aberta) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 /** O número do período num quadrado tingido, como o selo das disciplinas; vermelho se as datas têm problema. */
@@ -1333,11 +1348,8 @@ internal fun linhasDasMaterias(ajustes: AjustesAnoLetivo): List<LinhaMateria> {
     }
 }
 
-/**
- * As matérias criadas na tela, como vão ficar: com a cor e o ícone que o cadastro vai dar a elas no
- * Salvar. Ainda não têm id nem lançamentos.
- */
-internal fun linhasDasNovas(novas: List<MateriaNova>, ajustes: AjustesAnoLetivo): List<LinhaMateria> =
-    materiasNovas(novas, ajustes.materias).map { materia ->
+/** As matérias criadas na tela, como vão ficar. Ainda não têm id nem lançamentos. */
+internal fun linhasDasNovas(novas: List<MateriaDomain>): List<LinhaMateria> =
+    novas.map { materia ->
         LinhaMateria(materiaId = 0, nome = materia.nome, cor = materia.cor, icone = materia.icone, lancamentos = null)
     }

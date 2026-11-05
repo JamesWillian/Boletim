@@ -2,7 +2,7 @@ package app.jammes.boletim.presentation.ui.onboarding
 
 import app.jammes.boletim.domain.model.TipoMedia
 import app.jammes.boletim.domain.model.TipoPeriodo
-import app.jammes.boletim.domain.usecase.MateriaNova
+import app.jammes.boletim.domain.model.MateriaDomain
 import app.jammes.boletim.presentation.ui.anoletivo.DatasPeriodo
 import app.jammes.boletim.presentation.ui.components.nomeRepetido
 import org.junit.Assert.assertEquals
@@ -63,18 +63,20 @@ class FormularioOnboardingTest {
     }
 
     @Test fun `materia criada aqui conta, e sozinha ja basta para gravar`() {
-        val formulario = formulario(nome = "Ana").copy(materiaIds = emptySet()).comMateriaNova(" Robótica ")
+        val robotica = MateriaDomain(nome = "Robótica")
+        val formulario = formulario(nome = "Ana").copy(materiaIds = emptySet()).comMateriaNova(robotica)
 
         val primeiro = formulario.paraGravar(sugeridas = setOf(1L))!!
 
         assertEquals(1, formulario.totalDeMaterias(setOf(1L)))
         assertEquals(emptySet<Long>(), primeiro.materiaIds)
-        assertEquals(listOf(MateriaNova("Robótica")), primeiro.materiasNovas)
+        assertEquals(listOf(robotica), primeiro.materiasNovas)
         assertNull(formulario.semMateriaNova("Robótica").paraGravar(setOf(1L)))
     }
 
-    @Test fun `nome de materia repetido nao liga para maiusculas nem espacos`() {
+    @Test fun `nome de materia repetido nao liga para maiusculas, acentos nem espacos`() {
         assertTrue(nomeRepetido("  português ", listOf("Português", "Matemática")))
+        assertTrue(nomeRepetido("MATEMATICA", listOf("Português", "Matemática")))
         assertFalse(nomeRepetido("Robótica", listOf("Português", "Matemática")))
     }
 }

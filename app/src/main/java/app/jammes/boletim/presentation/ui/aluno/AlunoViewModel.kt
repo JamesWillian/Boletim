@@ -38,7 +38,7 @@ sealed interface AlunoUiState {
     data class Sucesso(
         val perfil: PerfilAluno,
         val novoAlunoSoNoPro: Boolean = false, // o grátis já tem o aluno dele: o Novo aluno abre a folha do Pro
-        val novoAnoSoNoPro: Boolean = false, // o grátis não tem mais ano para criar: o Criar novo ano letivo também
+        val novoAnoSoNoPro: Boolean = false, // o grátis não tem mais ano para criar: o Novo ano letivo também
     ) : AlunoUiState
 }
 
